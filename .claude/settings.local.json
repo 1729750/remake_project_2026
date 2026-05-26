@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__mcp-unity__execute_menu_item",
+      "mcp__mcp-unity__set_transform"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "mcp-unity"
+  ]
+}
