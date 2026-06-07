@@ -1,0 +1,95 @@
+{
+    "version": 1,
+    "name": "PlayerAction",
+    "maps": [
+        {
+            "name": "Battle",
+            "id": "085b8e3b-dbf9-408f-b5fa-78e5a0f6b87e",
+            "actions": [
+                {
+                    "name": "PlayCard1",
+                    "type": "Button",
+                    "id": "09a2e8be-eccc-48ac-8bcc-e30028905c0f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "PlayCard2",
+                    "type": "Button",
+                    "id": "ad3e6f48-9fdf-44e6-8218-d132b805a2e6",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "PlayCard3",
+                    "type": "Button",
+                    "id": "fbb2a86e-0951-4424-8018-92264fc7d720",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "PlayCard4",
+                    "type": "Button",
+                    "id": "be2e9750-9920-4a77-8b5e-10e9047495dc",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "851e0ebd-8d49-4350-bb58-a0f9d5eced57",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PlayCard1",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "bc9c0b38-6e0e-4e6d-b9da-7cee8e0ae9d3",
+                    "path": "<Keyboard>/w",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PlayCard2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f6d2f078-32ce-4d63-9fd6-c2c9592a5989",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PlayCard3",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2e3add2b-866a-4742-895d-4de910f0ca01",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PlayCard4",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

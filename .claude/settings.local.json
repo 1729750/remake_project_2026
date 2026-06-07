@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "mcp__mcp-unity__execute_menu_item",
-      "mcp__mcp-unity__set_transform"
+      "mcp__mcp-unity__set_transform",
+      "mcp__mcp-unity__get_scene_info",
+      "mcp__mcp-unity__get_gameobject",
+      "mcp__mcp-unity__recompile_scripts",
+      "mcp__mcp-unity__update_component",
+      "mcp__mcp-unity__save_scene",
+      "mcp__mcp-unity__duplicate_gameobject",
+      "mcp__mcp-unity__batch_execute",
+      "mcp__mcp-unity__get_console_logs",
+      "Bash(del \"C:\\\\Users\\\\tuiko\\\\remake_project\\\\remake project\\\\Assets\\\\Editor\\\\EffectDrawer.cs\")",
+      "Bash(del \"C:\\\\Users\\\\tuiko\\\\remake_project\\\\remake project\\\\Assets\\\\Editor\\\\EffectDrawer.cs.meta\")"
     ]
   },
   "enabledMcpjsonServers": [
