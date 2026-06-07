@@ -52,10 +52,14 @@ public class HandManager
         var card = _hand[_selectedIndex];
         card.Use();
         if (_queueManager.AddCard(card))
+        {
             _hand[_selectedIndex] = null;
-        UnselectCard();
-        RefreshVisuals();
-        return true;
+            UnselectCard();
+            RefreshVisuals();
+            return true;
+        }
+
+        return false;
     }
 
     private void RefreshVisuals()

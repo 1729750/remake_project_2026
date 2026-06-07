@@ -69,11 +69,12 @@ public class BattleManager: MonoBehaviour
         var selected = _handManager?.GetSelectedCard();
         if (selected != null && _cost >= selected.GetCost())
         {
-            _cost -= selected.GetCost();
+            if(_handManager.UseCard())
+            {
+                _cost -= selected.GetCost();
+            }
             UpdateCostDisplay();
-            _handManager.UseCard();
         }
-        _handManager.UnselectCard();
     }
 
     private void SelectCard(int index)
@@ -217,7 +218,7 @@ public class BattleManager: MonoBehaviour
 
     public void AddDefense(int amount)
     {
-        _defense += amount;
+        _defense += Math.Max(amount,0);
         UpdateDefenseDisplay();
     }
 
