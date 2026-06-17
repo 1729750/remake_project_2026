@@ -1,0 +1,1144 @@
+﻿===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\BattleManager.cs =====
+using System;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine.InputSystem;
+using UnityEngine;
+
+public class BattleManager: MonoBehaviour
+{
+    private int _maxHealth = 100;
+    private int _health;
+    private int _defense;
+    private int _cost;
+    private const int MaxCost = 10;
+    private List<Effect> _effects;
+    [SerializeField] private CardDefinition[] startDeck;
+    [SerializeField] private QueueManager queueManager;
+    [SerializeField] private bool isHandVisualized;
+    [SerializeField] private Transform handsRoot;
+    [SerializeField] private GameObject cardPrefab;
+    [SerializeField] private Transform hpBar;
+    [SerializeField] private bool shrinkRight = true;
+    [SerializeField] private bool playerControlled = true;
+    [SerializeField] private TextMeshPro costText;
+    [SerializeField] private TextMeshPro effectListText;
+    [SerializeField] private TextMeshPro defenseText;
+    private InputActionAsset inputActions;
+    private InputAction _playCard1;
+    private InputAction _playCard2;
+    private InputAction _playCard3;
+    private InputAction _playCard4;
+    private List<CardInstance> _deck;
+    private HandManager _handManager;
+    
+    public BattleManager()
+    {
+        _effects = new List<Effect>();
+    }
+
+    private void Update()
+    {
+       
+        UpdateCostDisplay();
+        if (!playerControlled) return;
+        if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameState.Turn) return;
+
+        if (_playCard1 == null) return;
+        if (_playCard1.triggered)      SelectCard(0);
+        else if (_playCard2.triggered) SelectCard(1);
+        else if (_playCard3.triggered) SelectCard(2);
+        else if (_playCard4.triggered) SelectCard(3);
+    }
+
+    public void OnTurnStart()
+    {
+        if (_handManager == null) return;
+        _cost = Mathf.Min(_cost + 1, MaxCost);
+        UpdateCostDisplay();
+        UpdateEffectList();
+        _handManager.FillHand();
+    }
+
+    public void OnTurnEnd()
+    {
+        queueManager.TickQueueCards(this);
+        for (int i = _effects.Count - 1; i >= 0; i--)
+            _effects[i].OnTurnEnded(this);
+        if (!playerControlled)
+            SelectRandomCard();
+        var selected = _handManager?.GetSelectedCard();
+        if (selected != null && _cost >= selected.GetCost())
+        {
+            if(_handManager.UseCard())
+            {
+                _cost -= selected.GetCost();
+            }
+            UpdateCostDisplay();
+        }
+    }
+
+    private void SelectCard(int index)
+    {
+        var hand = _handManager.GetHand();
+        if (index < 0 || index >= hand.Length || hand[index] == null) return;
+        _handManager.SelectCard(index);
+        Debug.Log($"[{gameObject.name}] Selected card: {hand[index].GetDefinition().name}");
+    }
+
+    public void SelectRandomCard()
+    {
+        var hand = _handManager.GetHand();
+        var valid = new List<int>();
+        for (int i = 0; i < hand.Length; i++)
+        {
+            if (hand[i] != null && hand[i].GetCost() <= _cost) valid.Add(i);
+        }
+        if (valid.Count == 0) return;
+        int idx = valid[UnityEngine.Random.Range(0, valid.Count)];
+        _handManager.SelectCard(idx);
+        int cardCost = hand[idx].GetCost();
+        string cardName = hand[idx].GetDefinition().name;
+        Debug.Log($"[{gameObject.name}] Selected card: {cardName} (cost: {cardCost}, cost left: {_cost})");
+    }
+
+    public int getmaxHealth() => _maxHealth;
+    public int GetHealth() => _health;
+    public int GetDefense() => _defense;
+    public int GetCost() => _cost;
+    public Effect[] GetEffects() => _effects.ToArray();
+
+    public void Init()
+    { 
+        _effects = new List<Effect>();
+        _deck = new List<CardInstance>();
+
+        Transform[] slots = null;
+        GameObject prefab = null;
+        if (isHandVisualized && handsRoot != null && cardPrefab != null)
+        {
+            slots = new Transform[handsRoot.childCount];
+            for (int i = 0; i < handsRoot.childCount; i++)
+                slots[i] = handsRoot.GetChild(i);
+            prefab = cardPrefab;
+        }
+
+        _handManager = new HandManager(this, queueManager, slots, prefab);
+
+        if (playerControlled)
+            inputActions = Resources.Load<InputActionAsset>("PlayerAction");
+
+        if (playerControlled && inputActions != null)
+        {
+            var map = inputActions.FindActionMap("Battle", throwIfNotFound: true);
+            _playCard1 = map.FindAction("PlayCard1", throwIfNotFound: true);
+            _playCard2 = map.FindAction("PlayCard2", throwIfNotFound: true);
+            _playCard3 = map.FindAction("PlayCard3", throwIfNotFound: true);
+            _playCard4 = map.FindAction("PlayCard4", throwIfNotFound: true);
+            inputActions.Enable();
+        }
+
+        Clear();
+        
+        //???앹꽦
+        if (startDeck != null)
+            foreach (var def in startDeck)
+                _deck.Add(new CardInstance(def,this));
+        
+        //???뷀뵆
+        for (int i = _deck.Count - 1; i > 0; i--)
+        {
+            int j = UnityEngine.Random.Range(0, i + 1);
+            (_deck[i], _deck[j]) = (_deck[j], _deck[i]);
+        }
+        
+        //??梨꾩슦湲?
+        _handManager.FillHand();
+    }
+
+    private void OnDestroy()
+    {
+        inputActions?.Disable();
+    }
+
+    public void Clear()
+    {
+        _effects.Clear();
+        _deck = new List<CardInstance>();
+        _health = _maxHealth;
+        _defense = 0;
+        _cost = 0;
+        UpdateHPBar();
+        UpdateDefenseDisplay();
+    }
+
+    private void UpdateHPBar()
+    {
+        if (hpBar == null) return;
+        float ratio = (float)_health / _maxHealth;
+        float offset = shrinkRight ? (ratio - 1f) * 0.5f : (1f - ratio) * 0.5f;
+        hpBar.localScale = new Vector3(ratio, 1f, 1f);
+        hpBar.localPosition = new Vector3(offset, 0f, 0f);
+    }
+
+    public void Attacked(int damage)
+    {
+        TakeDamage(damage);
+    }
+
+    public void TakeDamage(int amount)
+    {
+        if (amount <= 0)
+            return;
+        _defense -= amount;
+        if(_defense<0)
+        {
+            _health += _defense;
+            _defense = 0;
+        }
+        UpdateHPBar();
+        UpdateDefenseDisplay();
+        Debug.Log($"[{gameObject.name}] Took {amount} damage (HP: {_health}, DEF: {_defense})");
+        if (_health <= 0 && GameManager.Instance != null)
+        {
+            Debug.Log($"[{gameObject.name}] Defeated!");
+            GameManager.Instance.NotifyDefeat(this);
+        }
+    }
+
+    public void NotifyVictory()
+    {
+        Debug.Log($"[{gameObject.name}] Victory!");
+    }
+
+    public void Heal(int amount)
+    {
+        _health += amount;
+        UpdateHPBar();
+    }
+
+    public void AddDefense(int amount)
+    {
+        _defense += Math.Max(amount,0);
+        UpdateDefenseDisplay();
+    }
+
+    public CardInstance DrawCard()
+    {
+        if (_deck.Count == 0) return null;
+        var card = _deck[0];
+        _deck.RemoveAt(0);
+        return card;
+    }
+
+    public void ReturnToDeck(CardInstance card)
+    {
+        _deck.Add(card);
+    }
+
+    public void RemoveEffect<T>() where T : Effect
+    {
+        for (int i = 0; i < _effects.Count; i++)
+        {
+            if (_effects[i] is T)
+            {
+                Debug.Log($"[{gameObject.name}] Lost effect: {_effects[i].GetEffectType()}");
+                _effects[i].OnExpired(this);
+                _effects.RemoveAt(i);
+                return;
+            }
+        }
+    }
+
+    public void ApplyEffect(CardEffect cardEffect)
+    {
+        Debug.Log($"applying {cardEffect.GetEffect().GetEffectType()} effect");
+        
+        for(int i = _effects.Count - 1; i >= 0; i--)
+        {
+            _effects[i].OnApplyed(this, cardEffect, true);
+        }
+        EffectType effectType = cardEffect.GetEffect().GetEffectType();
+        switch (effectType)
+        {
+            case(EffectType.Attack):
+                Attacked(cardEffect.GetMagnitude());
+                break;
+            case(EffectType.Defend):
+                AddDefense(cardEffect.GetMagnitude());
+                break;
+            default:
+                for (int i = 0; i < _effects.Count; i++){
+                    if (_effects[i].GetEffectType() == effectType)
+                    {
+                        Debug.Log($"{_effects[i].GetEffectType()} {effectType}");
+                        _effects[i].AddMagnitude(cardEffect.GetMagnitude());
+                        Debug.Log($"[{gameObject.name}] Stacked effect: {_effects[i].GetEffectType()} :{cardEffect.GetMagnitude()}");
+                        _effects[i].OnApplied(this);
+                        return;
+                    }
+                }
+                var newEffect = Effect.Create(effectType, cardEffect.GetMagnitude());
+                _effects.Add(newEffect);
+                newEffect.OnApplied(this);
+                Debug.Log($"[{gameObject.name}] Gained effect: {effectType} :{cardEffect.GetMagnitude()}");
+                break;
+        }
+    }
+
+    private void UpdateCostDisplay()
+    {
+        if (costText == null) return;
+        costText.text = $"{_cost}/{MaxCost}";
+    }
+
+    private void UpdateDefenseDisplay()
+    {
+        if (defenseText == null) return;
+        bool show = _defense >= 1;
+        defenseText.transform.parent.gameObject.SetActive(show);
+        defenseText.text = _defense.ToString();
+    }
+
+    private void UpdateEffectList()
+    {
+        if (effectListText == null) return;
+        var parts = new List<string>();
+        foreach (var effect in _effects)
+        {
+            if (effect == null) continue;
+            parts.Add($"{GameManager.Instance.GetEmoji(effect.GetEffectType())}:{effect.GetMagnitude()}");
+        }
+        effectListText.text = string.Join(" ", parts);
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\GameManager.cs =====
+using TMPro;
+using UnityEngine;
+
+public class GameManager : MonoBehaviour
+{
+    public static GameManager Instance { get; private set; }
+
+    [SerializeField] private BattleManager playerBattleManager;
+    [SerializeField] private BattleManager enemyBattleManager;
+    [SerializeField] private TextMeshPro turnText;
+    [SerializeField] private float turnDuration = 1f;
+    [SerializeField] private float startDelay = 3f;
+
+    private TurnManager _turnManager;
+    private TurnTimerOverlay _turnTimerOverlay;
+    private float _startElapsed;
+    public GameState CurrentState { get; private set; }
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+    }
+
+    void Start()
+    {
+        var overlayGO = new GameObject("TurnTimerOverlay");
+        overlayGO.transform.SetParent(turnText.transform.parent);
+        overlayGO.transform.localPosition = Vector3.zero;
+        overlayGO.transform.localScale = Vector3.one;
+        overlayGO.AddComponent<MeshFilter>();
+        overlayGO.AddComponent<MeshRenderer>();
+        _turnTimerOverlay = overlayGO.AddComponent<TurnTimerOverlay>();
+
+        _turnManager = new TurnManager(turnDuration, _turnTimerOverlay, turnText);
+        _turnManager.OnTurnStarted += OnTurnStarted;
+        _turnManager.OnTurnEnded += OnTurnEnded;
+        playerBattleManager.Init();
+        enemyBattleManager.Init();
+        
+        _startElapsed = 0f;
+        _turnTimerOverlay?.SetFill(0f);
+        SetState(GameState.GameStarting);
+    }
+
+    void Update()
+    {
+        if (CurrentState == GameState.GameStarting)
+        {
+            _startElapsed += Time.deltaTime;
+            _turnTimerOverlay?.SetFill(_startElapsed / startDelay);
+            if (_startElapsed >= startDelay)
+            {
+                OnGameStarted();
+            }
+        }
+        else if (CurrentState == GameState.Turn)
+        {
+            _turnManager.Tick(Time.deltaTime);
+        }
+    }
+
+    private void SetState(GameState state)
+    {
+        CurrentState = state;
+        Debug.Log(CurrentState);
+    }
+
+    private void OnGameStarted()
+    {
+       _turnManager.StartTurn();
+    }
+
+    private void OnTurnStarted()
+    {
+        SetState(GameState.TurnStart);
+        Debug.Log($"Turn {_turnManager.GetCurrentTurn()} Started");
+        playerBattleManager.OnTurnStart();
+        enemyBattleManager.OnTurnStart();
+        SetState(GameState.Turn);
+    }
+
+    private void OnTurnEnded()
+    {
+        SetState(GameState.TurnEnd);
+        Debug.Log($"Turn {_turnManager.GetCurrentTurn()} Ended");
+        playerBattleManager.OnTurnEnd();
+        enemyBattleManager.OnTurnEnd();
+        if (CurrentState != GameState.GameFinish)
+        {
+            _turnManager.StartTurn();
+        }
+    }
+
+
+    public void NotifyDefeat(BattleManager loser)
+    {
+        if (CurrentState != GameState.GameFinish)
+        {
+            GetOpponent(loser)?.NotifyVictory();
+            SetState(GameState.GameFinish);
+            Application.Quit();
+        }
+    }
+
+    public BattleManager GetOpponent(BattleManager user)
+    {
+        return user == playerBattleManager ? enemyBattleManager : playerBattleManager;
+    }
+
+    public string GetEmoji(EffectType effectType)
+    {
+        switch (effectType)
+        {
+            case EffectType.Attack:    return "?뿠截?;
+            case EffectType.Defend:    return "?썳截?;
+            case EffectType.Harden:    return "?숋툘";
+            case EffectType.Strength:  return "??;
+            case EffectType.Vulnerable: return "?뮅";
+            case EffectType.Weak:      return "??";
+            default:                   return "?";
+        }
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\GameState.cs =====
+public enum GameState
+{
+    GameStarting,
+    TurnStart,
+    Turn,
+    TurnEnd,
+    GameFinish
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\HandManager.cs =====
+using UnityEngine;
+
+public class HandManager
+{
+    private const int HandSize = 4;
+    private CardInstance[] _hand = new CardInstance[HandSize];
+    private int _selectedIndex = -1;
+    private GameObject[] _cardObjects = new GameObject[HandSize];
+
+    private BattleManager _battleManager;
+    private QueueManager _queueManager;
+    private Transform[] _slots;
+    private GameObject _cardPrefab;
+
+    public HandManager(BattleManager battleManager, QueueManager queueManager, Transform[] slots, GameObject cardPrefab)
+    {
+        _battleManager = battleManager;
+        _queueManager = queueManager;
+        _slots = slots;
+        _cardPrefab = cardPrefab;
+    }
+
+    public void FillHand()
+    {
+        for (int i = 0; i < HandSize; i++)
+        {
+            if (_hand[i] == null)
+                _hand[i] = _battleManager.DrawCard();
+        }
+        RefreshVisuals();
+    }
+
+    public void SelectCard(int index)
+    {
+        _selectedIndex = index;
+        RefreshSelection();
+    }
+
+    public void UnselectCard()
+    {
+        _selectedIndex = -1;
+        RefreshSelection();
+    }
+    public CardInstance[] GetHand() => _hand;
+    public CardInstance GetSelectedCard() => (_selectedIndex >= 0 && _selectedIndex < HandSize) ? _hand[_selectedIndex] : null;
+
+    public bool UseCard()
+    {
+        if (_selectedIndex < 0 || _selectedIndex >= HandSize || _hand[_selectedIndex] == null)
+            return false;
+
+        var card = _hand[_selectedIndex];
+        card.Use();
+        if (_queueManager.AddCard(card))
+        {
+            _hand[_selectedIndex] = null;
+            UnselectCard();
+            RefreshVisuals();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void RefreshVisuals()
+    {
+        if (_slots == null || _cardPrefab == null) return;
+
+        for (int i = 0; i < HandSize; i++)
+        {
+            if (_cardObjects[i] != null)
+            {
+                Object.Destroy(_cardObjects[i]);
+                _cardObjects[i] = null;
+            }
+
+            if (_hand[i] != null)
+            {
+                GameObject obj = Object.Instantiate(_cardPrefab, _slots[i]);
+                obj.transform.localPosition = Vector3.zero;
+                obj.AddComponent<CardVisual>().SetCard(_hand[i]);
+                _cardObjects[i] = obj;
+            }
+        }
+        RefreshSelection();
+    }
+
+    private void RefreshSelection()
+    {
+        for (int i = 0; i < HandSize; i++)
+        {
+            if (_cardObjects[i] == null) continue;
+            var visual = _cardObjects[i].GetComponent<CardVisual>();
+            if (visual != null)
+                visual.SetSelected(i == _selectedIndex);
+        }
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\QueueManager.cs =====
+using UnityEngine;
+
+public class QueueManager : MonoBehaviour
+{
+    private const int QueueSize = 3;
+    private CardInstance[] _queue = new CardInstance[QueueSize];
+    private GameObject[] _cardObjects = new GameObject[QueueSize];
+
+    [SerializeField] private GameObject cardPrefab;
+
+    private Transform[] _slots;
+
+    private void Awake()
+    {
+        _slots = new Transform[QueueSize];
+        for (int i = 0; i < QueueSize; i++)
+            _slots[i] = transform.GetChild(i);
+    }
+
+    public bool AddCard(CardInstance card)
+    {
+        for (int i = 0; i < QueueSize; i++)
+        {
+            if (_queue[i] == null)
+            {
+                _queue[i] = card;
+                SpawnCardVisual(i);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public CardInstance[] GetQueue() => _queue;
+
+    public void TickQueueCards(BattleManager battleManager)
+    {
+        for (int i = 0; i < QueueSize; i++)
+        {
+            if (_queue[i] == null) continue;
+
+            _queue[i].TickCooldown();
+            if (_queue[i].IsReady())
+            {
+                _queue[i].Play(battleManager);
+                _queue[i] = null;
+                DestroyCardVisual(i);
+            }
+        }
+    }
+
+    private void SpawnCardVisual(int index)
+    {
+        if (_cardObjects[index] != null)
+            Destroy(_cardObjects[index]);
+
+        GameObject obj = Instantiate(cardPrefab, _slots[index]);
+        obj.transform.localPosition = Vector3.zero;
+        CardVisual visual = obj.AddComponent<CardVisual>();
+        visual.SetCard(_queue[index]);
+        _cardObjects[index] = obj;
+    }
+
+    private void DestroyCardVisual(int index)
+    {
+        if (_cardObjects[index] != null)
+        {
+            Destroy(_cardObjects[index]);
+            _cardObjects[index] = null;
+        }
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\TurnManager.cs =====
+using System;
+using TMPro;
+using UnityEngine;
+
+public class TurnManager
+{
+    public event Action OnTurnStarted;
+    public event Action OnTurnEnded;
+
+    private bool _isActive;
+    private int _currentTurn;
+    private float _turnDuration;
+    private float _elapsed;
+    private TurnTimerOverlay _overlay;
+    private TextMeshPro _turnText;
+
+    public bool GetIsActive() => _isActive;
+    public int GetCurrentTurn() => _currentTurn;
+    public float GetTurnDuration() => _turnDuration;
+    public float GetElapsedRatio() => _turnDuration > 0 ? Mathf.Clamp01(_elapsed / _turnDuration) : 0f;
+
+    public TurnManager(float turnDuration, TurnTimerOverlay overlay, TextMeshPro turnText)
+    {
+        _turnDuration = turnDuration;
+        _overlay = overlay;
+        _turnText = turnText;
+        UpdateTurnText();
+    }
+
+    private void UpdateTurnText()
+    {
+        if (_turnText != null)
+            _turnText.text = $"{_currentTurn}";
+    }
+
+    public void StartTurn()
+    {
+        _isActive = true;
+        _currentTurn++;
+        _elapsed = 0f;
+        _overlay?.SetFill(0f);
+        UpdateTurnText();
+        OnTurnStarted?.Invoke();
+    }
+
+    public void EndTurn()
+    {
+        _isActive = false;
+        _elapsed = 0f;
+        OnTurnEnded?.Invoke();
+    }
+
+    public void Reset()
+    {
+        _isActive = false;
+        _currentTurn = 0;
+        _elapsed = 0f;
+        _overlay?.SetFill(0f);
+    }
+
+    // Call this from GameManager.Update() with Time.deltaTime
+    public void Tick(float deltaTime)
+    {
+        if (!_isActive) return;
+
+        _elapsed += deltaTime;
+        _overlay?.SetFill(GetElapsedRatio());
+        if (_elapsed >= _turnDuration)
+            EndTurn();
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\TurnTimerOverlay.cs =====
+using UnityEngine;
+
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+public class TurnTimerOverlay : MonoBehaviour
+{
+    [SerializeField] private float radius = 0.5f;
+    [SerializeField] private int segments = 60;
+    [SerializeField] private Color shadowColor = new Color(0f, 0f, 0f, 0.7f);
+
+    private MeshFilter _meshFilter;
+    private Mesh _mesh;
+    private float _lastRatio = -1f;
+
+    void Awake()
+    {
+        _meshFilter = GetComponent<MeshFilter>();
+        _mesh = new Mesh { name = "TurnTimerMesh" };
+        _meshFilter.mesh = _mesh;
+
+        var mr = GetComponent<MeshRenderer>();
+        mr.sortingLayerName = "Default";
+        mr.sortingOrder = 3;
+        var mat = new Material(Shader.Find("Sprites/Default"));
+        mat.color = shadowColor;
+        mr.material = mat;
+    }
+
+    public void SetFill(float ratio)
+    {
+        ratio = Mathf.Clamp01(ratio);
+        if (Mathf.Approximately(_lastRatio, ratio)) return;
+        _lastRatio = ratio;
+        BuildMesh(ratio);
+    }
+
+    private void BuildMesh(float ratio)
+    {
+        _mesh.Clear();
+        if (ratio <= 0f) return;
+
+        int triCount = Mathf.Max(1, Mathf.CeilToInt(segments * ratio));
+        var verts = new Vector3[triCount + 2];
+        var tris = new int[triCount * 3];
+
+        verts[0] = Vector3.zero;
+        float totalDeg = ratio * 360f;
+
+        for (int i = 0; i <= triCount; i++)
+        {
+            float t = (float)i / triCount;
+            float deg = 90f - totalDeg * t;
+            float rad = deg * Mathf.Deg2Rad;
+            verts[i + 1] = new Vector3(Mathf.Cos(rad) * radius, Mathf.Sin(rad) * radius, 0f);
+        }
+
+        for (int i = 0; i < triCount; i++)
+        {
+            tris[i * 3]     = 0;
+            tris[i * 3 + 1] = i + 1;
+            tris[i * 3 + 2] = i + 2;
+        }
+
+        _mesh.vertices = verts;
+        _mesh.triangles = tris;
+        _mesh.RecalculateBounds();
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\CardDefinition.cs =====
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "CardDefinition", menuName = "Scriptable Objects/CardDefinition")]
+public class CardDefinition: ScriptableObject
+{
+    [SerializeField] private int cooldown;
+    [SerializeField] private int cost;
+    [SerializeField] private List<CardEffect> _effects;
+    [SerializeField] private Sprite sprite;
+    [SerializeField] private CardType cardType;
+    public CardDefinition(int cooldown, int cost, CardEffect[] effects, Sprite sprite)
+    {
+        this.cooldown = cooldown;
+        this.cost = cost;
+        this.sprite = sprite;
+        _effects = effects.ToList();
+    }
+
+    public int GetCooldown() => cooldown;
+    public int GetCost() => cost;
+    public CardEffect[] GetEffects() => _effects.ToArray();
+    public CardType GetCardType() => cardType;
+    public Sprite GetSprite() => sprite;
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\CardEffect.cs =====
+using System;
+using UnityEngine;
+
+[Serializable]
+public class CardEffect
+{
+    [SerializeField] private Effect _effect;
+    [SerializeField] private EffectTarget _target;
+    private float multiplier = 1f;
+    private int adder = 0;
+
+    public void Reset()
+    {
+        multiplier = 1f;
+        adder = 0;
+    }
+
+    public void Add(int i)
+    {
+        adder += i;
+    }
+    
+    public void Multiply(float i)
+    {
+        multiplier *= i;
+    }
+    public CardEffect(Effect effect, EffectTarget target)
+    {
+        _effect = effect;
+        _target = target;
+    }
+
+    public Effect GetEffect() => _effect;
+    public BattleManager GetTarget(BattleManager user)
+    {
+        return _target == EffectTarget.User ? user : GameManager.Instance.GetOpponent(user);
+    }
+
+    public int GetMagnitude()
+    {
+        return (int)Math.Floor(_effect.GetMagnitude() * multiplier) + adder;
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\CardInstance.cs =====
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CardInstance
+{
+    private CardDefinition _definition;
+    private bool _isPlayed = false;
+    private int _cooldownLeft; 
+    private int cooldown;
+    private int cost;
+    private CardType cardType;
+    private List<CardEffect> _effects;
+
+    private BattleManager _owner;
+    // effect will be added later
+
+    public CardInstance(CardDefinition definition, BattleManager owner)
+    {
+        _definition = definition;
+        _owner = owner;
+        RefreshInstance();
+        _isPlayed = false;
+        _cooldownLeft = 0;
+    }
+
+    private void RefreshInstance()
+    {
+        cooldown =  _definition.GetCooldown();
+        cost  = _definition.GetCost();
+        _effects = new List<CardEffect>();
+        foreach (CardEffect cardEffect in _definition.GetEffects())
+        {
+            _effects.Add(cardEffect);
+        }
+    }
+    public CardDefinition GetDefinition() => _definition;
+    public int GetCost() => cost;
+    public int GetCooldownLeft() => _cooldownLeft;
+    public bool IsReady() => _cooldownLeft <= 0;
+
+    public void Use()
+    {
+        _cooldownLeft = _definition.GetCooldown();
+        _isPlayed = true;
+    }
+
+    public void TickCooldown()
+    {
+        if (_cooldownLeft > 0)
+            _cooldownLeft--;
+    }
+
+    public void Play(BattleManager battleManager)
+    {
+        Debug.Log($"[{battleManager.gameObject.name}] Activated card: {_definition.name}");
+        foreach (CardEffect cardEffect in _effects)
+        {
+           cardEffect.Reset();
+            Effect[] ownerEffects = battleManager.GetEffects();
+            for (int i = ownerEffects.Length - 1; i >= 0; i--)
+                ownerEffects[i].OnApplying(battleManager, cardEffect, true);
+            BattleManager resolved = cardEffect.GetTarget(battleManager);
+            resolved.ApplyEffect(cardEffect);
+        }
+        battleManager.ReturnToDeck(this);
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\CardType.cs =====
+public enum CardType
+{
+    Attack,
+    Skill
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\CardVisual.cs =====
+using System.Text;
+using TMPro;
+using UnityEngine;
+
+public class CardVisual : MonoBehaviour
+{
+    private SpriteRenderer _background;
+    private SpriteRenderer _sprite;
+    private TextMeshPro _effectText;
+    private TextMeshPro _costText;
+    private TextMeshPro _cooltimeText;
+    private GameObject _selectHighlight;
+    private CardInstance _cardInstance;
+
+    private void Awake()
+    {
+        _background      = transform.Find("background").GetComponent<SpriteRenderer>();
+        _sprite          = transform.Find("sprite").GetComponent<SpriteRenderer>();
+        _effectText      = transform.Find("effect/effectText").GetComponent<TextMeshPro>();
+        _costText        = transform.Find("cost/CostText").GetComponent<TextMeshPro>();
+        _cooltimeText    = transform.Find("cooltimeText").GetComponent<TextMeshPro>();
+        _selectHighlight = transform.Find("background/SelectHighlight").gameObject;
+        _selectHighlight.SetActive(false);
+    }
+
+    public void SetSelected(bool selected) => _selectHighlight.SetActive(selected);
+
+    public void SetCard(CardInstance cardInstance)
+    {
+        _cardInstance = cardInstance;
+        CardDefinition def = cardInstance.GetDefinition();
+
+        _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
+        _sprite.sprite = def.GetSprite();
+        _costText.text = def.GetCost().ToString();
+
+        var sb = new StringBuilder();
+        foreach (CardEffect cardEffect in def.GetEffects())
+        {
+            string emoji = GameManager.Instance.GetEmoji(cardEffect.GetEffect().GetEffectType());
+            int magnitude = cardEffect.GetEffect().GetMagnitude();
+            if (sb.Length > 0) sb.Append('\n');
+            sb.Append($"{emoji}:{magnitude}");
+        }
+        _effectText.text = sb.ToString();
+
+        FitToParent();
+        RefreshCooltime();
+    }
+
+    private void FitToParent()
+    {
+        if (transform.parent == null) return;
+        SpriteRenderer parentSR = transform.parent.GetComponent<SpriteRenderer>();
+        if (parentSR == null) return;
+
+        Vector2 targetSize = parentSR.bounds.size;
+        Vector2 currentSize = _background.bounds.size;
+        if (currentSize.x == 0f || currentSize.y == 0f) return;
+
+        transform.localScale = new Vector3(
+            transform.localScale.x * targetSize.x / currentSize.x,
+            transform.localScale.y * targetSize.y / currentSize.y,
+            transform.localScale.z
+        );
+    }
+
+    private void Update()
+    {
+        if (_cardInstance != null)
+            RefreshCooltime();
+    }
+
+    private void RefreshCooltime()
+    {
+        _cooltimeText.text = $"??{_cardInstance.GetCooldownLeft()}";
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\effects\Effect.cs =====
+using System;
+using UnityEngine;
+
+[Serializable]
+public class Effect
+{
+   [SerializeField] private EffectType _effectType;
+   [SerializeField] protected int _magnitude;
+
+    public Effect(EffectType effectType, int magnitude)
+    {
+        _effectType = effectType;
+        _magnitude = magnitude;
+    }
+
+    public EffectType GetEffectType() => _effectType;
+    public int GetMagnitude() => _magnitude;
+    
+    public void AddMagnitude(int magnitude) => _magnitude += magnitude;
+
+    public static Effect Create(EffectType type, int magnitude)
+    {
+        switch (type)
+        {
+            case EffectType.Vulnerable: return new VulnerableEffect(magnitude);
+            case EffectType.Weak:       return new WeakEffect(magnitude);
+            case EffectType.Strength:   return new StrengthEffect(magnitude);
+            case EffectType.Harden:     return new HardenEffect(magnitude);
+            default:                    return new Effect(type, magnitude);
+        }
+    }
+
+    public virtual void OnApplied(BattleManager subject) {}
+    public virtual void OnExpired(BattleManager subject) { }
+    public virtual void OnTurnStarted(BattleManager subject) { }
+    public virtual void OnTurnEnded(BattleManager subject) { }
+    public virtual void OnApplying(BattleManager subject, CardEffect effect, bool actualUse) { }
+    public virtual void OnApplyed(BattleManager subject, CardEffect effect, bool actualUse) { }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\effects\EffectTarget.cs =====
+public enum EffectTarget
+{
+    User,
+    Opponent
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\effects\EffectType.cs =====
+public enum EffectType
+{
+    Attack,
+    Defend,
+    Weak,
+    Vulnerable,
+    Strength,
+    Harden
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\effects\HardenEffect.cs =====
+using UnityEngine;
+
+public class HardenEffect : Effect
+{
+    public HardenEffect(int magnitude) : base(EffectType.Harden, magnitude) { }
+
+    // Harden: every defense gain is increased by a flat amount equal to magnitude
+    public override void OnApplying(BattleManager b, CardEffect effect,bool a)
+    {
+        if (effect.GetEffect().GetEffectType() == EffectType.Defend)
+        {
+            effect.Add(_magnitude);
+        }
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\effects\StrengthEffect.cs =====
+using System;
+
+[Serializable]
+public class StrengthEffect : Effect
+{
+    public StrengthEffect(int magnitude) : base(EffectType.Strength, magnitude) { }
+
+    // Strength: permanently increases outgoing damage by a flat amount
+
+    public override void OnApplying(BattleManager b, CardEffect effect,bool a)
+    {
+        if (effect.GetEffect().GetEffectType() == EffectType.Attack)
+        {
+            effect.Add(_magnitude);
+        }
+    }
+
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\effects\VulnerableEffect.cs =====
+using System;
+using UnityEngine;
+
+[Serializable]
+public class VulnerableEffect : Effect
+{
+    public VulnerableEffect(int magnitude) : base(EffectType.Vulnerable, magnitude) { }
+
+    // Vulnerable: target takes increased damage while applied
+    public override void OnApplyed(BattleManager b, CardEffect effect,bool a)
+    {
+        if (effect.GetEffect().GetEffectType() == EffectType.Attack)
+        {
+            effect.Multiply(1.2f);
+        }
+    }
+
+    public override void OnTurnEnded(BattleManager subject)
+    {
+        _magnitude--;
+        if (_magnitude <= 0)
+            subject.RemoveEffect<VulnerableEffect>();
+    }
+}
+
+===== C:\Git-Directory\UpnL_FirstGame\remake_project_2026\Assets\resources\scripts\cards\effects\WeakEffect.cs =====
+
+using System;
+
+[Serializable]
+public class WeakEffect : Effect
+{
+    public WeakEffect(int magnitude) : base(EffectType.Weak,magnitude) { }
+
+    // Weak: target deals reduced damage while applied
+    public override void OnApplying(BattleManager b, CardEffect effect,bool a)
+    {
+        if (effect.GetEffect().GetEffectType() == EffectType.Attack)
+        {
+            effect.Multiply(0.8f);
+        }
+    }
+    public override void OnTurnEnded(BattleManager subject)
+    {
+        _magnitude--;
+        if(_magnitude <= 0)
+            subject.RemoveEffect<WeakEffect>();
+    }
+}
+
