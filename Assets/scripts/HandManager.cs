@@ -7,14 +7,14 @@ public class HandManager
     private int _selectedIndex = -1;
     private GameObject[] _cardObjects = new GameObject[HandSize];
 
-    private BattleManager _battleManager;
+    private CharacterManager _characterManager;
     private QueueManager _queueManager;
     private Transform[] _slots;
     private GameObject _cardPrefab;
 
-    public HandManager(BattleManager battleManager, QueueManager queueManager, Transform[] slots, GameObject cardPrefab)
+    public HandManager(CharacterManager characterManager, QueueManager queueManager, Transform[] slots, GameObject cardPrefab)
     {
-        _battleManager = battleManager;
+        _characterManager = characterManager;
         _queueManager = queueManager;
         _slots = slots;
         _cardPrefab = cardPrefab;
@@ -25,7 +25,7 @@ public class HandManager
         for (int i = 0; i < HandSize; i++)
         {
             if (_hand[i] == null)
-                _hand[i] = _battleManager.DrawCard();
+                _hand[i] = _characterManager.DrawCard();
         }
         RefreshVisuals();
     }

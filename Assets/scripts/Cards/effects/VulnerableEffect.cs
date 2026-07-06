@@ -7,7 +7,7 @@ public class VulnerableEffect : Effect
     public VulnerableEffect(int magnitude) : base(EffectType.Vulnerable, magnitude) { }
 
     // Vulnerable: target takes increased damage while applied
-    public override void OnApplyed(BattleManager b, CardEffect effect,bool a)
+    public override void OnApplyed(CharacterManager b, CardEffect effect,bool a)
     {
         if (effect.GetEffect().GetEffectType() == EffectType.Attack)
         {
@@ -15,7 +15,7 @@ public class VulnerableEffect : Effect
         }
     }
 
-    public override void OnTurnEnded(BattleManager subject)
+    public override void OnTurnEnded(CharacterManager subject)
     {
         _magnitude--;
         if (_magnitude <= 0)

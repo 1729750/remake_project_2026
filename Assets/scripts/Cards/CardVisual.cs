@@ -37,7 +37,7 @@ public class CardVisual : MonoBehaviour
         var sb = new StringBuilder();
         foreach (CardEffect cardEffect in def.GetEffects())
         {
-            string emoji = GameManager.Instance.GetEmoji(cardEffect.GetEffect().GetEffectType());
+            string emoji = BattleManager.Instance.GetEmoji(cardEffect.GetEffect().GetEffectType());
             int magnitude = cardEffect.GetEffect().GetMagnitude();
             if (sb.Length > 0) sb.Append('\n');
             sb.Append($"{emoji}:{magnitude}");

@@ -11,10 +11,10 @@ public class CardInstance
     private CardType cardType;
     private List<CardEffect> _effects;
 
-    private BattleManager _owner;
+    private CharacterManager _owner;
     // effect will be added later
 
-    public CardInstance(CardDefinition definition, BattleManager owner)
+    public CardInstance(CardDefinition definition, CharacterManager owner)
     {
         _definition = definition;
         _owner = owner;
@@ -50,18 +50,18 @@ public class CardInstance
             _cooldownLeft--;
     }
 
-    public void Play(BattleManager battleManager)
+    public void Play(CharacterManager characterManager)
     {
-        Debug.Log($"[{battleManager.gameObject.name}] Activated card: {_definition.name}");
+        Debug.Log($"[{characterManager.gameObject.name}] Activated card: {_definition.name}");
         foreach (CardEffect cardEffect in _effects)
         {
            cardEffect.Reset();
-            Effect[] ownerEffects = battleManager.GetEffects();
+            Effect[] ownerEffects = characterManager.GetEffects();
             for (int i = ownerEffects.Length - 1; i >= 0; i--)
-                ownerEffects[i].OnApplying(battleManager, cardEffect, true);
-            BattleManager resolved = cardEffect.GetTarget(battleManager);
+                ownerEffects[i].OnApplying(characterManager, cardEffect, true);
+            CharacterManager resolved = cardEffect.GetTarget(characterManager);
             resolved.ApplyEffect(cardEffect);
         }
-        battleManager.ReturnToDeck(this);
+        characterManager.ReturnToDeck(this);
     }
 }

@@ -34,7 +34,7 @@ public class QueueManager : MonoBehaviour
 
     public CardInstance[] GetQueue() => _queue;
 
-    public void TickQueueCards(BattleManager battleManager)
+    public void TickQueueCards(CharacterManager characterManager)
     {
         for (int i = 0; i < QueueSize; i++)
         {
@@ -43,7 +43,7 @@ public class QueueManager : MonoBehaviour
             _queue[i].TickCooldown();
             if (_queue[i].IsReady())
             {
-                _queue[i].Play(battleManager);
+                _queue[i].Play(characterManager);
                 _queue[i] = null;
                 DestroyCardVisual(i);
             }

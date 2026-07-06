@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine.InputSystem;
 using UnityEngine;
 
-public class BattleManager: MonoBehaviour
+public class CharacterManager: MonoBehaviour
 {
     private int _maxHealth = 100;
     private int _health;
@@ -31,7 +31,7 @@ public class BattleManager: MonoBehaviour
     private List<CardInstance> _deck;
     private HandManager _handManager;
     
-    public BattleManager()
+    public CharacterManager()
     {
         _effects = new List<Effect>();
     }
@@ -41,7 +41,7 @@ public class BattleManager: MonoBehaviour
        
         UpdateCostDisplay();
         if (!playerControlled) return;
-        if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameState.Turn) return;
+        if (BattleManager.Instance == null || BattleManager.Instance.CurrentState != GameState.Turn) return;
 
         if (_playCard1 == null) return;
         if (_playCard1.triggered)      SelectCard(0);
@@ -198,10 +198,10 @@ public class BattleManager: MonoBehaviour
         UpdateHPBar();
         UpdateDefenseDisplay();
         Debug.Log($"[{gameObject.name}] Took {amount} damage (HP: {_health}, DEF: {_defense})");
-        if (_health <= 0 && GameManager.Instance != null)
+        if (_health <= 0 && BattleManager.Instance != null)
         {
             Debug.Log($"[{gameObject.name}] Defeated!");
-            GameManager.Instance.NotifyDefeat(this);
+            BattleManager.Instance.NotifyDefeat(this);
         }
     }
 
@@ -306,7 +306,7 @@ public class BattleManager: MonoBehaviour
         foreach (var effect in _effects)
         {
             if (effect == null) continue;
-            parts.Add($"{GameManager.Instance.GetEmoji(effect.GetEffectType())}:{effect.GetMagnitude()}");
+            parts.Add($"{BattleManager.Instance.GetEmoji(effect.GetEffectType())}:{effect.GetMagnitude()}");
         }
         effectListText.text = string.Join(" ", parts);
     }

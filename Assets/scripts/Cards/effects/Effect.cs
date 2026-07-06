@@ -30,10 +30,10 @@ public class Effect
         }
     }
 
-    public virtual void OnApplied(BattleManager subject) {}
-    public virtual void OnExpired(BattleManager subject) { }
-    public virtual void OnTurnStarted(BattleManager subject) { }
-    public virtual void OnTurnEnded(BattleManager subject) { }
-    public virtual void OnApplying(BattleManager subject, CardEffect effect, bool actualUse) { }
-    public virtual void OnApplyed(BattleManager subject, CardEffect effect, bool actualUse) { }
+    public virtual void OnApplied(CharacterManager subject) {}
+    public virtual void OnExpired(CharacterManager subject) { }
+    public virtual void OnTurnStarted(CharacterManager subject) { }
+    public virtual void OnTurnEnded(CharacterManager subject) { }
+    public virtual void OnApplying(CharacterManager subject, CardEffect effect, bool actualUse) { }
+    public virtual void OnApplyed(CharacterManager subject, CardEffect effect, bool actualUse) { }
 }

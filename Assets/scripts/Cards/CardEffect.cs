@@ -31,9 +31,9 @@ public class CardEffect
     }
 
     public Effect GetEffect() => _effect;
-    public BattleManager GetTarget(BattleManager user)
+    public CharacterManager GetTarget(CharacterManager user)
     {
-        return _target == EffectTarget.User ? user : GameManager.Instance.GetOpponent(user);
+        return _target == EffectTarget.User ? user : BattleManager.Instance.GetOpponent(user);
     }
 
     public int GetMagnitude()
