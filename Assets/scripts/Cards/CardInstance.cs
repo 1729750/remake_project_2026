@@ -56,7 +56,7 @@ public class CardInstance
         foreach (CardEffect cardEffect in _effects)
         {
            cardEffect.Reset();
-            Effect[] ownerEffects = characterManager.GetEffects();
+            Effect[] ownerEffects = characterManager.GetEffectPrioritize();
             for (int i = ownerEffects.Length - 1; i >= 0; i--)
                 ownerEffects[i].OnApplying(characterManager, cardEffect, true);
             CharacterManager resolved = cardEffect.GetTarget(characterManager);

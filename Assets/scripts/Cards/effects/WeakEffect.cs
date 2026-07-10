@@ -4,7 +4,9 @@ using System;
 [Serializable]
 public class WeakEffect : Effect
 {
-    public WeakEffect(int magnitude) : base(EffectType.Weak,magnitude) { }
+    private const int Priority = 1;
+
+    public WeakEffect(int magnitude) : base(EffectType.Weak, magnitude, Priority) { }
 
     // Weak: target deals reduced damage while applied
     public override void OnApplying(CharacterManager b, CardEffect effect,bool a)

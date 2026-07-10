@@ -1,30 +1,43 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-public class QueueManager : MonoBehaviour
+public class QueueManager
 {
     private const int QueueSize = 3;
     private CardInstance[] _queue = new CardInstance[QueueSize];
     private GameObject[] _cardObjects = new GameObject[QueueSize];
 
-    [SerializeField] private GameObject cardPrefab;
-
     private Transform[] _slots;
 
-    private void Awake()
+    public QueueManager(GameObject slotsRoot)
     {
-        _slots = new Transform[QueueSize];
-        for (int i = 0; i < QueueSize; i++)
-            _slots[i] = transform.GetChild(i);
+        _slots = BuildSlots(slotsRoot);
     }
 
-    public bool AddCard(CardInstance card)
+    private static Transform[] BuildSlots(GameObject root)
+    {
+        if (root == null) return null;
+
+        var slots = new List<Transform>();
+        foreach (Transform child in root.transform)
+            slots.Add(child);
+        return slots.ToArray();
+    }
+
+    public bool AddCard(CardInstance card, GameObject cardObject)
     {
         for (int i = 0; i < QueueSize; i++)
         {
             if (_queue[i] == null)
             {
                 _queue[i] = card;
-                SpawnCardVisual(i);
+                _cardObjects[i] = cardObject;
+                if (cardObject != null)
+                {
+                    var visual = cardObject.GetComponent<CardVisual>();
+                    if (visual != null)
+                        visual.SetFace(true);
+                }
                 return true;
             }
         }
@@ -33,6 +46,7 @@ public class QueueManager : MonoBehaviour
     }
 
     public CardInstance[] GetQueue() => _queue;
+    public Transform GetSlot(int index) => (_slots != null && index >= 0 && index < _slots.Length) ? _slots[index] : null;
 
     public void TickQueueCards(CharacterManager characterManager)
     {
@@ -43,30 +57,18 @@ public class QueueManager : MonoBehaviour
             _queue[i].TickCooldown();
             if (_queue[i].IsReady())
             {
-                _queue[i].Play(characterManager);
+                characterManager.PlayCard(_queue[i]);
                 _queue[i] = null;
                 DestroyCardVisual(i);
             }
         }
     }
 
-    private void SpawnCardVisual(int index)
-    {
-        if (_cardObjects[index] != null)
-            Destroy(_cardObjects[index]);
-
-        GameObject obj = Instantiate(cardPrefab, _slots[index]);
-        obj.transform.localPosition = Vector3.zero;
-        CardVisual visual = obj.AddComponent<CardVisual>();
-        visual.SetCard(_queue[index]);
-        _cardObjects[index] = obj;
-    }
-
     private void DestroyCardVisual(int index)
     {
         if (_cardObjects[index] != null)
         {
-            Destroy(_cardObjects[index]);
+            Object.Destroy(_cardObjects[index]);
             _cardObjects[index] = null;
         }
     }

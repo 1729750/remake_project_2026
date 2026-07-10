@@ -10,22 +10,32 @@ public class CardVisual : MonoBehaviour
     private TextMeshPro _costText;
     private TextMeshPro _cooltimeText;
     private GameObject _selectHighlight;
+    private GameObject _front;
+    private GameObject _back;
     private CardInstance _cardInstance;
 
     private void Awake()
     {
-        _background      = transform.Find("background").GetComponent<SpriteRenderer>();
-        _sprite          = transform.Find("sprite").GetComponent<SpriteRenderer>();
-        _effectText      = transform.Find("effect/effectText").GetComponent<TextMeshPro>();
-        _costText        = transform.Find("cost/CostText").GetComponent<TextMeshPro>();
-        _cooltimeText    = transform.Find("cooltimeText").GetComponent<TextMeshPro>();
-        _selectHighlight = transform.Find("background/SelectHighlight").gameObject;
+        _front           = transform.Find("Front").gameObject;
+        _back            = transform.Find("Back").gameObject;
+        _background      = transform.Find("Front/background").GetComponent<SpriteRenderer>();
+        _sprite          = transform.Find("Front/sprite").GetComponent<SpriteRenderer>();
+        _effectText      = transform.Find("Front/effectText").GetComponent<TextMeshPro>();
+        _costText        = transform.Find("Front/CostText").GetComponent<TextMeshPro>();
+        _cooltimeText    = transform.Find("Front/cooltimeText").GetComponent<TextMeshPro>();
+        _selectHighlight = transform.Find("Front/SelectHighlight").gameObject;
         _selectHighlight.SetActive(false);
     }
 
     public void SetSelected(bool selected) => _selectHighlight.SetActive(selected);
 
-    public void SetCard(CardInstance cardInstance)
+    public void SetFace(bool front)
+    {
+        _front.SetActive(front);
+        _back.SetActive(!front);
+    }
+
+    public void SetCard(CardInstance cardInstance, bool showFront)
     {
         _cardInstance = cardInstance;
         CardDefinition def = cardInstance.GetDefinition();
@@ -46,6 +56,7 @@ public class CardVisual : MonoBehaviour
 
         FitToParent();
         RefreshCooltime();
+        SetFace(showFront);
     }
 
     private void FitToParent()

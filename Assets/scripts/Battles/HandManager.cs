@@ -1,23 +1,34 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class HandManager
 {
     private const int HandSize = 4;
-    private CardInstance[] _hand = new CardInstance[HandSize];
+    private readonly CardInstance[] _hand = new CardInstance[HandSize];
     private int _selectedIndex = -1;
-    private GameObject[] _cardObjects = new GameObject[HandSize];
+    private readonly GameObject[] _cardObjects = new GameObject[HandSize];
 
-    private CharacterManager _characterManager;
-    private QueueManager _queueManager;
-    private Transform[] _slots;
-    private GameObject _cardPrefab;
+    private readonly CharacterManager _characterManager;
+    private readonly Transform[] _slots;
+    private readonly GameObject _cardPrefab;
+    private readonly bool _isHandVisualized;
 
-    public HandManager(CharacterManager characterManager, QueueManager queueManager, Transform[] slots, GameObject cardPrefab)
+    public HandManager(CharacterManager characterManager, GameObject slotsRoot, bool isHandVisualized)
     {
         _characterManager = characterManager;
-        _queueManager = queueManager;
-        _slots = slots;
-        _cardPrefab = cardPrefab;
+        _slots = BuildSlots(slotsRoot);
+        _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
+        _isHandVisualized = isHandVisualized;
+    }
+
+    private static Transform[] BuildSlots(GameObject root)
+    {
+        if (root == null) return null;
+
+        var slots = new List<Transform>();
+        foreach (Transform child in root.transform)
+                    slots.Add(child);
+        return slots.ToArray();
     }
 
     public void FillHand()
@@ -51,8 +62,16 @@ public class HandManager
 
         var card = _hand[_selectedIndex];
         card.Use();
-        if (_queueManager.AddCard(card))
+        GameObject cardObject = _cardObjects[_selectedIndex];
+        if (_characterManager.QueueCard(card, cardObject))
         {
+            if (cardObject != null)
+            {
+                var visual = cardObject.GetComponent<CardVisual>();
+                if (visual != null)
+                    visual.SetSelected(false);
+            }
+            _cardObjects[_selectedIndex] = null;
             _hand[_selectedIndex] = null;
             UnselectCard();
             RefreshVisuals();
@@ -78,7 +97,10 @@ public class HandManager
             {
                 GameObject obj = Object.Instantiate(_cardPrefab, _slots[i]);
                 obj.transform.localPosition = Vector3.zero;
-                obj.AddComponent<CardVisual>().SetCard(_hand[i]);
+                var visual = obj.GetComponent<CardVisual>();
+                if (visual == null)
+                    visual = obj.AddComponent<CardVisual>();
+                visual.SetCard(_hand[i], _isHandVisualized);
                 _cardObjects[i] = obj;
             }
         }

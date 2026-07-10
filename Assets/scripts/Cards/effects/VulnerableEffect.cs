@@ -4,10 +4,12 @@ using UnityEngine;
 [Serializable]
 public class VulnerableEffect : Effect
 {
-    public VulnerableEffect(int magnitude) : base(EffectType.Vulnerable, magnitude) { }
+    private const int Priority = 1;
+
+    public VulnerableEffect(int magnitude) : base(EffectType.Vulnerable, magnitude, Priority) { }
 
     // Vulnerable: target takes increased damage while applied
-    public override void OnApplyed(CharacterManager b, CardEffect effect,bool a)
+    public override void OnApplied(CharacterManager b, CardEffect effect,bool a)
     {
         if (effect.GetEffect().GetEffectType() == EffectType.Attack)
         {

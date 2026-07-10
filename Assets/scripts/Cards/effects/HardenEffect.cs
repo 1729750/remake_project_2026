@@ -2,7 +2,9 @@ using UnityEngine;
 
 public class HardenEffect : Effect
 {
-    public HardenEffect(int magnitude) : base(EffectType.Harden, magnitude) { }
+    private const int Priority = 2;
+
+    public HardenEffect(int magnitude) : base(EffectType.Harden, magnitude, Priority) { }
 
     // Harden: every defense gain is increased by a flat amount equal to magnitude
     public override void OnApplying(CharacterManager b, CardEffect effect,bool a)

@@ -1,38 +1,46 @@
-using TMPro;
+using System;using TMPro;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
+    private GameState _currentState;
 
-    [SerializeField] private CharacterManager playerCharacterManager;
-    [SerializeField] private CharacterManager enemyCharacterManager;
-    [SerializeField] private TextMeshPro turnText;
-    [SerializeField] private float turnDuration = 1f;
-    [SerializeField] private float startDelay = 3f;
+    [SerializeField] private BattleManager battleManager;
+    [SerializeField] private InputManager inputManager;
 
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     void Start()
     {
-        var overlayGO = new GameObject("TurnTimerOverlay");
-        overlayGO.transform.SetParent(turnText.transform.parent);
-        overlayGO.transform.localPosition = Vector3.zero;
-        overlayGO.transform.localScale = Vector3.one;
-        overlayGO.AddComponent<MeshFilter>();
-        overlayGO.AddComponent<MeshRenderer>();
-        var turnTimerOverlay = overlayGO.AddComponent<TurnTimerOverlay>();
-
-        var turnManager = new TurnManager(turnDuration, turnTimerOverlay, turnText);
-        new BattleManager(playerCharacterManager, enemyCharacterManager, turnManager, turnTimerOverlay, startDelay).StartBattle();
+        _currentState = GameState.StartScreen;
+        battleManager.Init();
     }
 
-    void Update()
+    public void StartBattle()
     {
-        BattleManager.Instance.Tick(Time.deltaTime);
+        SetGameState(GameState.Battle);
+        inputManager.LoadBattleInputActions();
+        battleManager.StartBattle();
     }
+
+    public GameState GetGameState()
+    {
+        return _currentState;
+    }
+
+    public void SetGameState(GameState newState)
+    {
+        _currentState = newState;
+    }
+}
+
+public enum GameState{
+    StartScreen,
+    Battle,
 }
