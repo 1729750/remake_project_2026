@@ -27,7 +27,11 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
   m_LocalScale: {x: 1.3, y: 1.6899998, z: 1.3}
+=======
+  m_LocalScale: {x: 2, y: 2.5, z: 2.5}
+>>>>>>> ac643cf (✨ 올려주신 스프라이트를 적절한 위치에 삽입하였습니다.):Assets/resources/preFabs/Card.prefab
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1819977780077836848}
@@ -127,7 +131,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: -1171175124282165417, guid: e85b61ad0735a1f43bb5525e8e335e15, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -270,8 +274,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 3
-  m_fontSizeBase: 3
+  m_fontSize: 2
+  m_fontSizeBase: 2
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 0
@@ -344,8 +348,8 @@ Transform:
   m_GameObject: {fileID: 2800053383854129819}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.9, y: 0.9, z: 1}
+  m_LocalPosition: {x: -0.0024, y: 0.1006, z: 0}
+  m_LocalScale: {x: 0.5550159, y: 0.5876667, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2428182897763687322}
@@ -434,13 +438,80 @@ Transform:
   m_GameObject: {fileID: 3097996802259185721}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+<<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+=======
+  m_LocalPosition: {x: 0.003, y: -0.2902, z: 0}
+  m_LocalScale: {x: 0.97277653, y: 0.88263786, z: 1}
+>>>>>>> ac643cf (✨ 올려주신 스프라이트를 적절한 위치에 삽입하였습니다.):Assets/resources/preFabs/Card.prefab
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6784884651362403502}
   m_Father: {fileID: 2428182897763687322}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
+=======
+--- !u!212 &96236503860128572
+SpriteRenderer:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3097996802259185721}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 0
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 2
+  m_MaskInteraction: 0
+  m_Sprite: {fileID: 6639126460929552292, guid: 1b3c9ff6f0c45934c9ce5e32f7ff38a7, type: 3}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.68235296}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 0
+  m_Size: {x: 1, y: 1}
+  m_AdaptiveModeThreshold: 0.5
+  m_SpriteTileMode: 0
+  m_WasSpriteAssigned: 1
+  m_SpriteSortPoint: 0
+>>>>>>> ac643cf (✨ 올려주신 스프라이트를 적절한 위치에 삽입하였습니다.):Assets/resources/preFabs/Card.prefab
 --- !u!1 &4911668645291150034
 GameObject:
   m_ObjectHideFlags: 0
@@ -794,7 +865,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 99
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: -2353361059019352128, guid: aded03ff1252e2343a4d4a37d0f859b0, type: 3}
   m_Color: {r: 0.9866247, g: 1, b: 0, a: 0.4392157}
   m_FlipX: 0
   m_FlipY: 0
