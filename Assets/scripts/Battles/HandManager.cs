@@ -36,9 +36,26 @@ public class HandManager
         for (int i = 0; i < HandSize; i++)
         {
             if (_hand[i] == null)
+            {
                 _hand[i] = _characterManager.DrawCard();
+                if (_hand[i] != null)
+                    CreateCardVisual(i);
+            }
         }
-        RefreshVisuals();
+        RefreshSelection();
+    }
+
+    private void CreateCardVisual(int i)
+    {
+        if (_slots == null || _cardPrefab == null) return;
+
+        GameObject obj = Object.Instantiate(_cardPrefab, _slots[i]);
+        obj.transform.localPosition = Vector3.zero;
+        var visual = obj.GetComponent<CardVisual>();
+        if (visual == null)
+            visual = obj.AddComponent<CardVisual>();
+        visual.SetCard(_hand[i], _isHandVisualized);
+        _cardObjects[i] = obj;
     }
 
     public void SelectCard(int index)
@@ -74,37 +91,10 @@ public class HandManager
             _cardObjects[_selectedIndex] = null;
             _hand[_selectedIndex] = null;
             UnselectCard();
-            RefreshVisuals();
             return true;
         }
 
         return false;
-    }
-
-    private void RefreshVisuals()
-    {
-        if (_slots == null || _cardPrefab == null) return;
-
-        for (int i = 0; i < HandSize; i++)
-        {
-            if (_cardObjects[i] != null)
-            {
-                Object.Destroy(_cardObjects[i]);
-                _cardObjects[i] = null;
-            }
-
-            if (_hand[i] != null)
-            {
-                GameObject obj = Object.Instantiate(_cardPrefab, _slots[i]);
-                obj.transform.localPosition = Vector3.zero;
-                var visual = obj.GetComponent<CardVisual>();
-                if (visual == null)
-                    visual = obj.AddComponent<CardVisual>();
-                visual.SetCard(_hand[i], _isHandVisualized);
-                _cardObjects[i] = obj;
-            }
-        }
-        RefreshSelection();
     }
 
     private void RefreshSelection()

@@ -193,18 +193,7 @@ public class CharacterManager: MonoBehaviour
 
     public bool QueueCard(CardInstance card, GameObject cardObject)
     {
-        if (!_queueManager.AddCard(card, cardObject))
-            return false;
-
-        if (cardObject != null)
-        {
-            int index = Array.IndexOf(_queueManager.GetQueue(), card);
-            Transform slot = _queueManager.GetSlot(index);
-            cardObject.transform.SetParent(slot, false);
-            cardObject.transform.localPosition = Vector3.zero;
-        }
-
-        return true;
+        return _queueManager.AddCard(card, cardObject);
     }
 
     public CardInstance DrawCard()

@@ -43,18 +43,37 @@ public class QueueManager
                     if (_queue[j].GetCooldownLeft() < _queue[j - 1].GetCooldownLeft())
                     {
                         (_queue[j], _queue[j - 1]) = (_queue[j-1], _queue[j]);
+                        (_cardObjects[j], _cardObjects[j - 1]) = (_cardObjects[j - 1], _cardObjects[j]);
                     }
                     else
                     {
                         break;
                     }
                 }
+                MoveVisualsToSlots();
 
                 return true;
             }
         }
 
         return false;
+    }
+
+    private void MoveVisualsToSlots()
+    {
+        if (_slots == null) return;
+
+        for (int i = 0; i < QueueSize && i < _slots.Length; i++)
+        {
+            if (_cardObjects[i] == null || _slots[i] == null) continue;
+
+            _cardObjects[i].transform.SetParent(_slots[i], true);
+            var visual = _cardObjects[i].GetComponent<CardVisual>();
+            if (visual != null)
+                visual.MoveTo(_slots[i].position);
+            else
+                _cardObjects[i].transform.position = _slots[i].position;
+        }
     }
 
     public CardInstance[] GetQueue() => _queue;
@@ -74,6 +93,26 @@ public class QueueManager
                 DestroyCardVisual(i);
             }
         }
+        CompactQueue();
+    }
+
+    private void CompactQueue()
+    {
+        int write = 0;
+        for (int read = 0; read < QueueSize; read++)
+        {
+            if (_queue[read] == null) continue;
+
+            if (write != read)
+            {
+                _queue[write] = _queue[read];
+                _cardObjects[write] = _cardObjects[read];
+                _queue[read] = null;
+                _cardObjects[read] = null;
+            }
+            write++;
+        }
+        MoveVisualsToSlots();
     }
 
     private void DestroyCardVisual(int index)
