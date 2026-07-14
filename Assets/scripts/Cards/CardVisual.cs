@@ -54,7 +54,6 @@ public class CardVisual : MonoBehaviour
         }
         _effectText.text = sb.ToString();
 
-        FitToParent();
         RefreshCooltime();
         SetFace(showFront);
     }

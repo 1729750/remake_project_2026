@@ -27,11 +27,13 @@ public class CharacterManager: MonoBehaviour
     private HandManager _handManager;
     private QueueManager _queueManager;
     
-    public CharacterManager()
+    public void BattleCharacterInit(CardDefinition[] deck, int maxHealth)
     {
+        _maxHealth=maxHealth;
+        startDeck = deck;
         _effects = new List<Effect>();
     }
-
+    
     private void Update()
     {
         UpdateCostDisplay();

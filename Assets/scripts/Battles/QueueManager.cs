@@ -38,6 +38,14 @@ public class QueueManager
                     if (visual != null)
                         visual.SetFace(true);
                 }
+
+                for (int j = i; j > 0; j--)
+                {
+                    if (_queue[j].GetCooldownLeft() < _queue[j - 1].GetCooldownLeft())
+                    {
+                        (_queue[j], _queue[j - 1]) = (_queue[j-1], _queue[j]);
+                    }
+                }
                 return true;
             }
         }
