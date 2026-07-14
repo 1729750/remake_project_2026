@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -13,6 +14,7 @@ public class CardVisual : MonoBehaviour
     private GameObject _front;
     private GameObject _back;
     private CardInstance _cardInstance;
+    private Coroutine _moveCoroutine;
 
     private void Awake()
     {
@@ -73,6 +75,30 @@ public class CardVisual : MonoBehaviour
             transform.localScale.y * targetSize.y / currentSize.y,
             transform.localScale.z
         );
+    }
+
+    public void MoveTo(Vector3 targetPosition, float duration = 0.3f)
+    {
+        if (_moveCoroutine != null)
+            StopCoroutine(_moveCoroutine);
+        _moveCoroutine = StartCoroutine(MoveRoutine(targetPosition, duration));
+    }
+
+    private IEnumerator MoveRoutine(Vector3 targetPosition, float duration)
+    {
+        Vector3 startPosition = transform.position;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            yield return null;
+        }
+
+        transform.position = targetPosition;
+        _moveCoroutine = null;
     }
 
     private void Update()

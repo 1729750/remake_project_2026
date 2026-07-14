@@ -128,7 +128,8 @@ public class BattleManager:MonoBehaviour
 
     public void Update()
     {
-        Tick(Time.deltaTime);
+        if(GameManager.Instance.GetGameState() == GameState.Battle)
+            Tick(Time.deltaTime);
     }
 }
 

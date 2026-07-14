@@ -20,6 +20,7 @@ public class GameManager : MonoBehaviour
     {
         _currentState = GameState.StartScreen;
         battleManager.Init();
+        StartBattle();
     }
 
     public void StartBattle()

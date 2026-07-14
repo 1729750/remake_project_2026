@@ -2000,7 +2000,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 977913907}
-  - component: {fileID: 977913908}
   m_Layer: 0
   m_Name: EnemyQueue
   m_TagString: Untagged
@@ -2026,23 +2025,6 @@ Transform:
   - {fileID: 1022328528}
   m_Father: {fileID: 1312835011}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &977913908
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 977913906}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e0f46ad2bd7d094eb29f6b59d163553, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::QueueManager
-  _cardObjects:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  _slots: []
 --- !u!1 &1000792518
 GameObject:
   m_ObjectHideFlags: 0
@@ -2418,7 +2400,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1199511219}
-  - component: {fileID: 1199511220}
   m_Layer: 0
   m_Name: Queue
   m_TagString: Untagged
@@ -2444,23 +2425,6 @@ Transform:
   - {fileID: 392367206}
   m_Father: {fileID: 550371443}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1199511220
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1199511218}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e0f46ad2bd7d094eb29f6b59d163553, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::QueueManager
-  _cardObjects:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  _slots: []
 --- !u!1 &1216894064
 GameObject:
   m_ObjectHideFlags: 0
@@ -4055,7 +4019,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   battleManager: {fileID: 955717468}
-  inputManager: {fileID: 0}
+  inputManager: {fileID: 903970882}
 --- !u!4 &1990682883
 Transform:
   m_ObjectHideFlags: 0
