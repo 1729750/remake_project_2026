@@ -22,7 +22,7 @@ public class CardVisual : MonoBehaviour
         _back            = transform.Find("Back").gameObject;
         _background      = transform.Find("Front/background").GetComponent<SpriteRenderer>();
         _sprite          = transform.Find("Front/sprite").GetComponent<SpriteRenderer>();
-        _effectText      = transform.Find("Front/effectText").GetComponent<TextMeshPro>();
+        _effectText      = transform.Find("Front/effect/effectText").GetComponent<TextMeshPro>();
         _costText        = transform.Find("Front/CostText").GetComponent<TextMeshPro>();
         _cooltimeText    = transform.Find("Front/cooltimeText").GetComponent<TextMeshPro>();
         _selectHighlight = transform.Find("Front/SelectHighlight").gameObject;
