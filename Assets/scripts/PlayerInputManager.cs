@@ -11,6 +11,10 @@ public class PlayerInputManager : InputManager
     private InputAction _playCard3;
     private InputAction _playCard4;
 
+    private InputAction _selectLeft;
+    private InputAction _selectRight;
+    private InputAction _selectConfirm;
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -39,5 +43,27 @@ public class PlayerInputManager : InputManager
         else if (_playCard2.triggered) playerCharacterManager.SelectCard(1);
         else if (_playCard3.triggered) playerCharacterManager.SelectCard(2);
         else if (_playCard4.triggered) playerCharacterManager.SelectCard(3);
+    }
+
+    public override void LoadSelectInputActions()
+    {
+        if (_selectLeft != null) return;
+        if (inputActions == null) return;
+
+        var map = inputActions.FindActionMap("Select", throwIfNotFound: true);
+        _selectLeft = map.FindAction("Left", throwIfNotFound: true);
+        _selectRight = map.FindAction("Right", throwIfNotFound: true);
+        _selectConfirm = map.FindAction("Select", throwIfNotFound: true);
+        inputActions.Enable();
+    }
+
+    protected override void HandleSelectInput()
+    {
+        if (BattleManager.Instance == null) return;
+
+        if (_selectLeft == null) return;
+        if (_selectLeft.triggered)         BattleManager.Instance.MoveRewardSelection(-1);
+        else if (_selectRight.triggered)   BattleManager.Instance.MoveRewardSelection(1);
+        else if (_selectConfirm.triggered) GameManager.Instance.ConfirmReward();
     }
 }

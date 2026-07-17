@@ -11,6 +11,10 @@ public class InputManager : MonoBehaviour
     {
     }
 
+    public virtual void LoadSelectInputActions()
+    {
+    }
+
     private void Update()
     {
         if (GameManager.Instance == null) return;
@@ -22,10 +26,18 @@ public class InputManager : MonoBehaviour
             case GameState.Battle:
                 HandleBattleInput();
                 break;
+            case GameState.BattleEnd:
+                HandleSelectInput();
+                break;
         }
     }
 
     protected virtual void HandleBattleInput()
     {
+    }
+
+    protected virtual void HandleSelectInput()
+    {
+        
     }
 }
