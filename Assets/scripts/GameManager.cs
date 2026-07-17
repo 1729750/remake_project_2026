@@ -8,6 +8,7 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private BattleManager battleManager;
     [SerializeField] private InputManager inputManager;
+    [SerializeField] private CharacterData firstEnemyData;
 
     void Awake()
     {
@@ -20,14 +21,14 @@ public class GameManager : MonoBehaviour
     {
         _currentState = GameState.StartScreen;
         battleManager.Init();
-        StartBattle();
+        StartBattle(firstEnemyData);
     }
 
-    public void StartBattle()
+    public void StartBattle(CharacterData enemyData)
     {
         SetGameState(GameState.Battle);
         inputManager.LoadBattleInputActions();
-        battleManager.StartBattle();
+        battleManager.StartBattle(PlayerManager.Instance.GetCharacterData(), enemyData);
     }
 
     public GameState GetGameState()

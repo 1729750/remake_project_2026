@@ -27,11 +27,26 @@ public class CharacterManager: MonoBehaviour
     private HandManager _handManager;
     private QueueManager _queueManager;
     
-    public void BattleCharacterInit(CardDefinition[] deck, int maxHealth)
+    public void CharacterInit(CardDefinition[] deck, int maxHealth)
     {
         _maxHealth=maxHealth;
         startDeck = deck;
-        _effects = new List<Effect>();
+        Clear();
+
+        //덱 생성
+        if (startDeck != null)
+            foreach (var def in startDeck)
+                _deck.Add(new CardInstance(def,this));
+        
+        //덱 셔플
+        for (int i = _deck.Count - 1; i > 0; i--)
+        {
+            int j = UnityEngine.Random.Range(0, i + 1);
+            (_deck[i], _deck[j]) = (_deck[j], _deck[i]);
+        }
+        
+        //손 채우기
+        _handManager.FillHand();
     }
     
     private void Update()
@@ -108,20 +123,7 @@ public class CharacterManager: MonoBehaviour
 
         Clear();
         
-        //덱 생성
-        if (startDeck != null)
-            foreach (var def in startDeck)
-                _deck.Add(new CardInstance(def,this));
         
-        //덱 셔플
-        for (int i = _deck.Count - 1; i > 0; i--)
-        {
-            int j = UnityEngine.Random.Range(0, i + 1);
-            (_deck[i], _deck[j]) = (_deck[j], _deck[i]);
-        }
-        
-        //손 채우기
-        _handManager.FillHand();
     }
 
     public void Clear()

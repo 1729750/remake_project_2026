@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -26,6 +27,8 @@ public class BattleManager:MonoBehaviour
 
     public void Init()
     {
+        playerCharacterManager.Init(); 
+        enemyCharacterManager.Init();
         var overlayGO = new GameObject("TurnTimerOverlay");
         overlayGO.transform.SetParent(turnText.transform.parent);
         overlayGO.transform.localPosition = Vector3.zero;
@@ -39,14 +42,26 @@ public class BattleManager:MonoBehaviour
         _turnManager.OnTurnEnded += OnTurnEnded;
     }
 
-    public void StartBattle()
+    public void StartBattle(CharacterData playerData, CharacterData enemyData)
     {
-        playerCharacterManager.Init(); 
-        enemyCharacterManager.Init();
+        playerCharacterManager.CharacterInit(UnpackCardCollection(playerData.GetDeck()).ToArray(), playerData.GetMaxHealth());
+        enemyCharacterManager.CharacterInit(UnpackCardCollection(enemyData.GetDeck()).ToArray(), enemyData.GetMaxHealth());
 
         _startElapsed = 0f;
         _turnTimerOverlay?.SetFill(0f);
         SetState(BattleState.BattleStarting);
+    }
+
+    // CardCollection 에셋을 런타임 덱으로 풀어낸다. 원본 에셋이 오염되지 않도록
+    // 각 CardDefinition을 Instantiate로 깊은 복사해서 반환한다.
+    public static List<CardDefinition> UnpackCardCollection(CardCollection collection)
+    {
+        var result = new List<CardDefinition>();
+        if (collection == null) return result;
+        foreach (var def in collection.GetCards())
+            if (def != null)
+                result.Add(Instantiate(def));
+        return result;
     }
 
     public void Tick(float deltaTime)
