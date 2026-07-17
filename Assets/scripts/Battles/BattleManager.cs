@@ -51,6 +51,7 @@ public class BattleManager:MonoBehaviour
         playerCharacterManager.CharacterInit(UnpackCardCollection(playerData.GetDeck()).ToArray(), playerData.GetMaxHealth());
         enemyCharacterManager.CharacterInit(UnpackCardCollection(enemyData.GetDeck()).ToArray(), enemyData.GetMaxHealth());
 
+
         _startElapsed = 0f;
         _turnTimerOverlay?.SetFill(0f);
         SetState(BattleState.BattleStarting);
@@ -181,7 +182,7 @@ public class BattleManager:MonoBehaviour
         CardDefinition selected = _rewardCards[_rewardSelectedIndex];
         rewardPanel.SetActive(false);
         _rewardCards = null;
-        _rewardVisuals = null;
+        _rewardVisuals = null;        
         return selected;
     }
 
@@ -209,6 +210,7 @@ public class BattleManager:MonoBehaviour
             case EffectType.Strength:   return "✊";
             case EffectType.Vulnerable: return "💔";
             case EffectType.Weak:       return "🥀";
+            case EffectType.Guard:      return "🧘";
             default:                    return "?";
         }
     }

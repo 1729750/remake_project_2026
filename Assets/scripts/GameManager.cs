@@ -23,8 +23,8 @@ public class GameManager : MonoBehaviour
     {
         _currentState = GameState.StartScreen;
         battleManager.Init();
-        EndBattle();
-        //StartBattle(firstEnemyData);
+        //EndBattle();
+        StartBattle(firstEnemyData);
     }
 
     public void StartBattle(CharacterData enemyData)
@@ -47,6 +47,7 @@ public class GameManager : MonoBehaviour
         if (selected != null)
             PlayerManager.Instance.AddCard(selected);
         // TODO: 다음 전투 시작 등 이후 흐름 연결
+        StartBattle(firstEnemyData);
     }
     
     public GameState GetGameState()

@@ -5,5 +5,6 @@ public enum EffectType
     Weak,
     Vulnerable,
     Strength,
-    Harden
+    Harden,
+    Guard
 }

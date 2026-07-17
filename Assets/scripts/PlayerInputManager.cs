@@ -10,6 +10,8 @@ public class PlayerInputManager : InputManager
     private InputAction _playCard2;
     private InputAction _playCard3;
     private InputAction _playCard4;
+    private InputAction _reDraw;
+    private InputAction _defense;
 
     private InputAction _selectLeft;
     private InputAction _selectRight;
@@ -31,6 +33,8 @@ public class PlayerInputManager : InputManager
         _playCard2 = map.FindAction("PlayCard2", throwIfNotFound: true);
         _playCard3 = map.FindAction("PlayCard3", throwIfNotFound: true);
         _playCard4 = map.FindAction("PlayCard4", throwIfNotFound: true);
+        _reDraw    = map.FindAction("ReDraw", throwIfNotFound: true);
+        _defense   = map.FindAction("Defense", throwIfNotFound: true);
         inputActions.Enable();
     }
 
@@ -43,6 +47,8 @@ public class PlayerInputManager : InputManager
         else if (_playCard2.triggered) playerCharacterManager.SelectCard(1);
         else if (_playCard3.triggered) playerCharacterManager.SelectCard(2);
         else if (_playCard4.triggered) playerCharacterManager.SelectCard(3);
+        else if (_reDraw.triggered)    playerCharacterManager.SelectCard(CharacterManager.RedrawAction);
+        else if (_defense.triggered)   playerCharacterManager.SelectCard(CharacterManager.DefenseAction);
     }
 
     public override void LoadSelectInputActions()
