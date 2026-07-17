@@ -10,6 +10,12 @@ public class PlayerInputManager : InputManager
     private InputAction _playCard2;
     private InputAction _playCard3;
     private InputAction _playCard4;
+    private InputAction _reDraw;
+    private InputAction _defense;
+
+    private InputAction _selectLeft;
+    private InputAction _selectRight;
+    private InputAction _selectConfirm;
 
     void Awake()
     {
@@ -27,6 +33,8 @@ public class PlayerInputManager : InputManager
         _playCard2 = map.FindAction("PlayCard2", throwIfNotFound: true);
         _playCard3 = map.FindAction("PlayCard3", throwIfNotFound: true);
         _playCard4 = map.FindAction("PlayCard4", throwIfNotFound: true);
+        _reDraw    = map.FindAction("ReDraw", throwIfNotFound: true);
+        _defense   = map.FindAction("Defense", throwIfNotFound: true);
         inputActions.Enable();
     }
 
@@ -39,5 +47,29 @@ public class PlayerInputManager : InputManager
         else if (_playCard2.triggered) playerCharacterManager.SelectCard(1);
         else if (_playCard3.triggered) playerCharacterManager.SelectCard(2);
         else if (_playCard4.triggered) playerCharacterManager.SelectCard(3);
+        else if (_reDraw.triggered)    playerCharacterManager.SelectCard(CharacterManager.RedrawAction);
+        else if (_defense.triggered)   playerCharacterManager.SelectCard(CharacterManager.DefenseAction);
+    }
+
+    public override void LoadSelectInputActions()
+    {
+        if (_selectLeft != null) return;
+        if (inputActions == null) return;
+
+        var map = inputActions.FindActionMap("Select", throwIfNotFound: true);
+        _selectLeft = map.FindAction("Left", throwIfNotFound: true);
+        _selectRight = map.FindAction("Right", throwIfNotFound: true);
+        _selectConfirm = map.FindAction("Select", throwIfNotFound: true);
+        inputActions.Enable();
+    }
+
+    protected override void HandleSelectInput()
+    {
+        if (BattleManager.Instance == null) return;
+
+        if (_selectLeft == null) return;
+        if (_selectLeft.triggered)         BattleManager.Instance.MoveRewardSelection(-1);
+        else if (_selectRight.triggered)   BattleManager.Instance.MoveRewardSelection(1);
+        else if (_selectConfirm.triggered) GameManager.Instance.ConfirmReward();
     }
 }
