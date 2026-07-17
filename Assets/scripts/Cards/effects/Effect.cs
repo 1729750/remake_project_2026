@@ -29,6 +29,7 @@ public class Effect
             case EffectType.Weak:       return new WeakEffect(magnitude);
             case EffectType.Strength:   return new StrengthEffect(magnitude);
             case EffectType.Harden:     return new HardenEffect(magnitude);
+            case EffectType.Guard:      return new GuardEffect(magnitude);
             default:                    return new Effect(type, magnitude);
         }
     }

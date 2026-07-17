@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: sampleEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 100
-  deck: {fileID: 0}
+  deck: {fileID: 11400000, guid: 5c76c3ca5b6bd35438f1ef4f4f45a31b, type: 2}

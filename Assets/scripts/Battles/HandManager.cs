@@ -58,6 +58,23 @@ public class HandManager
         _cardObjects[i] = obj;
     }
 
+    // 손패 전체를 소유자의 덱으로 되돌린다 (ReDraw용)
+    public void ReturnHandToDeck()
+    {
+        for (int i = 0; i < HandSize; i++)
+        {
+            if (_hand[i] == null) continue;
+            _characterManager.ReturnToDeck(_hand[i]);
+            _hand[i] = null;
+            if (_cardObjects[i] != null)
+            {
+                Object.Destroy(_cardObjects[i]);
+                _cardObjects[i] = null;
+            }
+        }
+        UnselectCard();
+    }
+
     public void SelectCard(int index)
     {
         _selectedIndex = index;

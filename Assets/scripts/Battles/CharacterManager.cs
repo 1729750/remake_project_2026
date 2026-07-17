@@ -6,7 +6,12 @@ using UnityEngine;
 
 public class CharacterManager: MonoBehaviour
 {
+    // SelectCard의 특수 행동 인덱스 (카드 선택과 상호배타 — 턴 종료 시 하나만 실행된다)
+    public const int RedrawAction = -2;
+    public const int DefenseAction = -1;
+
     private int _maxHealth = 100;
+    private int _specialAction; // 0 = 없음, RedrawAction/DefenseAction
     private List<CardInstance> _deck;
     
     private int _health;
@@ -39,14 +44,19 @@ public class CharacterManager: MonoBehaviour
                 _deck.Add(new CardInstance(def,this));
         
         //덱 셔플
+        ShuffleDeck();
+
+        //손 채우기
+        _handManager.FillHand();
+    }
+
+    private void ShuffleDeck()
+    {
         for (int i = _deck.Count - 1; i > 0; i--)
         {
             int j = UnityEngine.Random.Range(0, i + 1);
             (_deck[i], _deck[j]) = (_deck[j], _deck[i]);
         }
-        
-        //손 채우기
-        _handManager.FillHand();
     }
     
     private void Update()
@@ -58,6 +68,8 @@ public class CharacterManager: MonoBehaviour
     {
         if (_handManager == null) return;
         _cost = Mathf.Min(_cost + 1, MaxCost);
+        for (int i = _effects.Count - 1; i >= 0; i--)
+            _effects[i].OnTurnStarted(this);
         UpdateCostDisplay();
         UpdateEffectList();
         _handManager.FillHand();
@@ -70,22 +82,64 @@ public class CharacterManager: MonoBehaviour
             _effects[i].OnTurnEnded(this);
         if (!playerControlled)
             SelectRandomCard();
-        var selected = _handManager?.GetSelectedCard();
-        if (selected != null && _cost >= selected.GetCost())
+
+        if (_specialAction == RedrawAction)
         {
-            if(_handManager.UseCard())
-            {
-                _cost -= selected.GetCost();
-            }
-            UpdateCostDisplay();
+            Redraw();
         }
+        else if (_specialAction == DefenseAction)
+        {
+            GainGuard();
+        }
+        else
+        {
+            var selected = _handManager?.GetSelectedCard();
+            if (selected != null && _cost >= selected.GetCost())
+            {
+                if(_handManager.UseCard())
+                {
+                    _cost -= selected.GetCost();
+                }
+                UpdateCostDisplay();
+            }
+        }
+        _specialAction = 0;
+    }
+
+    // ReDraw: 손패 전부를 덱에 되돌리고 셔플 후 다시 채운다
+    private void Redraw()
+    {
+        _handManager.ReturnHandToDeck();
+        ShuffleDeck();
+        _handManager.FillHand();
+        Debug.Log($"[{gameObject.name}] Redrew hand");
+    }
+
+    // Defense: 이번 턴에만 유지되는(지속시간 1) Guard 효과를 얻는다
+    private void GainGuard()
+    {
+        for (int i = 0; i < _effects.Count; i++)
+            if (_effects[i].GetEffectType() == EffectType.Guard)
+                return;
+        _effects.Add(Effect.Create(EffectType.Guard, 1));
+        Debug.Log($"[{gameObject.name}] Gained effect: {EffectType.Guard} :1");
     }
 
     public void SelectCard(int index)
     {
         if (BattleManager.Instance == null || BattleManager.Instance.CurrentState != BattleState.Turn) return;
+
+        if (index == RedrawAction || index == DefenseAction)
+        {
+            _specialAction = index;
+            _handManager.UnselectCard();
+            Debug.Log($"[{gameObject.name}] Selected action: {(index == RedrawAction ? "ReDraw" : "Defense")}");
+            return;
+        }
+
         var hand = _handManager.GetHand();
         if (index < 0 || index >= hand.Length || hand[index] == null) return;
+        _specialAction = 0;
         _handManager.SelectCard(index);
         Debug.Log($"[{gameObject.name}] Selected card: {hand[index].GetDefinition().name}");
     }

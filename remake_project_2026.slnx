@@ -1,4 +1,8 @@
 ﻿<Solution>
+<<<<<<< Updated upstream
+=======
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+>>>>>>> Stashed changes
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="McpUnity.Editor.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
