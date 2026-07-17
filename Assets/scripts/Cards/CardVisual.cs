@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -10,22 +11,33 @@ public class CardVisual : MonoBehaviour
     private TextMeshPro _costText;
     private TextMeshPro _cooltimeText;
     private GameObject _selectHighlight;
+    private GameObject _front;
+    private GameObject _back;
     private CardInstance _cardInstance;
+    private Coroutine _moveCoroutine;
 
     private void Awake()
     {
-        _background      = transform.Find("background").GetComponent<SpriteRenderer>();
-        _sprite          = transform.Find("sprite").GetComponent<SpriteRenderer>();
-        _effectText      = transform.Find("effect/effectText").GetComponent<TextMeshPro>();
-        _costText        = transform.Find("cost/CostText").GetComponent<TextMeshPro>();
-        _cooltimeText    = transform.Find("cooltimeText").GetComponent<TextMeshPro>();
-        _selectHighlight = transform.Find("background/SelectHighlight").gameObject;
+        _front           = transform.Find("Front").gameObject;
+        _back            = transform.Find("Back").gameObject;
+        _background      = transform.Find("Front/background").GetComponent<SpriteRenderer>();
+        _sprite          = transform.Find("Front/sprite").GetComponent<SpriteRenderer>();
+        _effectText      = transform.Find("Front/effect/effectText").GetComponent<TextMeshPro>();
+        _costText        = transform.Find("Front/CostText").GetComponent<TextMeshPro>();
+        _cooltimeText    = transform.Find("Front/cooltimeText").GetComponent<TextMeshPro>();
+        _selectHighlight = transform.Find("Front/SelectHighlight").gameObject;
         _selectHighlight.SetActive(false);
     }
 
     public void SetSelected(bool selected) => _selectHighlight.SetActive(selected);
 
-    public void SetCard(CardInstance cardInstance)
+    public void SetFace(bool front)
+    {
+        _front.SetActive(front);
+        _back.SetActive(!front);
+    }
+
+    public void SetCard(CardInstance cardInstance, bool showFront)
     {
         _cardInstance = cardInstance;
         CardDefinition def = cardInstance.GetDefinition();
@@ -37,15 +49,15 @@ public class CardVisual : MonoBehaviour
         var sb = new StringBuilder();
         foreach (CardEffect cardEffect in def.GetEffects())
         {
-            string emoji = GameManager.Instance.GetEmoji(cardEffect.GetEffect().GetEffectType());
+            string emoji = BattleManager.Instance.GetEmoji(cardEffect.GetEffect().GetEffectType());
             int magnitude = cardEffect.GetEffect().GetMagnitude();
             if (sb.Length > 0) sb.Append('\n');
             sb.Append($"{emoji}:{magnitude}");
         }
         _effectText.text = sb.ToString();
 
-        FitToParent();
         RefreshCooltime();
+        SetFace(showFront);
     }
 
     private void FitToParent()
@@ -63,6 +75,30 @@ public class CardVisual : MonoBehaviour
             transform.localScale.y * targetSize.y / currentSize.y,
             transform.localScale.z
         );
+    }
+
+    public void MoveTo(Vector3 targetPosition, float duration = 0.3f)
+    {
+        if (_moveCoroutine != null)
+            StopCoroutine(_moveCoroutine);
+        _moveCoroutine = StartCoroutine(MoveRoutine(targetPosition, duration));
+    }
+
+    private IEnumerator MoveRoutine(Vector3 targetPosition, float duration)
+    {
+        Vector3 startPosition = transform.position;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            yield return null;
+        }
+
+        transform.position = targetPosition;
+        _moveCoroutine = null;
     }
 
     private void Update()

@@ -6,15 +6,18 @@ public class Effect
 {
    [SerializeField] private EffectType _effectType;
    [SerializeField] protected int _magnitude;
+    private int _effectPriority;
 
-    public Effect(EffectType effectType, int magnitude)
+    public Effect(EffectType effectType, int magnitude, int effectPriority = 0)
     {
         _effectType = effectType;
         _magnitude = magnitude;
+        _effectPriority = effectPriority;
     }
 
     public EffectType GetEffectType() => _effectType;
     public int GetMagnitude() => _magnitude;
+    public int GetEffectPriority() => _effectPriority;
     
     public void AddMagnitude(int magnitude) => _magnitude += magnitude;
 
@@ -30,10 +33,9 @@ public class Effect
         }
     }
 
-    public virtual void OnApplied(BattleManager subject) {}
-    public virtual void OnExpired(BattleManager subject) { }
-    public virtual void OnTurnStarted(BattleManager subject) { }
-    public virtual void OnTurnEnded(BattleManager subject) { }
-    public virtual void OnApplying(BattleManager subject, CardEffect effect, bool actualUse) { }
-    public virtual void OnApplyed(BattleManager subject, CardEffect effect, bool actualUse) { }
+    public virtual void OnExpired(CharacterManager subject) { }
+    public virtual void OnTurnStarted(CharacterManager subject) { }
+    public virtual void OnTurnEnded(CharacterManager subject) { }
+    public virtual void OnApplying(CharacterManager subject, CardEffect effect, bool actualUse) { }
+    public virtual void OnApplied(CharacterManager subject, CardEffect effect, bool actualUse) { }
 }

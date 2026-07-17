@@ -4,17 +4,19 @@ using System;
 [Serializable]
 public class WeakEffect : Effect
 {
-    public WeakEffect(int magnitude) : base(EffectType.Weak,magnitude) { }
+    private const int Priority = 1;
+
+    public WeakEffect(int magnitude) : base(EffectType.Weak, magnitude, Priority) { }
 
     // Weak: target deals reduced damage while applied
-    public override void OnApplying(BattleManager b, CardEffect effect,bool a)
+    public override void OnApplying(CharacterManager b, CardEffect effect,bool a)
     {
         if (effect.GetEffect().GetEffectType() == EffectType.Attack)
         {
             effect.Multiply(0.8f);
         }
     }
-    public override void OnTurnEnded(BattleManager subject)
+    public override void OnTurnEnded(CharacterManager subject)
     {
         _magnitude--;
         if(_magnitude <= 0)

@@ -11,12 +11,21 @@
       "mcp__mcp-unity__duplicate_gameobject",
       "mcp__mcp-unity__batch_execute",
       "mcp__mcp-unity__get_console_logs",
+      "Bash(del \"C:\\\\Users\\\\tuiko\\\\remake_project\\\\remake project\\\\Assets\\\\Editor\\\\EffectDrawer.cs\")",
+      "Bash(del \"C:\\\\Users\\\\tuiko\\\\remake_project\\\\remake project\\\\Assets\\\\Editor\\\\EffectDrawer.cs.meta\")",
       "mcp__mcp-unity__get_play_mode_status",
-      "mcp__mcp-unity__get_scenes_hierarchy",
-      "PowerShell(Get-Content *)"
+      "Bash(python3 -c ' *)"
     ]
   },
   "enabledMcpjsonServers": [
     "mcp-unity"
-  ]
+  ],
+  "mcpServers": {
+    "mcp-unity": {
+      "command": "node",
+      "args": [
+        "C:/Users/tuiko/Unitys/remake_project_2026/Library/PackageCache/com.gamelovers.mcp-unity@c35f184d7656/Server~/build/index.js"
+      ]
+    }
+  }
 }

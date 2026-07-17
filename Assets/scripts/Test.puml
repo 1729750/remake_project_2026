@@ -14,20 +14,31 @@ skinparam class {
 
 class GameManager #F7D8C8 {
   {static} + Instance : GameManager
-  - playerBattleManager : BattleManager
-  - enemyBattleManager : BattleManager
+  - playerCharacterManager : CharacterManager
+  - enemyCharacterManager : CharacterManager
   - turnText : TextMeshPro
   - turnDuration : float
   - startDelay : float
+  --
+  (Awake/Start/Update만 담당, 실제 전투 로직은 BattleManager에 위임)
+}
+
+class BattleManager #F7D8C8 {
+  {static} + Instance : BattleManager
+  - _playerCharacterManager : CharacterManager
+  - _enemyCharacterManager : CharacterManager
   - _turnManager : TurnManager
   - _turnTimerOverlay : TurnTimerOverlay
+  - _startDelay : float
   + CurrentState : GameState
   --
+  + StartBattle()
+  + Tick(deltaTime : float)
   - OnGameStarted()
   - OnTurnStarted()
   - OnTurnEnded()
-  + NotifyDefeat(loser : BattleManager)
-  + GetOpponent(user : BattleManager) : BattleManager
+  + NotifyDefeat(loser : CharacterManager)
+  + GetOpponent(user : CharacterManager) : CharacterManager
   + GetEmoji(effectType : EffectType) : string
 }
 
@@ -66,7 +77,7 @@ class TurnTimerOverlay #D9F3E6 {
   - BuildMesh(ratio : float)
 }
 
-class BattleManager #F7D8C8 {
+class CharacterManager #F7D8C8 {
   - _maxHealth : int
   - _health : int
   - _defense : int
@@ -92,7 +103,7 @@ class BattleManager #F7D8C8 {
 class HandManager #E8F5E9 {
   - _hand : CardInstance[]
   - _selectedIndex : int
-  - _battleManager : BattleManager
+  - _characterManager : CharacterManager
   - _queueManager : QueueManager
   --
   + FillHand()
@@ -110,7 +121,7 @@ class QueueManager #E8F5E9 {
   --
   + AddCard(card : CardInstance) : bool
   + GetQueue() : CardInstance[]
-  + TickQueueCards(battleManager : BattleManager)
+  + TickQueueCards(characterManager : CharacterManager)
 }
 
 class CardDefinition #D8E8FF {
@@ -129,7 +140,7 @@ class CardDefinition #D8E8FF {
 
 class CardInstance #D8E8FF {
   - _definition : CardDefinition
-  - _owner : BattleManager
+  - _owner : CharacterManager
   - _cooldownLeft : int
   - cost : int
   - _effects : List<CardEffect>
@@ -137,7 +148,7 @@ class CardInstance #D8E8FF {
   + Use()
   + TickCooldown()
   + IsReady() : bool
-  + Play(battleManager : BattleManager)
+  + Play(characterManager : CharacterManager)
   + GetDefinition() : CardDefinition
   + GetCost() : int
 }
@@ -152,7 +163,7 @@ class CardEffect #D8E8FF {
   + Add(i : int)
   + Multiply(i : float)
   + GetEffect() : Effect
-  + GetTarget(user : BattleManager) : BattleManager
+  + GetTarget(user : CharacterManager) : CharacterManager
   + GetMagnitude() : int
 }
 
@@ -190,12 +201,12 @@ class Effect #FFE6CC {
   + GetMagnitude() : int
   + AddMagnitude(magnitude : int)
   {static} + Create(type : EffectType, magnitude : int) : Effect
-  + OnApplied(subject : BattleManager)
-  + OnExpired(subject : BattleManager)
-  + OnTurnStarted(subject : BattleManager)
-  + OnTurnEnded(subject : BattleManager)
-  + OnApplying(subject : BattleManager, effect : CardEffect, actualUse : bool)
-  + OnApplyed(subject : BattleManager, effect : CardEffect, actualUse : bool)
+  + OnApplied(subject : CharacterManager)
+  + OnExpired(subject : CharacterManager)
+  + OnTurnStarted(subject : CharacterManager)
+  + OnTurnEnded(subject : CharacterManager)
+  + OnApplying(subject : CharacterManager, effect : CardEffect, actualUse : bool)
+  + OnApplyed(subject : CharacterManager, effect : CardEffect, actualUse : bool)
 }
 
 class HardenEffect #FFE6CC
@@ -203,20 +214,23 @@ class StrengthEffect #FFE6CC
 class VulnerableEffect #FFE6CC
 class WeakEffect #FFE6CC
 
-GameManager --> GameState : 현재 상태
-GameManager --> TurnManager : 생성/제어
+GameManager --> TurnManager : 생성
 GameManager --> TurnTimerOverlay : 생성
-GameManager --> BattleManager : player/enemy 관리
+GameManager --> BattleManager : 생성 및 Tick 위임
+
+BattleManager --> GameState : 현재 상태
+BattleManager --> TurnManager : 제어
+BattleManager --> CharacterManager : player/enemy 관리
 
 TurnManager --> TurnTimerOverlay : 타이머 표시
-TurnManager --> GameManager : 턴 이벤트 호출
+TurnManager --> BattleManager : 턴 이벤트 호출
 
-BattleManager --> HandManager : 손패 관리
-BattleManager --> QueueManager : 카드 큐 처리
-BattleManager --> CardDefinition : 시작 덱
-BattleManager --> CardInstance : 덱/손패 카드
-BattleManager --> Effect : 상태 효과 보유
-BattleManager --> GameManager : 패배 알림
+CharacterManager --> HandManager : 손패 관리
+CharacterManager --> QueueManager : 카드 큐 처리
+CharacterManager --> CardDefinition : 시작 덱
+CharacterManager --> CardInstance : 덱/손패 카드
+CharacterManager --> Effect : 상태 효과 보유
+CharacterManager --> BattleManager : 패배 알림
 
 HandManager --> CardInstance : 손패 보관
 HandManager --> QueueManager : 사용 카드 등록
@@ -227,18 +241,18 @@ QueueManager --> CardVisual : 큐 카드 표시
 
 CardInstance --> CardDefinition : 원본 카드 데이터
 CardInstance --> CardEffect : 카드 효과 실행
-CardInstance --> BattleManager : 대상에게 효과 적용
+CardInstance --> CharacterManager : 대상에게 효과 적용
 
 CardEffect --> Effect : 실제 효과
 CardEffect --> EffectTarget : 대상 결정
-CardEffect --> GameManager : 상대 찾기
+CardEffect --> BattleManager : 상대 찾기
 
 CardDefinition --> CardEffect : 효과 목록
 CardDefinition --> CardType : 카드 종류
 
 CardVisual --> CardInstance : 카드 정보 표시
 CardVisual --> CardDefinition : 이름/비용/이미지/효과 표시
-CardVisual --> GameManager : 이모지 표시
+CardVisual --> BattleManager : 이모지 표시
 
 Effect --> EffectType : 효과 타입
 Effect <|-- HardenEffect
