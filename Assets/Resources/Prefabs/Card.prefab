@@ -27,11 +27,15 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
 <<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
   m_LocalScale: {x: 1.3, y: 1.6899998, z: 1.3}
 =======
   m_LocalScale: {x: 2, y: 2.5, z: 2.5}
 >>>>>>> ac643cf (✨ 올려주신 스프라이트를 적절한 위치에 삽입하였습니다.):Assets/resources/preFabs/Card.prefab
+=======
+  m_LocalScale: {x: 2, y: 1.9999999, z: 2}
+>>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1819977780077836848}
@@ -129,7 +133,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: -1171175124282165417, guid: e85b61ad0735a1f43bb5525e8e335e15, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -348,8 +352,13 @@ Transform:
   m_GameObject: {fileID: 2800053383854129819}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+<<<<<<< HEAD
   m_LocalPosition: {x: -0.0024, y: 0.1006, z: 0}
   m_LocalScale: {x: 0.5550159, y: 0.5876667, z: 1}
+=======
+  m_LocalPosition: {x: 0.0015, y: 0.1144, z: 0}
+  m_LocalScale: {x: 0.5586192, y: 0.56514716, z: 1}
+>>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2428182897763687322}
@@ -422,6 +431,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6934161317908348220}
+  - component: {fileID: 1551605748592657669}
   m_Layer: 0
   m_Name: effect
   m_TagString: Untagged
@@ -438,8 +448,12 @@ Transform:
   m_GameObject: {fileID: 3097996802259185721}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+<<<<<<< HEAD
 <<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
   m_LocalPosition: {x: 0, y: 0, z: 0}
+=======
+  m_LocalPosition: {x: -0.003, y: -0.287, z: 0}
+>>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
   m_LocalScale: {x: 1, y: 1, z: 1}
 =======
   m_LocalPosition: {x: 0.003, y: -0.2902, z: 0}
@@ -450,9 +464,13 @@ Transform:
   - {fileID: 6784884651362403502}
   m_Father: {fileID: 2428182897763687322}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
 <<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
 =======
 --- !u!212 &96236503860128572
+=======
+--- !u!212 &1551605748592657669
+>>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
@@ -502,16 +520,27 @@ SpriteRenderer:
   m_SortingOrder: 2
   m_MaskInteraction: 0
   m_Sprite: {fileID: 6639126460929552292, guid: 1b3c9ff6f0c45934c9ce5e32f7ff38a7, type: 3}
+<<<<<<< HEAD
   m_Color: {r: 1, g: 1, b: 1, a: 0.68235296}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
   m_Size: {x: 1, y: 1}
+=======
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 0
+  m_Size: {x: 0.5751953, y: 0.21582031}
+>>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+<<<<<<< HEAD
 >>>>>>> ac643cf (✨ 올려주신 스프라이트를 적절한 위치에 삽입하였습니다.):Assets/resources/preFabs/Card.prefab
+=======
+>>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
 --- !u!1 &4911668645291150034
 GameObject:
   m_ObjectHideFlags: 0
@@ -863,7 +892,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 99
+  m_SortingOrder: 3
   m_MaskInteraction: 0
   m_Sprite: {fileID: -5252754215550629752, guid: b662a7e74e1697047b87bb16274d69d6, type: 3}
   m_Color: {r: 0.9866247, g: 1, b: 0, a: 0.4392157}
@@ -910,7 +939,6 @@ Transform:
   - {fileID: 3087095552053309439}
   - {fileID: 6934161317908348220}
   - {fileID: 8485273221240868029}
-  - {fileID: 5489540041299095351}
   m_Father: {fileID: 3936992865691249493}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8856212100652212787
@@ -940,14 +968,14 @@ RectTransform:
   m_GameObject: {fileID: 8856212100652212787}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.4, y: 0.3, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2428182897763687322}
+  m_Father: {fileID: 8485273221240868029}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0.2, y: 0.2}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!23 &7774461164272627145
@@ -1120,10 +1148,11 @@ Transform:
   m_GameObject: {fileID: 8939552860694280022}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.5, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0.347, y: 0.433, z: 0}
   m_LocalScale: {x: 0.4, y: 0.3, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 5489540041299095351}
   m_Father: {fileID: 2428182897763687322}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &3450622177974479099
