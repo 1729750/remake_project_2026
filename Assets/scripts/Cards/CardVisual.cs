@@ -42,14 +42,14 @@ public class CardVisual : MonoBehaviour
         _cardInstance = cardInstance;
         CardDefinition def = cardInstance.GetDefinition();
 
-        _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
+       // _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
         _sprite.sprite = def.GetSprite();
         _costText.text = def.GetCost().ToString();
 
         var sb = new StringBuilder();
         foreach (CardEffect cardEffect in def.GetEffects())
         {
-            string emoji = BattleManager.Instance.GetEmoji(cardEffect.GetEffect().GetEffectType());
+            string emoji = BattleManager.GetEmoji(cardEffect.GetEffect().GetEffectType());
             int magnitude = cardEffect.GetEffect().GetMagnitude();
             if (sb.Length > 0) sb.Append('\n');
             sb.Append($"{emoji}:{magnitude}");
@@ -60,13 +60,11 @@ public class CardVisual : MonoBehaviour
         SetFace(showFront);
     }
 
-    private void FitToParent()
-    {
-        if (transform.parent == null) return;
-        SpriteRenderer parentSR = transform.parent.GetComponent<SpriteRenderer>();
-        if (parentSR == null) return;
+    public Vector2 GetBackgroundSize() => _background.bounds.size;
 
-        Vector2 targetSize = parentSR.bounds.size;
+    // 카드 배경(SpriteRenderer)의 월드 크기가 targetSize가 되도록 균등하지 않게(가로/세로 개별) 스케일한다.
+    public void SetSize(Vector2 targetSize)
+    {
         Vector2 currentSize = _background.bounds.size;
         if (currentSize.x == 0f || currentSize.y == 0f) return;
 
