@@ -9,18 +9,13 @@ public class BattleManager:MonoBehaviour
     [SerializeField] private CharacterManager playerCharacterManager;
     [SerializeField] private CharacterManager enemyCharacterManager;
     [SerializeField] private TextMeshPro turnText;
-    [SerializeField] private GameObject rewardPanel;
     [SerializeField] private float turnDuration = 1f;
     [SerializeField] private float startDelay = 3f;
-    
+
     private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
     private float _startElapsed;
-    private GameObject _cardPrefab;
-    private CardDefinition[] _rewardCards;
-    private CardVisual[] _rewardVisuals;
-    private int _rewardSelectedIndex;
-    
+
     public BattleState CurrentState { get; private set; }
 
     private void Awake()
@@ -133,74 +128,12 @@ public class BattleManager:MonoBehaviour
         }
     }
 
-    public void ShowReward(CardDefinition[] rewardCards)
-    {
-        if (_cardPrefab == null)
-            _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
-        if (rewardPanel == null || _cardPrefab == null) return;
-
-        rewardPanel.SetActive(true);
-
-        int count = Mathf.Min(rewardCards.Length, rewardPanel.transform.childCount);
-        _rewardCards = rewardCards;
-        _rewardVisuals = new CardVisual[count];
-        for (int i = 0; i < count; i++)
-        {
-            Transform slot = rewardPanel.transform.GetChild(i);
-            for (int c = slot.childCount - 1; c >= 0; c--)
-                Destroy(slot.GetChild(c).gameObject);
-
-            if (rewardCards[i] == null) continue;
-
-            GameObject obj = Instantiate(_cardPrefab, slot);
-            obj.transform.localPosition = Vector3.zero;
-            var visual = obj.GetComponent<CardVisual>();
-            if (visual == null)
-                visual = obj.AddComponent<CardVisual>();
-            // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다
-            visual.SetCard(new CardInstance(rewardCards[i], null), true);
-            _rewardVisuals[i] = visual;
-        }
-
-        _rewardSelectedIndex = 0;
-        RefreshRewardSelection();
-    }
-
-    public void MoveRewardSelection(int delta)
-    {
-        if (_rewardVisuals == null || _rewardVisuals.Length == 0) return;
-
-        int count = _rewardVisuals.Length;
-        _rewardSelectedIndex = ((_rewardSelectedIndex + delta) % count + count) % count;
-        RefreshRewardSelection();
-    }
-
-    public CardDefinition ConfirmReward()
-    {
-        if (_rewardVisuals == null || _rewardVisuals.Length == 0) return null;
-
-        CardDefinition selected = _rewardCards[_rewardSelectedIndex];
-        rewardPanel.SetActive(false);
-        _rewardCards = null;
-        _rewardVisuals = null;        
-        return selected;
-    }
-
-    private void RefreshRewardSelection()
-    {
-        for (int i = 0; i < _rewardVisuals.Length; i++)
-        {
-            if (_rewardVisuals[i] != null)
-                _rewardVisuals[i].SetSelected(i == _rewardSelectedIndex);
-        }
-    }
-    
     public CharacterManager GetOpponent(CharacterManager user)
     {
         return user == playerCharacterManager ? enemyCharacterManager : playerCharacterManager;
     }
 
-    public string GetEmoji(EffectType effectType)
+    public static string GetEmoji(EffectType effectType)
     {
         switch (effectType)
         {

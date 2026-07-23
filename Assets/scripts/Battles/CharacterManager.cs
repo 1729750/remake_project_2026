@@ -332,7 +332,7 @@ public class CharacterManager: MonoBehaviour
         foreach (var effect in _effects)
         {
             if (effect == null) continue;
-            parts.Add($"{BattleManager.Instance.GetEmoji(effect.GetEffectType())}:{effect.GetMagnitude()}");
+            parts.Add($"{BattleManager.GetEmoji(effect.GetEffectType())}:{effect.GetMagnitude()}");
         }
         effectListText.text = string.Join(" ", parts);
     }
