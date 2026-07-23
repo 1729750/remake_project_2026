@@ -242,6 +242,7 @@ Transform:
 <<<<<<< HEAD
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalScale: {x: 2.5, y: 2.5, z: 2.5}
@@ -250,6 +251,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 1199511219}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -650,10 +654,14 @@ SpriteRenderer:
   m_FlipY: 0
   m_DrawMode: 1
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_Size: {x: 6, y: 0.5}
 =======
   m_Size: {x: 8, y: 0.5}
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_Size: {x: 8, y: 0.5}
+>>>>>>> origin/jihoryu
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -779,6 +787,7 @@ Transform:
   m_LocalPosition: {x: -4.78, y: -1.96, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalPosition: {x: -5.26, y: -2, z: 0}
@@ -788,6 +797,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 1199511219}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1469,6 +1481,7 @@ Transform:
   m_LocalPosition: {x: 3.99, y: -3.64, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalPosition: {x: 4.21, y: -3.61, z: 0}
@@ -1478,6 +1491,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 74830599}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2277,6 +2293,7 @@ Transform:
 <<<<<<< HEAD
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalScale: {x: 2.5, y: 2.5, z: 2.5}
@@ -2285,6 +2302,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 977913907}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2612,6 +2632,7 @@ Transform:
 <<<<<<< HEAD
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalScale: {x: 2.5, y: 2.5, z: 2.5}
@@ -2620,6 +2641,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 977913907}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2984,10 +3008,14 @@ Transform:
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
 =======
   m_LocalScale: {x: 2, y: 2, z: 2}
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_LocalScale: {x: 2, y: 2, z: 2}
+>>>>>>> origin/jihoryu
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1895152205}
@@ -3083,6 +3111,7 @@ Transform:
   m_LocalPosition: {x: 5.61, y: -3.64, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalPosition: {x: 6.16, y: -3.64, z: 0}
@@ -3092,6 +3121,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 74830599}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -3596,10 +3628,13 @@ Transform:
 <<<<<<< HEAD
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
 =======
   m_LocalRotation: {x: -0, y: -0, z: 0.00034529547, w: 0.99999994}
   m_LocalPosition: {x: 0.0010926723, y: -0.0023474693, z: 0}
 >>>>>>> 550d479 (적용 진짜 완료)
+=======
+>>>>>>> origin/jihoryu
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3614,12 +3649,15 @@ Transform:
   m_Father: {fileID: 955717469}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   - {fileID: 2096738062}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0.04}
 >>>>>>> 550d479 (적용 진짜 완료)
 =======
+=======
+>>>>>>> origin/jihoryu
 --- !u!1 &1314450688
 GameObject:
   m_ObjectHideFlags: 0
@@ -3711,7 +3749,10 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+<<<<<<< HEAD
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+>>>>>>> origin/jihoryu
 --- !u!1 &1362530078
 GameObject:
   m_ObjectHideFlags: 0
@@ -3742,6 +3783,7 @@ Transform:
   m_LocalPosition: {x: -3.16, y: -2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalPosition: {x: -3.45, y: -2.01, z: 0}
@@ -3751,6 +3793,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 1199511219}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -4183,6 +4228,7 @@ SpriteRenderer:
   m_SpriteSortPoint: 1
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!1 &1581688100
 =======
 --- !u!1 &1469750999
@@ -4281,6 +4327,9 @@ Transform:
 =======
 --- !u!1 &1474451736
 >>>>>>> 934a661 (다음 적 3가지 표시 및 선택 기능, 덱 표시 기능, 덱에서 카드 삭제 기능 및 전투 보상으로 선택가능하게 하기 완료)
+=======
+--- !u!1 &1474451736
+>>>>>>> origin/jihoryu
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5239,6 +5288,7 @@ Transform:
 <<<<<<< HEAD
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalScale: {x: 2.5, y: 2.5, z: 2.5}
@@ -5247,6 +5297,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 74830599}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -5396,6 +5449,7 @@ Transform:
 <<<<<<< HEAD
   m_LocalScale: {x: 1, y: 1, z: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_ConstrainProportionsScale: 0
 =======
   m_LocalScale: {x: 2.5, y: 2.5, z: 2.5}
@@ -5404,6 +5458,9 @@ Transform:
 =======
   m_ConstrainProportionsScale: 1
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_ConstrainProportionsScale: 1
+>>>>>>> origin/jihoryu
   m_Children: []
   m_Father: {fileID: 977913907}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -5668,6 +5725,7 @@ SceneRoots:
   - {fileID: 1306245647}
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   - {fileID: 550371443}
   - {fileID: 1312835011}
@@ -5681,3 +5739,7 @@ SceneRoots:
   - {fileID: 1474451738}
   - {fileID: 772567245}
 >>>>>>> 934a661 (다음 적 3가지 표시 및 선택 기능, 덱 표시 기능, 덱에서 카드 삭제 기능 및 전투 보상으로 선택가능하게 하기 완료)
+=======
+  - {fileID: 1474451738}
+  - {fileID: 772567245}
+>>>>>>> origin/jihoryu

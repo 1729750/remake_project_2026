@@ -29,6 +29,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 <<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
   m_LocalScale: {x: 1.3, y: 1.6899998, z: 1.3}
 =======
@@ -40,6 +41,9 @@ Transform:
 =======
   m_LocalScale: {x: 2, y: 2, z: 2}
 >>>>>>> 934a661 (다음 적 3가지 표시 및 선택 기능, 덱 표시 기능, 덱에서 카드 삭제 기능 및 전투 보상으로 선택가능하게 하기 완료)
+=======
+  m_LocalScale: {x: 2, y: 2, z: 2}
+>>>>>>> origin/jihoryu
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1819977780077836848}
@@ -357,12 +361,17 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_LocalPosition: {x: -0.0024, y: 0.1006, z: 0}
   m_LocalScale: {x: 0.5550159, y: 0.5876667, z: 1}
 =======
   m_LocalPosition: {x: 0.0015, y: 0.1144, z: 0}
   m_LocalScale: {x: 0.5586192, y: 0.56514716, z: 1}
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_LocalPosition: {x: 0.0015, y: 0.1144, z: 0}
+  m_LocalScale: {x: 0.5586192, y: 0.56514716, z: 1}
+>>>>>>> origin/jihoryu
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2428182897763687322}
@@ -453,11 +462,15 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
 <<<<<<< HEAD
+<<<<<<< HEAD
 <<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
   m_LocalPosition: {x: 0, y: 0, z: 0}
 =======
   m_LocalPosition: {x: -0.003, y: -0.287, z: 0}
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+  m_LocalPosition: {x: -0.003, y: -0.287, z: 0}
+>>>>>>> origin/jihoryu
   m_LocalScale: {x: 1, y: 1, z: 1}
 =======
   m_LocalPosition: {x: 0.003, y: -0.2902, z: 0}
@@ -469,12 +482,16 @@ Transform:
   m_Father: {fileID: 2428182897763687322}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
 <<<<<<< HEAD:Assets/Resources/Prefabs/Card.prefab
 =======
 --- !u!212 &96236503860128572
 =======
 --- !u!212 &1551605748592657669
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+--- !u!212 &1551605748592657669
+>>>>>>> origin/jihoryu
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
@@ -525,26 +542,35 @@ SpriteRenderer:
   m_MaskInteraction: 0
   m_Sprite: {fileID: 6639126460929552292, guid: 1b3c9ff6f0c45934c9ce5e32f7ff38a7, type: 3}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_Color: {r: 1, g: 1, b: 1, a: 0.68235296}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
   m_Size: {x: 1, y: 1}
 =======
+=======
+>>>>>>> origin/jihoryu
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
   m_Size: {x: 0.5751953, y: 0.21582031}
+<<<<<<< HEAD
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+>>>>>>> origin/jihoryu
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> ac643cf (✨ 올려주신 스프라이트를 적절한 위치에 삽입하였습니다.):Assets/resources/preFabs/Card.prefab
 =======
 >>>>>>> a9a99af (아트를 가장 최신판에도 적용하였습니다)
+=======
+>>>>>>> origin/jihoryu
 --- !u!1 &4911668645291150034
 GameObject:
   m_ObjectHideFlags: 0
