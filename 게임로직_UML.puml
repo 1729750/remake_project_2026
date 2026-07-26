@@ -1,0 +1,52 @@
+@startuml 게임로직_UML
+title 카드 배틀러 - 게임 플레이 루프
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #5C6673
+skinparam ArrowColor #5C6673
+skinparam ActivityDiamondBackgroundColor #FFF8E8
+skinparam ActivityDiamondBorderColor #8B6B13
+skinparam PartitionBorderColor #5C6673
+
+start
+
+repeat
+  ' 1. 적 선택 (SelectEnemy) -> 전투 준비
+  :GameManager.ShowEnemySelection() - GameState=SelectEnemy;
+  :MapManager.ShowEnemySelection(enemyCandidates);
+note right: 개선 필요 - 랜덤 추첨으로 교체
+  :좌/우 이동 후 ConfirmSelection으로 확정;
+  :선택된 CharacterData를 GameManager로 전달;
+  :GameManager.StartBattle(enemyData) - GameState=Battle;
+  :BattleManager - CharacterInit() 호출;
+  :덱 리셋/셔플 후 FillHand() 최초 실행;
+  repeat
+    partition "2. 전투 턴 루프 (Battle)" #FDEAE0 {
+      :TurnStart - FillHand()로 손패 채움;
+      :Turn - SelectCard(index)로 카드 선택;
+      :TurnEnd - TickQueueCards, UseCard 처리;
+    }
+  repeat while (HP ≤ 0?) is (아니오) not (예)
+  if (누가 패배?) then (플레이어)
+    :Application.Quit();
+    stop
+  else (적)
+  endif
+  partition "3. 보상 (BattleEnd)" #E7ECFC {
+    :EndBattle() - GameState=BattleEnd, ShowRewardDisplay();
+    switch (선택)
+    case (추가)
+      :카드 3장 제시 후 AddCard(selected);
+note right: 개선 필요 - 랜덤 추첨으로 교체
+    case (삭제)
+      :DeckDisplay 표시 후 DiscardCard(index);
+    case (강화)
+      :미구현;
+    endswitch
+    :ConfirmReward() - GameState=SelectEnemy로 복귀;
+  }
+repeat while (다음 라운드) is (예) not (아니오)
+stop
+@enduml

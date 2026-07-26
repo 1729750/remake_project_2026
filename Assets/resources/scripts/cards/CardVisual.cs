@@ -1,4 +1,5 @@
 using System.Text;
+using JetBrains.Annotations;
 using TMPro;
 using UnityEngine;
 
@@ -6,6 +7,7 @@ public class CardVisual : MonoBehaviour
 {
     private SpriteRenderer _background;
     private SpriteRenderer _sprite;
+    private SpriteRenderer _spriteBackground;
     private TextMeshPro _effectText;
     private TextMeshPro _costText;
     private TextMeshPro _cooltimeText;
@@ -20,6 +22,7 @@ public class CardVisual : MonoBehaviour
         _costText        = transform.Find("cost/CostText").GetComponent<TextMeshPro>();
         _cooltimeText    = transform.Find("cooltimeText").GetComponent<TextMeshPro>();
         _selectHighlight = transform.Find("background/SelectHighlight").gameObject;
+        _spriteBackground = transform.Find("sprite/background").GetComponent<SpriteRenderer>();
         _selectHighlight.SetActive(false);
     }
 
@@ -30,8 +33,8 @@ public class CardVisual : MonoBehaviour
         _cardInstance = cardInstance;
         CardDefinition def = cardInstance.GetDefinition();
 
-        _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
         _sprite.sprite = def.GetSprite();
+        _spriteBackground.sprite = def.GetSpriteBackground();
         _costText.text = def.GetCost().ToString();
 
         var sb = new StringBuilder();

@@ -1,0 +1,318 @@
+<title>카드 배틀러 — 게임 로직 트리</title>
+<style>
+  :root{
+    --ink:#1b1f24;
+    --paper:#f6f7fb;
+    --card:#ffffff;
+    --steel:#5c6673;
+    --border:#dde1e8;
+    --moss:#12805f;
+    --moss-soft:#e3f5ee;
+    --ember:#c2410c;
+    --ember-soft:#fdeae0;
+    --blue:#3457d5;
+    --blue-soft:#e7ecfc;
+    --danger:#8a2e0a;
+    --danger-soft:#f8d9d4;
+    --code-bg:#eef0f4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#e8ebf0;
+      --paper:#12151b;
+      --card:#181c24;
+      --steel:#8b93a1;
+      --border:#2b313c;
+      --moss:#4fd3a5;
+      --moss-soft:#0f2a22;
+      --ember:#ff8a4c;
+      --ember-soft:#332015;
+      --blue:#7d97ff;
+      --blue-soft:#1a2140;
+      --danger:#ff8a75;
+      --danger-soft:#3a1810;
+      --code-bg:#20242d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e8ebf0; --paper:#12151b; --card:#181c24; --steel:#8b93a1; --border:#2b313c;
+    --moss:#4fd3a5; --moss-soft:#0f2a22; --ember:#ff8a4c; --ember-soft:#332015;
+    --blue:#7d97ff; --blue-soft:#1a2140; --danger:#ff8a75; --danger-soft:#3a1810; --code-bg:#20242d;
+  }
+  :root[data-theme="light"]{
+    --ink:#1b1f24; --paper:#f6f7fb; --card:#ffffff; --steel:#5c6673; --border:#dde1e8;
+    --moss:#12805f; --moss-soft:#e3f5ee; --ember:#c2410c; --ember-soft:#fdeae0;
+    --blue:#3457d5; --blue-soft:#e7ecfc; --danger:#8a2e0a; --danger-soft:#f8d9d4; --code-bg:#eef0f4;
+  }
+
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+
+  .page{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Segoe UI", -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    min-height:100vh;
+    padding:2.5rem 1.5rem 4rem;
+    display:flex;
+    justify-content:center;
+  }
+
+  .sheet{
+    width:100%;
+    max-width:1180px;
+    display:flex;
+    flex-direction:column;
+    gap:2rem;
+  }
+
+  code, .mono{
+    font-family:"Consolas","SFMono-Regular",Menlo,monospace;
+    font-size:0.86em;
+  }
+
+  /* header */
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    font-size:0.72rem;
+    font-weight:600;
+    color:var(--steel);
+    margin:0 0 0.5rem;
+  }
+  h1{
+    font-size:clamp(1.5rem, 2.4vw, 2.1rem);
+    line-height:1.25;
+    margin:0 0 0.55rem;
+    text-wrap:balance;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    color:var(--steel);
+    font-size:0.98rem;
+    line-height:1.6;
+    max-width:62ch;
+    margin:0;
+  }
+
+  /* legend */
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:0.6rem;
+  }
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:0.5rem;
+    padding:0.4rem 0.85rem;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--card);
+    font-size:0.82rem;
+    color:var(--ink);
+  }
+  .dot{ width:0.6rem; height:0.6rem; border-radius:50%; flex:none; }
+  .dot.moss{ background:var(--moss); }
+  .dot.ember{ background:var(--ember); }
+  .dot.blue{ background:var(--blue); }
+  .dot.danger{ background:var(--danger); }
+
+  /* diagram card */
+  .diagram-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:1.5rem;
+    overflow-x:auto;
+  }
+  .diagram-card .mermaid{
+    display:flex;
+    justify-content:center;
+    min-width:920px;
+  }
+
+  /* notes */
+  h2{
+    font-size:1.1rem;
+    margin:0 0 0.9rem;
+    letter-spacing:-0.005em;
+  }
+  .notes-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+    gap:1rem;
+  }
+  .note{
+    border:1px solid var(--border);
+    border-left:3px solid var(--ember);
+    background:var(--card);
+    border-radius:10px;
+    padding:1rem 1.1rem;
+  }
+  .note.minor{ border-left-color:var(--blue); }
+  .note.todo{ border-left-color:var(--steel); }
+  .note-tag{
+    display:inline-block;
+    font-size:0.68rem;
+    font-weight:700;
+    letter-spacing:0.06em;
+    color:var(--ember);
+    text-transform:uppercase;
+    margin-bottom:0.4rem;
+  }
+  .note.minor .note-tag{ color:var(--blue); }
+  .note.todo .note-tag{ color:var(--steel); }
+  .note p{
+    margin:0.3rem 0 0;
+    font-size:0.88rem;
+    line-height:1.65;
+    color:var(--ink);
+  }
+  .note p.desc{ color:var(--steel); }
+  .note .kv{
+    display:grid;
+    grid-template-columns:auto 1fr;
+    gap:0.25rem 0.6rem;
+    margin-top:0.55rem;
+    font-size:0.85rem;
+  }
+  .note .kv b{ color:var(--steel); font-weight:600; }
+  code.pill{
+    background:var(--code-bg);
+    padding:0.1rem 0.4rem;
+    border-radius:5px;
+  }
+
+  footer{
+    color:var(--steel);
+    font-size:0.8rem;
+    border-top:1px solid var(--border);
+    padding-top:1rem;
+  }
+</style>
+
+<div class="page">
+  <div class="sheet">
+
+    <header>
+      <p class="eyebrow">게임 로직 트리 · UML 활동 다이어그램</p>
+      <h1>카드 배틀러 — 한 판의 전체 플레이 루프</h1>
+      <p class="subtitle">
+        GameManager → MapManager → BattleManager → CharacterManager(HandManager / QueueManager) →
+        RewardManager 순서로 이어지는 상태 전이와 함수 호출 흐름. 실제 스크립트(카드배틀러_스크립트_분석.docx) 기준으로
+        검증했다.
+      </p>
+    </header>
+
+    <div class="legend">
+      <span class="chip"><span class="dot moss"></span>① 적 선택 · SelectEnemy</span>
+      <span class="chip"><span class="dot ember"></span>② 전투 턴 루프 · Battle</span>
+      <span class="chip"><span class="dot blue"></span>③ 보상 · BattleEnd</span>
+      <span class="chip"><span class="dot danger"></span>패배 종료</span>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+flowchart TD
+    Start(["게임 시작 / 이전 보상 완료"]) --> GM1
+
+    subgraph PHASE1["① 적 선택 · GameState.SelectEnemy"]
+        direction TB
+        GM1["GameManager.ShowEnemySelection()\nGameState = SelectEnemy\nMapManager 활성화"]
+        MM1["MapManager.ShowEnemySelection(enemyCandidates)\n고정된 3개 CharacterData 기반\n적 3명 정보 표시 (#1)"]
+        MM2{"플레이어 좌/우 이동 →\nConfirmSelection"}
+        MM3["선택된 CharacterData를\nGameManager.StartBattle()로 전달"]
+        GM1 --> MM1 --> MM2 --> MM3
+    end
+
+    MM3 --> GM2
+
+    subgraph PHASE2A["전투 준비"]
+        direction TB
+        GM2["GameManager.StartBattle(enemyData)\nGameState = Battle\nPlayerManager.GetCharacterData() 새로 조회"]
+        BM1["BattleManager.StartBattle(playerData, enemyData)\n양쪽 CharacterManager.CharacterInit() 호출"]
+        CM1["CharacterInit(deck, maxHealth)\nmaxHealth·덱 리셋(Clear) → 덱 셔플\nHandManager.FillHand() 최초 호출"]
+        GM2 --> BM1 --> CM1
+    end
+
+    CM1 --> TS
+
+    subgraph PHASE2B["② 전투 턴 루프 · GameState.Battle"]
+        direction TB
+        TS["TurnStart\nOnTurnStart(): cost +1, 효과.OnTurnStarted\nHandManager.FillHand()로 빈 손패만 채움"]
+        T["Turn\n입력 → SelectCard(index)\n→ HandManager.SelectCard(index)\n(카드는 '선택'만, 아직 사용 아님)"]
+        TE["TurnEnd\nOnTurnEnd()\n① QueueManager.TickQueueCards\n　쿨타임 0 카드 → PlayCard() 효과 발동\n② 효과.OnTurnEnded\n③ 선택 카드 있으면 HandManager.UseCard()\n　→ QueueManager.AddCard로 대기열 등록"]
+        TS --> T --> TE
+    end
+
+    TE --> DMG{"이번 턴 피격으로\n어느 한쪽 HP ≤ 0 ?"}
+    DMG -- "아니오, 계속" --> TS
+    DMG -- "플레이어 패배" --> QUIT(["Application.Quit()\n보상 없이 게임 종료"])
+    DMG -- "적 패배" --> GM3
+
+    subgraph PHASE3["③ 보상 · GameState.BattleEnd"]
+        direction TB
+        GM3["GameManager.EndBattle()\nGameState = BattleEnd\nRewardManager.ShowRewardDisplay()"]
+        RW1["3개 옵션 표시: 카드 추가 / 카드 삭제 / 카드 강화"]
+        RW2{"플레이어 선택"}
+        RWA["카드 추가\n카드 3장 제시 → 선택\nPlayerManager.AddCard(selected) (#2)"]
+        RWD["카드 삭제\nPlayerManager.GetDeck() → DeckDisplay 표시\n선택 → PlayerManager.DiscardCard(index)"]
+        RWE["카드 강화\n현재 로직 없음, 즉시 종료"]
+        GM4["GameManager.ConfirmReward()\nGameState = SelectEnemy로 복귀"]
+        GM3 --> RW1 --> RW2
+        RW2 -- "추가" --> RWA --> GM4
+        RW2 -- "삭제" --> RWD --> GM4
+        RW2 -- "강화" --> RWE --> GM4
+    end
+
+    GM4 -. 다음 라운드로 반복 .-> GM1
+
+    classDef phase1 fill:#e3f5ee,stroke:#12805f,color:#0c3d2d,stroke-width:1.5px;
+    classDef phase2 fill:#fdeae0,stroke:#c2410c,color:#5c2108,stroke-width:1.5px;
+    classDef phase3 fill:#e7ecfc,stroke:#3457d5,color:#1c2c6b,stroke-width:1.5px;
+    classDef decision fill:#fff8e8,stroke:#8b6b13,color:#4a3a09,stroke-width:1.5px;
+    classDef danger fill:#f8d9d4,stroke:#8a2e0a,color:#5c2108,stroke-width:2px;
+    classDef startend fill:#eef0f4,stroke:#5c6673,color:#1b1f24,stroke-width:1.5px;
+
+    class GM1,MM1,MM3 phase1;
+    class GM2,BM1,CM1,TS,T,TE phase2;
+    class GM3,RW1,RWA,RWD,RWE,GM4 phase3;
+    class MM2,DMG,RW2 decision;
+    class QUIT danger;
+    class Start startend;
+
+    style PHASE1 fill:#eef9f4,stroke:#12805f,stroke-width:1px
+    style PHASE2A fill:#fdf3ee,stroke:#c2410c,stroke-width:1px
+    style PHASE2B fill:#fdf3ee,stroke:#c2410c,stroke-width:1px
+    style PHASE3 fill:#eef1fc,stroke:#3457d5,stroke-width:1px
+      </pre>
+    </div>
+
+    <section>
+      <h2>개선이 필요한 부분</h2>
+      <div class="notes-grid">
+        <div class="note todo">
+          <span class="note-tag">#1 · MapManager 적 후보</span>
+          <p class="desc">적 후보 3명을 GameManager의 SerializeField 리스트(enemyCandidates)에서 그대로 강제 주입받는 구조.</p>
+          <div class="kv">
+            <b>개선 방향</b><span>전체 후보 풀을 별도로 두고, 매 라운드 그중 랜덤하게 3개만 뽑아 <code class="pill">MapManager.ShowEnemySelection()</code>에 넘기도록 변경 필요.</span>
+          </div>
+        </div>
+        <div class="note todo">
+          <span class="note-tag">#2 · RewardPanel 카드 추가</span>
+          <p class="desc">보상의 "카드 추가" 화면도 마찬가지로 GameManager의 SerializeField 리스트(rewardCards)를 고정 노출.</p>
+          <div class="kv">
+            <b>개선 방향</b><span>전체 카드 풀에서 매번 랜덤하게 3장을 뽑아 <code class="pill">RewardManager.ShowRewardCard()</code>에 넘기도록 변경 필요.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      출처: Assets/scripts 정적 분석 (카드배틀러_스크립트_분석.docx) · BattleManager / CharacterManager / GameManager / MapManager / RewardManager 기준
+    </footer>
+
+  </div>
+</div>
