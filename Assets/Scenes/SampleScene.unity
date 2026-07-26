@@ -3842,12 +3842,12 @@ MonoBehaviour:
   startDeck:
   - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
   - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  - {fileID: 11400000, guid: 194265b917c1f494b886aae7d8e52985, type: 2}
-  - {fileID: 11400000, guid: 212ef15920ab68f46af8164f0bd704f6, type: 2}
-  - {fileID: 11400000, guid: d8282a6efacc94948870bdc623775219, type: 2}
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 724c5f4f086aed0488746ebb1c293adf, type: 2}
+  - {fileID: 11400000, guid: 724c5f4f086aed0488746ebb1c293adf, type: 2}
+  - {fileID: 11400000, guid: 724c5f4f086aed0488746ebb1c293adf, type: 2}
+  - {fileID: 11400000, guid: 724c5f4f086aed0488746ebb1c293adf, type: 2}
   queueManager: {fileID: 1199511220}
   isHandVisualized: 1
   handsRoot: {fileID: 74830599}
