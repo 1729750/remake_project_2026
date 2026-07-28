@@ -62,6 +62,15 @@ public class CardVisual : MonoBehaviour
 
     public Vector2 GetBackgroundSize() => _background.bounds.size;
 
+    // 자식에 있는 모든 Renderer(SpriteRenderer, TextMeshPro 내부 MeshRenderer 등)의 sortingLayer를
+    // 한 번에 옮긴다. 자주 호출되는 경로가 아니라 필드별로 캐싱하지 않고 그때그때 순회한다.
+    public void SetLayer(string sortingLayerName)
+    {
+        int sortingLayerID = SortingLayer.NameToID(sortingLayerName);
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+            renderer.sortingLayerID = sortingLayerID;
+    }
+
     // 카드 배경(SpriteRenderer)의 월드 크기가 targetSize가 되도록 균등하지 않게(가로/세로 개별) 스케일한다.
     public void SetSize(Vector2 targetSize)
     {

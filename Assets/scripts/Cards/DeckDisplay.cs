@@ -3,6 +3,9 @@ using UnityEngine;
 
 // CardDefinition 리스트를 Card 프리팹 4열 그리드로 배치한다. 컨테이너 크기는 SetSize로
 // 외부에서 직접 주입받는다(배경 스프라이트가 없는 순수 레이아웃 컨테이너이기 때문).
+// 카드 한 장의 크기는 cardPrefab의 원본(배경 SpriteRenderer) 크기 × cardSize로 정해지고,
+// 카드 사이 padding은 "컨테이너 가로 폭에서 카드 4장 폭을 뺀 나머지를 3칸에 고르게 나눈 값"으로
+// 자동 계산되기 때문에 cardPrefab 자체의 크기가 바뀌어도 SetDeck 호출부를 손댈 필요가 없다.
 // 스크롤은 쓰지 않고, 세로 방향으로 화면에 다 들어가지 않는 행이 있으면 선택 이동에 맞춰
 // 보이는 행 구간(_topRow)만 옮겨 페이징한다.
 public class DeckDisplay : MonoBehaviour
@@ -24,7 +27,10 @@ public class DeckDisplay : MonoBehaviour
     // 레이아웃 계산에 쓰일 컨테이너 크기(월드 단위). SetDeck 전에 호출해야 한다.
     public void SetSize(Vector2 size) => _containerSize = size;
 
-    public void SetDeck(List<CardDefinition> cards, float horizontalPadding, float? verticalPadding = null)
+    // cardSize: cardPrefab 원본 크기 대비 배율(1이 원본 크기). 이 값으로 카드의 실제 표시 크기를
+    // 정하고, 카드 사이 padding은 Columns장이 컨테이너 가로 폭을 정확히 채우도록 역산한다.
+    // 예: 가로 폭 100, 카드 가로 길이 10이면 100 - 10*4 = 60을 카드 사이 3칸에 나눠 padding 20.
+    public void SetDeck(List<CardDefinition> cards, float cardSize = 1f)
     {
         ClearCards();
         if (cards == null || cards.Count == 0) return;
@@ -36,18 +42,19 @@ public class DeckDisplay : MonoBehaviour
         foreach (CardDefinition def in cards)
             _cardVisuals.Add(SpawnCard(def));
 
-        Vector2 containerSize = _containerSize;
+        // SetSize로 스케일하기 전, 카드 프리팹 원본(배경 SpriteRenderer) 크기를 기준으로 삼는다.
         Vector2 nativeCardSize = _cardVisuals[0].GetBackgroundSize();
-        float vPadding = verticalPadding ?? horizontalPadding;
+        _cardWidth = nativeCardSize.x * cardSize;
+        _cardHeight = nativeCardSize.y * cardSize;
 
-        _cardWidth = (containerSize.x - horizontalPadding * (Columns - 1)) / Columns;
-        _cardHeight = _cardWidth * (nativeCardSize.y / nativeCardSize.x);
-        _cellWidth = _cardWidth + horizontalPadding;
-        _cellHeight = _cardHeight + vPadding;
-        _visibleRows = Mathf.Max(1, Mathf.FloorToInt((containerSize.y + vPadding) / _cellHeight));
+        float padding = (_containerSize.x - _cardWidth * Columns) / (Columns - 1);
+        _cellWidth = _cardWidth + padding;
+        _cellHeight = _cardHeight + padding;
+        _visibleRows = Mathf.Max(1, Mathf.FloorToInt((_containerSize.y + padding) / _cellHeight));
 
+        Vector2 cardTargetSize = new Vector2(_cardWidth, _cardHeight);
         foreach (CardVisual visual in _cardVisuals)
-            visual.SetSize(new Vector2(_cardWidth, _cardHeight));
+            visual.SetSize(cardTargetSize);
 
         _selectedIndex = 0;
         _topRow = 0;
@@ -118,6 +125,7 @@ public class DeckDisplay : MonoBehaviour
         GameObject obj = Instantiate(_cardPrefab, transform);
         CardVisual visual = obj.GetComponent<CardVisual>();
         visual.SetCard(new CardInstance(def, null), true);
+        visual.SetLayer("UI");
         return visual;
     }
 

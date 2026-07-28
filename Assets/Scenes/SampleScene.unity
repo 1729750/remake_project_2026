@@ -1278,7 +1278,7 @@ MonoBehaviour:
   m_Intensity: 1
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 00000000
+  m_ApplyToSortingLayers: 00000000cf3bfc15
   m_LightCookieSprite: {fileID: 0}
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0
@@ -1732,6 +1732,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3f73686acd87de44b3fd9ec18aaa8b7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RewardManager
+  inputManager: {fileID: 903970882}
+  rewardCards:
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 212ef15920ab68f46af8164f0bd704f6, type: 2}
 --- !u!1 &809160019
 GameObject:
   m_ObjectHideFlags: 0
@@ -5067,10 +5072,6 @@ MonoBehaviour:
   inputManager: {fileID: 903970882}
   mapManager: {fileID: 1474451737}
   firstEnemyData: {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
-  rewardCards:
-  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
-  - {fileID: 11400000, guid: 0f5fba19a89ce0d4ca8f9e31e19b809a, type: 2}
-  - {fileID: 11400000, guid: 194265b917c1f494b886aae7d8e52985, type: 2}
   enemyCandidates:
   - {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
   - {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
