@@ -190,9 +190,10 @@ public class RewardManager : MonoBehaviour
         var effectTypes = (EffectType[])Enum.GetValues(typeof(EffectType));
         EffectType effectType = effectTypes[UnityEngine.Random.Range(0, effectTypes.Length)];
         int magnitude = UnityEngine.Random.Range(1, 4) * (UnityEngine.Random.value < 0.5f ? 1 : -1);
-        EffectTargetPolarity polarity = (EffectTargetPolarity)UnityEngine.Random.Range(0, 3);
-        EffectTarget target = ResolveEnhanceTarget(polarity, magnitude);
-        return new CardEffect(Effect.Create(effectType, magnitude), target);
+
+        Effect effect = Effect.Create(effectType, magnitude);
+        EffectTarget target = ResolveEnhanceTarget(effect.TargetPolarity, magnitude);
+        return new CardEffect(effect, target);
     }
 
     private static EffectTarget ResolveEnhanceTarget(EffectTargetPolarity polarity, int magnitude)

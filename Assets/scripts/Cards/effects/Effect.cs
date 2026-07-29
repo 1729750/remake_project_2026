@@ -17,8 +17,24 @@ public class Effect
     public EffectType GetEffectType() => _effectType;
     public int GetMagnitude() => _magnitude;
     public int GetEffectPriority() => _effectPriority;
-    
+
     public void AddMagnitude(int magnitude) => _magnitude += magnitude;
+
+    // 이 Effect가 강화 후보로 뽑혔을 때(RewardManager.RollEnhanceOption) magnitude 부호로부터
+    // EffectTarget(User/Opponent)을 정하는 데 쓰는 극성. Attack/Defend처럼 별도 서브클래스가 없는
+    // 타입은 _effectType으로 구분하고, 서브클래스는 자신의 성격(버프/디버프)에 맞게 override한다.
+    public virtual EffectTargetPolarity TargetPolarity
+    {
+        get
+        {
+            switch (_effectType)
+            {
+                case EffectType.Attack: return EffectTargetPolarity.Negative;
+                case EffectType.Defend: return EffectTargetPolarity.Positive;
+                default:                return EffectTargetPolarity.Neutral;
+            }
+        }
+    }
 
     public static Effect Create(EffectType type, int magnitude)
     {

@@ -8,6 +8,9 @@ public class VulnerableEffect : Effect
 
     public VulnerableEffect(int magnitude) : base(EffectType.Vulnerable, magnitude, Priority) { }
 
+    // Vulnerable은 받는 피해를 늘리는 디버프이므로 양수 magnitude는 Opponent, 음수는 User(디버프 완화)를 향한다.
+    public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Negative;
+
     // Vulnerable: target takes increased damage while applied
     public override void OnApplied(CharacterManager b, CardEffect effect,bool a)
     {
