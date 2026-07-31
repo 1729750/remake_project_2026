@@ -23,4 +23,20 @@ public class CardDefinition: ScriptableObject
     public CardEffect[] GetEffects() => _effects.ToArray();
     public CardType GetCardType() => cardType;
     public Sprite GetSprite() => sprite;
+    public void AddEffect(CardEffect effect) => _effects.Add(effect);
+
+    // 같은 EffectType의 효과가 이미 있으면 magnitude만 올리고, 없으면 넘겨받은 CardEffect를 그대로 추가한다.
+    public void UpgradeEffect(CardEffect cardEffect)
+    {
+        EffectType effectType = cardEffect.GetEffect().GetEffectType();
+        foreach (CardEffect effect in _effects)
+        {
+            if (effect.GetEffect().GetEffectType() == effectType)
+            {
+                effect.GetEffect().AddMagnitude(cardEffect.GetEffect().GetMagnitude());
+                return;
+            }
+        }
+        AddEffect(cardEffect);
+    }
 }

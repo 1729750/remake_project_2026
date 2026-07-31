@@ -14,7 +14,6 @@ public class Effect
         _magnitude = magnitude;
         _effectPriority = effectPriority;
     }
-
     public EffectType GetEffectType() => _effectType;
     public int GetMagnitude() => _magnitude;
     public int GetEffectPriority() => _effectPriority;

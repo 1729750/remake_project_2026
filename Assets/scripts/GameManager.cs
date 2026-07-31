@@ -13,8 +13,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] private InputManager inputManager;
     [SerializeField] private MapManager mapManager;
     [SerializeField] private CharacterData firstEnemyData;
-    // 임시: 보상 카드 로딩 로직이 생기기 전까지 인스펙터에서 직접 지정
-    [SerializeField] private CardDefinition[] rewardCards;
     // 임시: 적 후보 산출 로직이 생기기 전까지 인스펙터에서 직접 지정 (3개)
     [SerializeField] private CharacterData[] enemyCandidates;
 
@@ -60,91 +58,25 @@ public class GameManager : MonoBehaviour
     {
         SetGameState(GameState.BattleEnd);
         inputManager.Unload();
-        ShowRewardDisplay();
-    }
-
-    // 카드 획득/삭제/강화 중 무엇을 할지 고르는 첫 화면.
-    public void ShowRewardDisplay()
-    {
         rewardManager.ShowRewardDisplay();
-        inputManager.Load("Select", new Dictionary<string, Action>
-        {
-            ["Left"]   = () => rewardManager.MoveRewardDisplaySelection(-1),
-            ["Right"]  = () => rewardManager.MoveRewardDisplaySelection(1),
-            ["Select"] = rewardManager.ConfirmRewardSelection,
-        });
     }
 
-    // RewardDisplay 왼쪽 패널: 기존 카드 획득 로직.
-    public void RewardCard()
+    // RewardManager가 카드 획득을 확정할 때 부르는, PlayerManager 덱을 직접 건드리는 지점.
+    public void AddCard(CardDefinition card)
     {
-        inputManager.Unload();
-        rewardManager.ClearRewardDisplay();
-        inputManager.Load("Select", new Dictionary<string, Action>
-        {
-            ["Left"]   = () => rewardManager.MoveRewardCardSelection(-1),
-            ["Right"]  = () => rewardManager.MoveRewardCardSelection(1),
-            ["Select"] = ConfirmRewardCard,
-        });
-        rewardManager.ShowRewardCard(rewardCards);
+        PlayerManager.Instance.AddCard(card);
     }
 
-    public void ConfirmRewardCard()
-    {
-        CardDefinition selected = rewardManager.ConfirmRewardCard();
-        if (selected != null)
-            PlayerManager.Instance.AddCard(selected);
-
-        ConfirmReward();
-    }
-
-    // RewardDisplay 가운데 패널: 화면 크기 DeckDisplay를 띄워 버릴 카드를 고른다.
-    public void RewardCardDelete()
-    {
-        inputManager.Unload();
-        rewardManager.ClearRewardDisplay();
-
-        DeckDisplay deckDisplay = Instantiate(Resources.Load<GameObject>("Prefabs/DeckDisplay")).GetComponent<DeckDisplay>();
-        Camera cam = Camera.main;
-        float screenHeight = 2f * cam.orthographicSize;
-        float screenWidth = screenHeight * cam.aspect;
-        deckDisplay.transform.position = new Vector3(cam.transform.position.x, cam.transform.position.y, deckDisplay.transform.position.z);
-        deckDisplay.SetSize(new Vector2(screenWidth, screenHeight));
-        deckDisplay.SetDeck(PlayerManager.Instance.GetDeck(), 0.1f);
-
-        inputManager.Load("Select", new Dictionary<string, Action>
-        {
-            ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),
-            ["Right"]  = () => deckDisplay.MoveSelectionHorizontal(1),
-            ["Up"]     = () => deckDisplay.MoveSelectionVertical(-1),
-            ["Down"]   = () => deckDisplay.MoveSelectionVertical(1),
-            ["Select"] = () =>
-            {
-                DiscardCard(deckDisplay.GetSelectedIndex());
-                Destroy(deckDisplay.gameObject);
-            },
-        });
-    }
-
-    private void DiscardCard(int index)
+    // RewardManager가 카드 삭제를 확정할 때 부르는, PlayerManager 덱을 직접 건드리는 지점.
+    public void DiscardCard(int index)
     {
         PlayerManager.Instance.DiscardCard(index);
-        ConfirmReward();
     }
 
-    // RewardDisplay 오른쪽 패널: 카드 강화. 아직 로직이 정해지지 않아 메뉴만 닫고 돌아간다.
-    public void RewardCardEnhance()
+    // RewardManager가 카드 강화를 확정할 때 부르는, PlayerManager 덱을 직접 건드리는 지점.
+    public void EnhanceCard(int index, CardEffect option)
     {
-        rewardManager.ClearRewardDisplay();
-        ConfirmReward();
-    }
-
-    // 보상 화면(카드 획득/삭제/강화 중 무엇이든)을 완전히 닫는 공통 지점.
-    // reward 쪽에서 마지막으로 남아있던 input context를 여기서 pop한다.
-    public void ConfirmReward()
-    {
-        inputManager.Unload();
-        ShowEnemySelection();
+        PlayerManager.Instance.GetDeck()[index].UpgradeEffect(option);
     }
 
     public void ShowEnemySelection()
@@ -199,6 +131,18 @@ public class GameManager : MonoBehaviour
 
         // rewardPanel은 다른 오브젝트 위에 얹히는 패널이라 battleActive/mapActive와 상호배타적이지 않다.
         rewardManager.gameObject.SetActive(_currentState == GameState.BattleEnd);
+    }
+
+    static public DeckDisplay SummonDeck()
+    {
+        DeckDisplay deckDisplay = Instantiate(Resources.Load<GameObject>("Prefabs/DeckDisplay")).GetComponent<DeckDisplay>();
+        Camera cam = Camera.main;
+        float screenHeight = 2f * cam.orthographicSize;
+        float screenWidth = screenHeight * cam.aspect;
+        deckDisplay.transform.position = new Vector3(cam.transform.position.x, cam.transform.position.y, deckDisplay.transform.position.z);
+        deckDisplay.SetSize(new Vector2(screenWidth/2, screenHeight/2));
+        deckDisplay.SetDeck(PlayerManager.Instance.GetDeck());
+        return deckDisplay;
     }
 }
 
