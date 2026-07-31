@@ -11,12 +11,11 @@ public class BattleManager:MonoBehaviour
     [SerializeField] private TextMeshPro turnText;
     [SerializeField] private float turnDuration = 1f;
     [SerializeField] private float startDelay = 3f;
-    
+
     private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
-    private float _startDelay;
     private float _startElapsed;
-    
+
     public BattleState CurrentState { get; private set; }
 
     private void Awake()
@@ -47,6 +46,7 @@ public class BattleManager:MonoBehaviour
         playerCharacterManager.CharacterInit(UnpackCardCollection(playerData.GetDeck()).ToArray(), playerData.GetMaxHealth());
         enemyCharacterManager.CharacterInit(UnpackCardCollection(enemyData.GetDeck()).ToArray(), enemyData.GetMaxHealth());
 
+
         _startElapsed = 0f;
         _turnTimerOverlay?.SetFill(0f);
         SetState(BattleState.BattleStarting);
@@ -69,8 +69,8 @@ public class BattleManager:MonoBehaviour
         if (CurrentState == BattleState.BattleStarting)
         {
             _startElapsed += deltaTime;
-            _turnTimerOverlay?.SetFill(_startElapsed / _startDelay);
-            if (_startElapsed >= _startDelay)
+            _turnTimerOverlay?.SetFill(_startElapsed / startDelay);
+            if (_startElapsed >= startDelay)
             {
                 OnBattleStarted();
             }
@@ -116,9 +116,15 @@ public class BattleManager:MonoBehaviour
     {
         if (CurrentState != BattleState.BattleFinish)
         {
-            GetOpponent(loser)?.NotifyVictory();
             SetState(BattleState.BattleFinish);
-            Application.Quit();
+            if (loser == playerCharacterManager)
+            {
+                Application.Quit();
+            }
+            else
+            {
+                GameManager.Instance.EndBattle();
+            }
         }
     }
 
@@ -127,7 +133,7 @@ public class BattleManager:MonoBehaviour
         return user == playerCharacterManager ? enemyCharacterManager : playerCharacterManager;
     }
 
-    public string GetEmoji(EffectType effectType)
+    public static string GetEmoji(EffectType effectType)
     {
         switch (effectType)
         {
@@ -137,6 +143,7 @@ public class BattleManager:MonoBehaviour
             case EffectType.Strength:   return "✊";
             case EffectType.Vulnerable: return "💔";
             case EffectType.Weak:       return "🥀";
+            case EffectType.Guard:      return "🧘";
             default:                    return "?";
         }
     }
