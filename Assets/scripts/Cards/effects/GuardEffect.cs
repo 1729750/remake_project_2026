@@ -12,7 +12,7 @@ public class GuardEffect : Effect
     public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Positive;
 
     // Guard: 지속되는 동안 받는 공격 피해 절반
-    public override void OnApplied(CharacterManager b, CardEffect effect, bool a)
+    public override void OnAppliedOther(CharacterManager b, CardEffect effect, bool a)
     {
         if (effect.GetEffect().GetEffectType() == EffectType.Attack)
         {

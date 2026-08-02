@@ -12,7 +12,7 @@ public class VulnerableEffect : Effect
     public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Negative;
 
     // Vulnerable: target takes increased damage while applied
-    public override void OnApplied(CharacterManager b, CardEffect effect,bool a)
+    public override void OnAppliedOther(CharacterManager b, CardEffect effect,bool a)
     {
         if (effect.GetEffect().GetEffectType() == EffectType.Attack)
         {

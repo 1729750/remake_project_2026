@@ -6,5 +6,10 @@ public enum EffectType
     Vulnerable,
     Strength,
     Harden,
-    Guard
+    Guard,
+    PoseBreak,
+    EnergyHeal,
+    AddDump,
+    Preserve,
+    Disposable,
 }

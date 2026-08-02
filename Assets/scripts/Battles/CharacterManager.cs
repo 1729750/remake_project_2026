@@ -67,10 +67,9 @@ public class CharacterManager: MonoBehaviour
     public void OnTurnStart()
     {
         if (_handManager == null) return;
-        _cost = Mathf.Min(_cost + 1, MaxCost);
         for (int i = _effects.Count - 1; i >= 0; i--)
             _effects[i].OnTurnStarted(this);
-        UpdateCostDisplay();
+        EnergyHeal(1);
         UpdateEffectList();
         _handManager.FillHand();
     }
@@ -225,17 +224,18 @@ public class CharacterManager: MonoBehaviour
         }
     }
 
-    public void NotifyVictory()
-    {
-        Debug.Log($"[{gameObject.name}] Victory!");
-    }
-
     public void Heal(int amount)
     {
         _health += amount;
         UpdateHPBar();
     }
 
+    public void EnergyHeal(int amount)
+    {
+        _cost = Mathf.Min(_cost + 1, MaxCost);
+        UpdateCostDisplay();
+    }
+    
     public void AddDefense(int amount)
     {
         _defense += Math.Max(amount,0);
@@ -265,6 +265,11 @@ public class CharacterManager: MonoBehaviour
         _deck.Add(card);
     }
 
+    public void AddEffect(Effect effect)
+    {
+        _effects.Add(effect);
+    }
+
     public void RemoveEffect<T>() where T : Effect
     {
         for (int i = 0; i < _effects.Count; i++)
@@ -282,33 +287,15 @@ public class CharacterManager: MonoBehaviour
     public void ApplyEffect(CardEffect cardEffect)
     {
         Debug.Log($"applying {cardEffect.GetEffect().GetEffectType()} effect");
-        
+
         for(int i = _effects.Count - 1; i >= 0; i--)
         {
-            _effects[i].OnApplied(this, cardEffect, true);
+            _effects[i].OnAppliedOther(this, cardEffect, true);
         }
+
         EffectType effectType = cardEffect.GetEffect().GetEffectType();
-        switch (effectType)
-        {
-            case(EffectType.Attack):
-                Attacked(cardEffect.GetMagnitude());
-                break;
-            case(EffectType.Defend):
-                AddDefense(cardEffect.GetMagnitude());
-                break;
-            default:
-                for (int i = 0; i < _effects.Count; i++){
-                    if (_effects[i].GetEffectType() == effectType)
-                    {
-                        _effects[i].AddMagnitude(cardEffect.GetMagnitude());
-                        return;
-                    }
-                }
-                var newEffect = Effect.Create(effectType, cardEffect.GetMagnitude());
-                _effects.Add(newEffect);
-                Debug.Log($"[{gameObject.name}] Gained effect: {effectType} :{cardEffect.GetMagnitude()}");
-                break;
-        }
+        Effect effect = Effect.Create(effectType, cardEffect.GetMagnitude());
+        effect.OnApply(this, cardEffect);
     }
 
     private void UpdateCostDisplay()

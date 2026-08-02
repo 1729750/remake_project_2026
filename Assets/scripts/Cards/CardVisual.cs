@@ -52,7 +52,7 @@ public class CardVisual : MonoBehaviour
             string emoji = BattleManager.GetEmoji(cardEffect.GetEffect().GetEffectType());
             int magnitude = cardEffect.GetEffect().GetMagnitude();
             if (sb.Length > 0) sb.Append('\n');
-            sb.Append($"{emoji}:{magnitude}");
+            sb.Append($"{emoji}{(magnitude == 0 ? "" : ":"+magnitude)}");
         }
         _effectText.text = sb.ToString();
 

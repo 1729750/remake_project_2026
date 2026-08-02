@@ -12,7 +12,7 @@ public class StrengthEffect : Effect
 
     // Strength: permanently increases outgoing damage by a flat amount
 
-    public override void OnApplying(CharacterManager b, CardEffect effect,bool a)
+    public override void OnApplyingOther(CharacterManager b, CardEffect effect,bool a)
     {
         if (effect.GetEffect().GetEffectType() == EffectType.Attack)
         {
