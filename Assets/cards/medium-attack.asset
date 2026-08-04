@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
-  m_Name: attack
+  m_Name: medium-attack
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cooldown: 3
   cost: 2
@@ -19,6 +19,6 @@ MonoBehaviour:
       _effectType: 0
       _magnitude: 10
     _target: 1
-  sprite: {fileID: -1714608030021503318, guid: d0454edaf893d6748952080a7f3fe324, type: 3}
+  sprite: {fileID: -2399656577511229375, guid: 66f3edb77c1f6d44682e3721cff8b450, type: 3}
   cardType: 0
   backGround: {fileID: 912036239635893973, guid: 9e9cc24594fadf446bdaca6f3f76ed7b, type: 3}
