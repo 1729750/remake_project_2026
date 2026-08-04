@@ -10,6 +10,7 @@ public enum EffectType
     PoseBreak,
     EnergyHeal,
     AddDump,
+    Burning,
     Preserve,
     Disposable,
 }

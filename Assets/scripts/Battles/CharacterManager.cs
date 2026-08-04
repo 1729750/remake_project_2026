@@ -29,6 +29,8 @@ public class CharacterManager: MonoBehaviour
     [SerializeField] private TextMeshPro costText;
     [SerializeField] private TextMeshPro effectListText;
     [SerializeField] private TextMeshPro defenseText;
+    private static GameObject _effectDisplayPrefab;
+    private readonly List<GameObject> _effectDisplays = new List<GameObject>();
     private HandManager _handManager;
     private QueueManager _queueManager;
     
@@ -245,6 +247,16 @@ public class CharacterManager: MonoBehaviour
     public void PlayCard(CardInstance card)
     {
         card.Play(this);
+
+        List<CardEffect> cardEffects = card.GetEffects();
+        foreach (CardEffect cardEffect in cardEffects)
+        {
+            if (cardEffect.GetEffect().GetEffectType() == EffectType.Disposable)
+                return;
+        }
+
+        ReturnToDeck(card);
+        return;
     }
 
     public bool QueueCard(CardInstance card, GameObject cardObject)
@@ -312,15 +324,55 @@ public class CharacterManager: MonoBehaviour
         defenseText.text = _defense.ToString();
     }
 
+    // effectListText 영역의 높이에 맞춰 effectDisplay(아이콘+수치)를 인스턴스화하고,
+    // shrinkRight가 false면 왼쪽부터, true면 오른쪽부터 순서대로 채워나간다.
     private void UpdateEffectList()
     {
         if (effectListText == null) return;
-        var parts = new List<string>();
+
+        foreach (GameObject display in _effectDisplays)
+            Destroy(display);
+        _effectDisplays.Clear();
+
+        effectListText.text = "";
+        GameObject effectDisplayPrefab = GetEffectDisplayPrefab();
+        if (effectDisplayPrefab == null) return;
+
+        RectTransform containerRect = effectListText.rectTransform;
+        float containerHeight = containerRect.sizeDelta.y;
+        float edge = (shrinkRight ? 1f : -1f) * containerRect.sizeDelta.x / 2f;
+        float direction = shrinkRight ? -1f : 1f;
+        float cursor = edge;
+
         foreach (var effect in _effects)
         {
             if (effect == null) continue;
-            parts.Add($"{BattleManager.GetEmoji(effect.GetEffectType())}:{effect.GetMagnitude()}");
+
+            GameObject display = Instantiate(effectDisplayPrefab, effectListText.transform);
+            _effectDisplays.Add(display);
+
+            SpriteRenderer effectSprite = display.transform.Find("EffectSprite").GetComponent<SpriteRenderer>();
+            effectSprite.sprite = BattleManager.GetEmoji(effect.GetEffectType());
+
+            TextMeshPro magnitudeText = display.transform.Find("MagnitudeText").GetComponent<TextMeshPro>();
+            magnitudeText.text = effect.GetMagnitude().ToString();
+
+            float nativeHeight = effectSprite.sprite != null ? effectSprite.sprite.bounds.size.y : containerHeight;
+            float scale = nativeHeight > 0f ? containerHeight / nativeHeight : 1f;
+            display.transform.localScale = Vector3.one * scale;
+
+            float displayWidth = (effectSprite.sprite != null ? effectSprite.sprite.bounds.size.x : containerHeight) * scale;
+            float centerX = shrinkRight ? cursor - displayWidth / 2f : cursor + displayWidth / 2f;
+            display.transform.localPosition = new Vector3(centerX, 0f, display.transform.localPosition.z);
+
+            cursor += direction * displayWidth;
         }
-        effectListText.text = string.Join(" ", parts);
+    }
+
+    private static GameObject GetEffectDisplayPrefab()
+    {
+        if (_effectDisplayPrefab == null)
+            _effectDisplayPrefab = Resources.Load<GameObject>("Prefabs/EffectDisplay");
+        return _effectDisplayPrefab;
     }
 }

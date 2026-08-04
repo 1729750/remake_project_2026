@@ -63,13 +63,5 @@ public class CardInstance
             CharacterManager resolved = cardEffect.GetTarget(characterManager);
             resolved.ApplyEffect(cardEffect);
         }
-
-        foreach (CardEffect cardEffect in _effects)
-        {
-            if (cardEffect.GetEffect().GetEffectType() == EffectType.Disposable)
-                return;
-        }
-        characterManager.ReturnToDeck(this);
-        return;
     }
 }

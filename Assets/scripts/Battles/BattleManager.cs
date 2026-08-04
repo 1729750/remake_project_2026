@@ -11,10 +11,12 @@ public class BattleManager:MonoBehaviour
     [SerializeField] private TextMeshPro turnText;
     [SerializeField] private float turnDuration = 1f;
     [SerializeField] private float startDelay = 3f;
+    [SerializeField] private List<EffectEmoji> effectEmojis = new List<EffectEmoji>();
 
     private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
     private float _startElapsed;
+    private static Dictionary<EffectType, Sprite> _emojiCache;
 
     public BattleState CurrentState { get; private set; }
 
@@ -133,19 +135,16 @@ public class BattleManager:MonoBehaviour
         return user == playerCharacterManager ? enemyCharacterManager : playerCharacterManager;
     }
 
-    public static string GetEmoji(EffectType effectType)
+    public static Sprite GetEmoji(EffectType effectType)
     {
-        switch (effectType)
+        if (_emojiCache == null)
         {
-            case EffectType.Attack:     return "🗡️";
-            case EffectType.Defend:     return "🛡️";
-            case EffectType.Harden:     return "⚙️";
-            case EffectType.Strength:   return "✊";
-            case EffectType.Vulnerable: return "💔";
-            case EffectType.Weak:       return "🥀";
-            case EffectType.Guard:      return "🧘";
-            default:                    return "?";
+            _emojiCache = new Dictionary<EffectType, Sprite>();
+            foreach (var entry in Instance.effectEmojis)
+                _emojiCache[entry.effectType] = entry.sprite;
         }
+        _emojiCache.TryGetValue(effectType, out var sprite);
+        return sprite;
     }
 
     public void Update()
@@ -162,4 +161,11 @@ public enum BattleState
     Turn,
     TurnEnd,
     BattleFinish
+}
+
+[System.Serializable]
+public class EffectEmoji
+{
+    public EffectType effectType;
+    public Sprite sprite;
 }

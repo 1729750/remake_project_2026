@@ -17,7 +17,7 @@ MonoBehaviour:
   _effects:
   - _effect:
       _effectType: 0
-      _magnitude: 50
+      _magnitude: 25
     _target: 1
   sprite: {fileID: 6766588079890781770, guid: bd76407b9e7063241a69f1b49b9d9d53, type: 3}
   cardType: 0

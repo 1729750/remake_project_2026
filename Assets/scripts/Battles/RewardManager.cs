@@ -230,20 +230,20 @@ public class RewardManager : MonoBehaviour
     }
 
     // RewardDisplay 오른쪽 패널(카드 강화)에서 뽑아둔 강화 후보 CardEffect 3개를 보여준다.
-    // 각 후보는 "{target}에게 {emoji}:{magnitude}"로 표기한다.
+    // RewardText는 비워 두고, 각 후보는 RewardDisplay 정 가운데의 effectDisplay(아이콘+수치)로 표기한다.
     private void SelectEnhance(CardEffect[] options)
     {
         _enhanceOptions = options;
 
         string[] labels = new string[options.Length];
-        for (int i = 0; i < options.Length; i++)
-        {
-            Effect effect = options[i].GetEffect();
-            labels[i] = $"{options[i].GetEffectTarget()}에게 {BattleManager.GetEmoji(effect.GetEffectType())}:{effect.GetMagnitude()}";
-        }
+        for (int i = 0; i < labels.Length; i++)
+            labels[i] = "";
 
         _enhanceDisplays = CreateRewardDisplayRow(labels);
         if (_enhanceDisplays == null) return;
+
+        for (int i = 0; i < options.Length; i++)
+            _enhanceDisplays[i].SetEffect(options[i]);
 
         _enhanceSelectedIndex = 0;
         RefreshEnhanceSelection();
