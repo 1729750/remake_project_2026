@@ -1,142 +1,294 @@
+using System;
+using System.Threading.Tasks;
 using Unity.Netcode;
+using Unity.Services.Authentication;
+using Unity.Services.Core;
+using Unity.Services.Multiplayer;
 using UnityEngine;
 
 [RequireComponent(typeof(NetworkManager))]
 public sealed class NetworkLauncher : MonoBehaviour
 {
-    private NetworkManager networkManager;
+    private const int MaxPlayers = 2;
 
-    private string statusMessage = "네트워크 연결 대기";
+    private NetworkManager networkManager;
+    private ISession currentSession;
+    private Task initializationTask;
+
+    public bool IsInitialized { get; private set; }
+    public bool IsBusy { get; private set; }
+    public bool IsInSession => currentSession != null;
+
+    public string JoinCode =>
+        currentSession != null
+            ? currentSession.Code
+            : string.Empty;
+
+    public string StatusMessage { get; private set; } =
+        "서비스 초기화 중...";
+
+    public event Action<string> StatusChanged;
+    public event Action<string> SessionCreated;
+    public event Action SessionJoined;
+    public event Action SessionLeft;
 
     private void Awake()
     {
         networkManager = GetComponent<NetworkManager>();
     }
 
-    private void OnEnable()
+    private async void Start()
+    {
+        SubscribeNetworkEvents();
+
+        try
+        {
+            await EnsureServicesReadyAsync();
+        }
+        catch (Exception exception)
+        {
+            SetStatus($"초기화 실패\n{exception.Message}");
+            Debug.LogException(exception);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        UnsubscribeNetworkEvents();
+    }
+
+    private void SubscribeNetworkEvents()
     {
         if (networkManager == null)
             return;
 
-        networkManager.OnClientConnectedCallback += HandleClientConnected;
-        networkManager.OnClientDisconnectCallback += HandleClientDisconnected;
+        networkManager.OnClientConnectedCallback +=
+            HandleClientConnected;
+
+        networkManager.OnClientDisconnectCallback +=
+            HandleClientDisconnected;
     }
 
-    private void OnDisable()
+    private void UnsubscribeNetworkEvents()
     {
         if (networkManager == null)
             return;
 
-        networkManager.OnClientConnectedCallback -= HandleClientConnected;
-        networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
+        networkManager.OnClientConnectedCallback -=
+            HandleClientConnected;
+
+        networkManager.OnClientDisconnectCallback -=
+            HandleClientDisconnected;
+    }
+
+    private async Task EnsureServicesReadyAsync()
+    {
+        if (IsInitialized)
+            return;
+
+        initializationTask ??= InitializeServicesAsync();
+
+        try
+        {
+            await initializationTask;
+        }
+        catch
+        {
+            initializationTask = null;
+            throw;
+        }
+    }
+
+    private async Task InitializeServicesAsync()
+    {
+        SetStatus("Unity Services 초기화 중...");
+
+        await UnityServices.InitializeAsync();
+
+        if (!AuthenticationService.Instance.IsSignedIn)
+        {
+            SetStatus("익명 로그인 중...");
+
+            await AuthenticationService.Instance
+                .SignInAnonymouslyAsync();
+        }
+
+        IsInitialized = true;
+
+        SetStatus(
+            $"로그인 완료\n" +
+            $"Player ID: {AuthenticationService.Instance.PlayerId}"
+        );
     }
 
     /// <summary>
-    /// 방장으로 네트워크를 시작합니다.
-    /// Host는 Server와 Client 역할을 동시에 수행합니다.
+    /// Host가 Relay 세션을 생성합니다.
+    /// Canvas Button에서 호출할 수 있습니다.
     /// </summary>
-    public void StartHost()
+    public async void CreateSession()
     {
-        if (!CanStartNetwork())
+        if (!CanBeginSessionOperation())
             return;
 
-        statusMessage = "Host 시작 중...";
+        IsBusy = true;
 
-        bool started = networkManager.StartHost();
-
-        if (started)
+        try
         {
-            statusMessage = "Host 시작 완료";
-            Debug.Log("NetworkManager Host 시작 완료");
+            await EnsureServicesReadyAsync();
+
+            SetStatus("Relay 세션 생성 중...");
+
+            var options = new SessionOptions
+            {
+                MaxPlayers = MaxPlayers,
+                Name = "HyeGyo Match"
+            }.WithRelayNetwork();
+
+            /*
+             * WithRelayNetwork를 사용하므로
+             * 세션 생성 과정에서 NGO Host 네트워크도 시작됩니다.
+             */
+            currentSession =
+                await MultiplayerService.Instance
+                    .CreateSessionAsync(options);
+
+            SetStatus(
+                $"방 생성 완료\n" +
+                $"참가 코드: {currentSession.Code}"
+            );
+
+            SessionCreated?.Invoke(currentSession.Code);
+
+            Debug.Log(
+                $"Relay 세션 생성 완료 | " +
+                $"Session ID: {currentSession.Id} | " +
+                $"Join Code: {currentSession.Code}"
+            );
         }
-        else
+        catch (Exception exception)
         {
-            statusMessage = "Host 시작 실패";
-            Debug.LogError("NetworkManager.StartHost() 실패");
+            currentSession = null;
+
+            SetStatus(
+                $"방 생성 실패\n{exception.Message}"
+            );
+
+            Debug.LogException(exception);
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
     /// <summary>
-    /// 다른 Host에 Client로 접속합니다.
+    /// 참가 코드로 Relay 세션에 참가합니다.
     /// </summary>
-    public void StartClient()
+    public async void JoinSession(string joinCode)
     {
-        if (!CanStartNetwork())
+        if (!CanBeginSessionOperation())
             return;
 
-        statusMessage = "Client 접속 시도 중...";
+        string normalizedCode =
+            joinCode?.Trim().ToUpperInvariant();
 
-        bool started = networkManager.StartClient();
-
-        if (started)
+        if (string.IsNullOrWhiteSpace(normalizedCode))
         {
-            Debug.Log("NetworkManager Client 시작");
+            SetStatus("참가 코드를 입력하세요.");
+            return;
         }
-        else
+
+        IsBusy = true;
+
+        try
         {
-            statusMessage = "Client 시작 실패";
-            Debug.LogError("NetworkManager.StartClient() 실패");
+            await EnsureServicesReadyAsync();
+
+            SetStatus("Relay 세션 참가 중...");
+
+            /*
+             * 참가 과정에서 NGO Client 네트워크도
+             * 자동으로 연결됩니다.
+             */
+            currentSession =
+                await MultiplayerService.Instance
+                    .JoinSessionByCodeAsync(normalizedCode);
+
+            SetStatus(
+                $"방 참가 완료\n" +
+                $"참가 코드: {currentSession.Code}"
+            );
+
+            SessionJoined?.Invoke();
+
+            Debug.Log(
+                $"Relay 세션 참가 완료 | " +
+                $"Session ID: {currentSession.Id} | " +
+                $"Join Code: {currentSession.Code}"
+            );
+        }
+        catch (Exception exception)
+        {
+            currentSession = null;
+
+            SetStatus(
+                $"방 참가 실패\n{exception.Message}"
+            );
+
+            Debug.LogException(exception);
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
     /// <summary>
-    /// 전용 서버로 시작합니다.
-    /// 현재 2인 테스트에서는 필수 기능이 아닙니다.
+    /// 현재 세션에서 나갑니다.
     /// </summary>
-    public void StartServer()
+    public async void LeaveSession()
     {
-        if (!CanStartNetwork())
+        if (IsBusy || currentSession == null)
             return;
 
-        statusMessage = "Server 시작 중...";
+        IsBusy = true;
 
-        bool started = networkManager.StartServer();
-
-        if (started)
+        try
         {
-            statusMessage = "Server 시작 완료";
-            Debug.Log("NetworkManager Server 시작 완료");
+            SetStatus("세션에서 나가는 중...");
+
+            await currentSession.LeaveAsync();
+
+            currentSession = null;
+
+            SetStatus("세션에서 나왔습니다.");
+            SessionLeft?.Invoke();
         }
-        else
+        catch (Exception exception)
         {
-            statusMessage = "Server 시작 실패";
-            Debug.LogError("NetworkManager.StartServer() 실패");
+            SetStatus(
+                $"세션 나가기 실패\n{exception.Message}"
+            );
+
+            Debug.LogException(exception);
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
-    /// <summary>
-    /// 현재 네트워크 연결을 종료합니다.
-    /// </summary>
-    public void ShutdownNetwork()
+    private bool CanBeginSessionOperation()
     {
-        if (networkManager == null)
-            return;
-
-        if (!networkManager.IsListening)
+        if (IsBusy)
         {
-            statusMessage = "실행 중인 네트워크가 없습니다.";
-            return;
-        }
-
-        networkManager.Shutdown();
-        statusMessage = "네트워크 연결 종료";
-
-        Debug.Log("NetworkManager 종료");
-    }
-
-    private bool CanStartNetwork()
-    {
-        if (networkManager == null)
-        {
-            statusMessage = "NetworkManager가 없습니다.";
-            Debug.LogError(statusMessage);
+            SetStatus("현재 다른 작업을 처리 중입니다.");
             return false;
         }
 
-        if (networkManager.IsListening)
+        if (currentSession != null)
         {
-            statusMessage = "이미 네트워크가 실행 중입니다.";
-            Debug.LogWarning(statusMessage);
+            SetStatus("이미 참가 중인 세션이 있습니다.");
             return false;
         }
 
@@ -145,155 +297,51 @@ public sealed class NetworkLauncher : MonoBehaviour
 
     private void HandleClientConnected(ulong clientId)
     {
+        Debug.Log($"NGO Client 연결 완료: {clientId}");
+
         if (networkManager.IsServer)
         {
-            int connectedCount =
+            int playerCount =
                 networkManager.ConnectedClientsList.Count;
 
-            statusMessage =
+            SetStatus(
                 $"플레이어 접속\n" +
-                $"Client ID: {clientId}\n" +
-                $"접속 인원: {connectedCount}";
+                $"접속 인원: {playerCount}/{MaxPlayers}"
+            );
         }
         else if (clientId == networkManager.LocalClientId)
         {
-            statusMessage =
-                $"Client 접속 완료\n" +
-                $"Client ID: {clientId}";
+            SetStatus(
+                $"Relay 네트워크 접속 완료\n" +
+                $"Client ID: {clientId}"
+            );
         }
-
-        Debug.Log($"Client 연결: {clientId}");
     }
 
     private void HandleClientDisconnected(ulong clientId)
     {
-        Debug.Log($"Client 연결 종료: {clientId}");
+        Debug.Log($"NGO Client 연결 종료: {clientId}");
 
-        if (networkManager == null || !networkManager.IsListening)
+        if (networkManager != null &&
+            networkManager.IsServer)
         {
-            statusMessage = "네트워크 연결 종료";
-            return;
-        }
-
-        if (networkManager.IsServer)
-        {
-            int connectedCount =
+            int playerCount =
                 networkManager.ConnectedClientsList.Count;
 
-            statusMessage =
+            SetStatus(
                 $"플레이어 연결 종료\n" +
-                $"Client ID: {clientId}\n" +
-                $"현재 인원: {connectedCount}";
+                $"현재 인원: {playerCount}/{MaxPlayers}"
+            );
         }
         else
         {
-            statusMessage = "서버와 연결이 종료되었습니다.";
+            SetStatus("Host와의 연결이 종료되었습니다.");
         }
     }
 
-    private string GetNetworkRole()
+    private void SetStatus(string message)
     {
-        if (networkManager == null)
-            return "NetworkManager 없음";
-
-        if (networkManager.IsHost)
-            return "Host";
-
-        if (networkManager.IsServer)
-            return "Server";
-
-        if (networkManager.IsClient)
-            return "Client";
-
-        return "연결 대기";
-    }
-
-    /*
-     * 임시 네트워크 테스트 UI입니다.
-     * 정상 동작 확인 후 Canvas UI로 교체합니다.
-     */
-    private void OnGUI()
-    {
-        const float width = 420f;
-        const float height = 390f;
-
-        float x = (Screen.width - width) * 0.5f;
-        float y = (Screen.height - height) * 0.5f;
-
-        GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 26,
-            fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.MiddleCenter
-        };
-
-        GUIStyle labelStyle = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 18,
-            alignment = TextAnchor.MiddleCenter,
-            wordWrap = true
-        };
-
-        GUIStyle buttonStyle = new GUIStyle(GUI.skin.button)
-        {
-            fontSize = 20,
-            fixedHeight = 52f
-        };
-
-        GUILayout.BeginArea(
-            new Rect(x, y, width, height),
-            GUI.skin.box
-        );
-
-        GUILayout.Label("NetworkLauncher", titleStyle);
-        GUILayout.Space(15f);
-
-        GUILayout.Label(
-            $"현재 상태: {GetNetworkRole()}",
-            labelStyle
-        );
-
-        GUILayout.Label(statusMessage, labelStyle);
-        GUILayout.Space(20f);
-
-        bool canStart =
-            networkManager != null &&
-            !networkManager.IsListening;
-
-        GUI.enabled = canStart;
-
-        if (GUILayout.Button("Host 시작", buttonStyle))
-        {
-            StartHost();
-        }
-
-        GUILayout.Space(10f);
-
-        if (GUILayout.Button("Client 접속", buttonStyle))
-        {
-            StartClient();
-        }
-
-        GUILayout.Space(10f);
-
-        if (GUILayout.Button("Dedicated Server 시작", buttonStyle))
-        {
-            StartServer();
-        }
-
-        GUI.enabled =
-            networkManager != null &&
-            networkManager.IsListening;
-
-        GUILayout.Space(20f);
-
-        if (GUILayout.Button("연결 종료", buttonStyle))
-        {
-            ShutdownNetwork();
-        }
-
-        GUI.enabled = true;
-
-        GUILayout.EndArea();
+        StatusMessage = message;
+        StatusChanged?.Invoke(message);
     }
 }
