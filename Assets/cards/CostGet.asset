@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CostGet
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cooldown: 3
-  cost: 2
+  cost: 8
   _effects:
   - _effect:
       _effectType: 8

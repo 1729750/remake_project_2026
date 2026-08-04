@@ -37,11 +37,13 @@ public class CharacterManager: MonoBehaviour
     private HandManager _handManager;
     private QueueManager _queueManager;
     private Coroutine _defenseIndicatorCoroutine;
-    
+
+    private bool _isGuard = false;
     public void CharacterInit(CardDefinition[] deck, int maxHealth)
     {
         _maxHealth=maxHealth;
         startDeck = deck;
+        _isGuard = false;
         Clear();
 
         //덱 생성
@@ -90,7 +92,7 @@ public class CharacterManager: MonoBehaviour
         if (_handManager == null) return;
         for (int i = _effects.Count - 1; i >= 0; i--)
             _effects[i].OnTurnStarted(this);
-        EnergyHeal(1);
+        EnergyHeal(_isGuard ? 1:2);
         UpdateEffectList();
         _handManager.FillHand();
     }
@@ -103,13 +105,9 @@ public class CharacterManager: MonoBehaviour
         if (!playerControlled)
             SelectRandomCard();
 
-        else if (_specialAction == DefenseAction)
-        {
-            GainGuard();
-        }
         else
         {
-            var selected = _handManager?.GetSelectedCard();
+            var selected = _handManager.GetSelectedCard();
             if (selected != null && _cost >= selected.GetCost())
             {
                 if(_handManager.UseCard())
@@ -131,16 +129,6 @@ public class CharacterManager: MonoBehaviour
         ShuffleDeck();
         _handManager.FillHand();
         Debug.Log($"[{gameObject.name}] Redrew hand");
-    }
-
-    // Defense: 이번 턴에만 유지되는(지속시간 1) Guard 효과를 얻는다
-    private void GainGuard()
-    {
-        for (int i = 0; i < _effects.Count; i++)
-            if (_effects[i].GetEffectType() == EffectType.Guard)
-                return;
-        _effects.Add(Effect.Create(EffectType.Guard, 1));
-        Debug.Log($"[{gameObject.name}] Gained effect: {EffectType.Guard} :1");
     }
 
     // defenseIndicator: Defense 액션이 선택되면 defenseIndicatorRestPosition[1]로,
@@ -186,17 +174,21 @@ public class CharacterManager: MonoBehaviour
     public void SelectCard(int index)
     {
         if (BattleManager.Instance == null || BattleManager.Instance.CurrentState != BattleState.Turn) return;
-
+        _isGuard = false;
         if (index == RedrawAction || index == DefenseAction)
         {
             _specialAction = index;
             _handManager.UnselectCard();
             Debug.Log($"[{gameObject.name}] Selected action: {(index == RedrawAction ? "ReDraw" : "Defense")}");
-            SetDefenseIndicatorActive(index == DefenseAction);
             if (index == RedrawAction)
             {
                 Redraw();
             }
+            else if (index == DefenseAction)
+            {
+                _isGuard = !_isGuard;
+            }
+            SetDefenseIndicatorActive(_isGuard);
             return;
         }
 
@@ -272,6 +264,7 @@ public class CharacterManager: MonoBehaviour
 
     public void Attacked(int damage)
     {
+        if (_isGuard) damage /= 2;
         TakeDamage(damage);
     }
 
@@ -303,7 +296,7 @@ public class CharacterManager: MonoBehaviour
 
     public void EnergyHeal(int amount)
     {
-        _cost = Mathf.Min(_cost + 1, MaxCost);
+        _cost = Mathf.Min(_cost + amount, MaxCost);
         UpdateCostDisplay();
     }
     

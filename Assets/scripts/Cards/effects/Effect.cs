@@ -63,6 +63,7 @@ public class Effect
     // 타입은 이 기본 동작 대신 override에서 바로 결과를 적용한다.
     public virtual void OnApply(CharacterManager subject, CardEffect cardEffect)
     {
+        if(_effectType == EffectType.Preserve || _effectType == EffectType.Disposable)
         foreach (var existing in subject.GetEffects())
         {
             if (existing.GetEffectType() == _effectType)

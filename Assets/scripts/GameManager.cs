@@ -27,7 +27,7 @@ public class GameManager : MonoBehaviour
     {
         _currentState = GameState.StartScreen;
         battleManager.Init();
-        StartBattle(firstEnemyData);
+        EndBattle();
         //ShowEnemySelection();
     }
 
@@ -118,7 +118,7 @@ public class GameManager : MonoBehaviour
         rewardManager.gameObject.SetActive(_currentState == GameState.BattleEnd);
     }
 
-    static public DeckDisplay SummonDeck()
+    static public DeckDisplay SummonDeck(Func<CardDefinition, bool> filter = null)
     {
         DeckDisplay deckDisplay = Instantiate(Resources.Load<GameObject>("Prefabs/DeckDisplay")).GetComponent<DeckDisplay>();
         Camera cam = Camera.main;
@@ -126,7 +126,7 @@ public class GameManager : MonoBehaviour
         float screenWidth = screenHeight * cam.aspect;
         deckDisplay.transform.position = new Vector3(cam.transform.position.x, cam.transform.position.y, deckDisplay.transform.position.z);
         deckDisplay.SetSize(new Vector2(screenWidth/3*2, screenHeight/3*2));
-        deckDisplay.SetDeck(PlayerManager.Instance.GetDeck());
+        deckDisplay.SetDeck(PlayerManager.Instance.GetDeck(), filter);
         return deckDisplay;
     }
 }

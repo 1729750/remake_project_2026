@@ -73,6 +73,7 @@ public class BattleManager:MonoBehaviour
             _startElapsed += deltaTime;
             if (_startElapsed >= startDelay)
             {
+                _turnTimerOverlay?.SetFill(_startElapsed / startDelay);
                 OnBattleStarted();
             }
         }

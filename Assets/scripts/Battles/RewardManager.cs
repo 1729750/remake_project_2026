@@ -21,7 +21,7 @@ public class RewardManager : MonoBehaviour
 
     private static readonly string[] RewardDisplayLabels = { "카드 획득", "카드 제거", "카드 강화" };
 
-    [SerializeField] private InputManager inputManager;
+    [SerializeField] private Sprite[] rewardSprites;
     // 임시: 보상 카드 로딩 로직이 생기기 전까지 인스펙터에서 직접 지정
     [SerializeField] private CardDefinition[] rewardCards;
 
@@ -54,7 +54,7 @@ public class RewardManager : MonoBehaviour
         _rewardDisplaySelectedIndex = 0;
         RefreshRewardDisplaySelection();
 
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => MoveRewardDisplaySelection(-1),
             ["Right"]  = () => MoveRewardDisplaySelection(1),
@@ -189,7 +189,7 @@ public class RewardManager : MonoBehaviour
     {
         var effectTypes = (EffectType[])Enum.GetValues(typeof(EffectType));
         EffectType effectType = effectTypes[UnityEngine.Random.Range(0, effectTypes.Length)];
-        int magnitude = UnityEngine.Random.Range(1, 4) * (UnityEngine.Random.value < 0.5f ? 1 : -1);
+        int magnitude = UnityEngine.Random.Range(1, 4);
 
         Effect effect = Effect.Create(effectType, magnitude);
         EffectTarget target = ResolveEnhanceTarget(effect.TargetPolarity, magnitude);
@@ -213,7 +213,21 @@ public class RewardManager : MonoBehaviour
         CardEffect option = ConfirmEnhanceSelection();
         inputManager.Unload();
 
-        DeckDisplay deckDisplay = GameManager.SummonDeck();
+        bool Filter(CardDefinition def)
+        {
+            if (def.GetEffects().Length < 3)
+                return true;
+            foreach (CardEffect effect in def.GetEffects())
+            {
+                if (effect.GetEffect().GetEffectType() == option.GetEffect().GetEffectType()) return true;
+            }
+
+            return false;
+        }
+
+        
+        
+        DeckDisplay deckDisplay = GameManager.SummonDeck(Filter);
         inputManager.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),

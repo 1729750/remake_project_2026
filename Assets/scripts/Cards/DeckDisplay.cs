@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,6 +16,9 @@ public class DeckDisplay : MonoBehaviour
     private Vector2 _containerSize;
     private GameObject _cardPrefab;
     private readonly List<CardVisual> _cardVisuals = new List<CardVisual>();
+    // _cardIndexMap[표시 인덱스] = filter를 통과해 표시된 카드의 원본 cards 리스트 인덱스.
+    // 필터로 걸러진 카드가 있으면 표시 인덱스와 원본 인덱스가 어긋나므로 GetSelectedIndex가 이 맵을 거쳐 반환한다.
+    private readonly List<int> _cardIndexMap = new List<int>();
 
     private float _cardWidth;
     private float _cardHeight;
@@ -30,8 +34,11 @@ public class DeckDisplay : MonoBehaviour
     // cardSize: cardPrefab 원본 크기 대비 배율(1이 원본 크기). 이 값으로 카드의 실제 표시 크기를
     // 정하고, 카드 사이 padding은 Columns장이 컨테이너 가로 폭을 정확히 채우도록 역산한다.
     // 예: 가로 폭 100, 카드 가로 길이 10이면 100 - 10*4 = 60을 카드 사이 3칸에 나눠 padding 20.
-    public void SetDeck(List<CardDefinition> cards, float cardSize = 1f)
+    // filter: cards 중 표시할 카드만 골라낸다. 기본값은 전부 표시(항상 true).
+    public void SetDeck(List<CardDefinition> cards, Func<CardDefinition, bool> filter, float cardSize = 1f)
     {
+        filter ??= _ => true;
+
         ClearCards();
         if (cards == null || cards.Count == 0) return;
 
@@ -39,18 +46,34 @@ public class DeckDisplay : MonoBehaviour
             _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
         if (_cardPrefab == null || _containerSize.x == 0f || _containerSize.y == 0f) return;
 
-        foreach (CardDefinition def in cards)
-            _cardVisuals.Add(SpawnCard(def));
+        for (int i = 0; i < cards.Count; i++)
+        {
+            if (!filter(cards[i])) continue;
+            _cardVisuals.Add(SpawnCard(cards[i]));
+            _cardIndexMap.Add(i);
+        }
+        if (_cardVisuals.Count == 0) return;
 
         // SetSize로 스케일하기 전, 카드 프리팹 원본(배경 SpriteRenderer) 크기를 기준으로 삼는다.
         Vector2 nativeCardSize = _cardVisuals[0].GetBackgroundSize();
         _cardWidth = nativeCardSize.x * cardSize;
         _cardHeight = nativeCardSize.y * cardSize;
 
-        float padding = (_containerSize.x - _cardWidth * Columns) / (Columns - 1);
-        _cellWidth = _cardWidth + padding;
-        _cellHeight = _cardHeight + padding;
-        _visibleRows = Mathf.Max(1, Mathf.FloorToInt((_containerSize.y + padding) / _cellHeight));
+        float xpadding = (_containerSize.x - _cardWidth * Columns) / (Columns - 1);
+        _cellWidth = _cardWidth + xpadding;
+
+        // ypadding은 Columns(가로 4장 고정)를 참고할 수 없다 — 몇 줄이 보일지(visibleRows) 자체가
+        // 미지수라서, ypadding으로 visibleRows를 구하려 하면 서로가 서로에 의존하는 순환이 생긴다.
+        // 그래서 먼저 padding 없이(카드 높이만으로) 몇 줄이 들어가는지 늘려가며 귀납적으로 visibleRows를
+        // 찾고, 그렇게 정해진 visibleRows로 컨테이너 세로 폭을 정확히 채우는 ypadding을 역산한다.
+        _visibleRows = 1;
+        while (_cardHeight * (_visibleRows + 1) <= _containerSize.y)
+            _visibleRows++;
+
+        float ypadding = _visibleRows > 1
+            ? (_containerSize.y - _cardHeight * _visibleRows) / (_visibleRows - 1)
+            : 0f;
+        _cellHeight = _cardHeight + ypadding;
 
         Vector2 cardTargetSize = new Vector2(_cardWidth, _cardHeight);
         foreach (CardVisual visual in _cardVisuals)
@@ -62,7 +85,8 @@ public class DeckDisplay : MonoBehaviour
         _cardVisuals[0].SetSelected(true);
     }
 
-    public int GetSelectedIndex() => _selectedIndex;
+    // 표시된(필터를 통과한) 카드 기준 선택 인덱스가 아니라, SetDeck에 넘겼던 원본 리스트 인덱스를 반환한다.
+    public int GetSelectedIndex() => _cardIndexMap[_selectedIndex];
 
     public void MoveSelectionHorizontal(int delta)
     {
@@ -134,5 +158,6 @@ public class DeckDisplay : MonoBehaviour
         foreach (CardVisual visual in _cardVisuals)
             if (visual != null) Destroy(visual.gameObject);
         _cardVisuals.Clear();
+        _cardIndexMap.Clear();
     }
 }

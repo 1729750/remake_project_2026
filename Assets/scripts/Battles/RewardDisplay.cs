@@ -18,10 +18,11 @@ public class RewardDisplay : MonoBehaviour
         _rewardText = transform.Find("RewardText").GetComponent<TMP_Text>();
     }
 
-    public void Init(string rewardText)
+    public void Init(string rewardText, Sprite rewardSprite)
     {
         ClearEffect();
         _rewardText.text = rewardText;
+        _rewardSprite.sprite = rewardSprite;
     }
 
     // 강화 후보 표시: RewardText는 비워 두고, effectDisplay(아이콘+수치)를 정 가운데(루트 원점)에 띄운다.

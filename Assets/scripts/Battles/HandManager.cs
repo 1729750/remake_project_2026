@@ -64,13 +64,17 @@ public class HandManager
         for (int i = 0; i < HandSize; i++)
         {
             if (_hand[i] == null) continue;
+            bool trigger = false;
             foreach (CardEffect cardEffect in _hand[i].GetEffects())
             {
                 if (cardEffect.GetEffect().GetEffectType() == EffectType.Preserve)
                 {
-                    continue;
+                    trigger = true;
                 }
             }
+
+            if (trigger) continue;
+            
             _characterManager.ReturnToDeck(_hand[i]);
             _hand[i] = null;
             if (_cardObjects[i] != null)
@@ -84,7 +88,8 @@ public class HandManager
 
     public void SelectCard(int index)
     {
-        _selectedIndex = index;
+        if (_selectedIndex == index) _selectedIndex = -1;
+        else _selectedIndex = index;
         RefreshSelection();
     }
 
