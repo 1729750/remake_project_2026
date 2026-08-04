@@ -5,8 +5,8 @@ public class AttackEffect : Effect
 {
     public AttackEffect(int magnitude) : base(EffectType.Attack, magnitude) { }
 
-    public override void OnApply(CharacterManager subject, CardEffect cardEffect)
+    public override void OnApply(CharacterManager subject)
     {
-        subject.Attacked(cardEffect.GetMagnitude());
+        subject.Attacked(_magnitude);
     }
 }

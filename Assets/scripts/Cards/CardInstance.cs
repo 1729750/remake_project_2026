@@ -12,6 +12,7 @@ public class CardInstance
     private List<CardEffect> _effects;
 
     private CharacterManager _owner;
+    private CardVisual _visual;
     // effect will be added later
 
     public CardInstance(CardDefinition definition, CharacterManager owner)
@@ -20,12 +21,59 @@ public class CardInstance
         _owner = owner;
         RefreshInstance();
         _isPlayed = false;
-        _cooldownLeft = 0;
+        _cooldownLeft = _definition.GetCooldown();
+    }
+
+    // CardVisual은 자기 자신의 데이터를 갖지 않는다 — 이 카드가 화면에 어떻게 보일지는
+    // 전부 CardInstance가 값을 넣어주는 방식으로 밀어넣는다(pull이 아니라 push).
+    public CardVisual GetVisual() => _visual;
+
+    public void SetVisual(CardVisual visual)
+    {
+        _visual = visual;
+        if (_visual == null) return;
+
+        _visual.SetCardDefinition(_definition);
+        RefreshCooldownDisplay();
+    }
+
+    public void SetSelected(bool selected)
+    {
+        if (_visual != null) _visual.SetSelected(selected);
+    }
+
+    public void SetFace(bool front)
+    {
+        if (_visual != null) _visual.SetFace(front);
+    }
+
+    public void SetLayer(string sortingLayerName)
+    {
+        if (_visual != null) _visual.SetLayer(sortingLayerName);
+    }
+
+    public void SetSize(Vector2 targetSize)
+    {
+        if (_visual != null) _visual.SetSize(targetSize);
+    }
+
+    public void MoveTo(Vector3 targetPosition, float duration = 0.3f)
+    {
+        if (_visual != null) _visual.MoveTo(targetPosition, duration);
+    }
+
+    public Vector2 GetBackgroundSize() => _visual != null ? _visual.GetBackgroundSize() : Vector2.zero;
+
+    private void RefreshCooldownDisplay()
+    {
+        if (_visual == null) return;
+        _visual.SetCooldownText(_cooldownLeft.ToString());
     }
 
     private void RefreshInstance()
     {
         _cooldown =  _definition.GetCooldown();
+        _cooldownLeft = _definition.GetCooldown();
         _cost  = _definition.GetCost();
         _effects = new List<CardEffect>();
         foreach (CardEffect cardEffect in _definition.GetEffects())
@@ -45,12 +93,13 @@ public class CardInstance
     {
         _cooldownLeft = _definition.GetCooldown();
         _isPlayed = true;
+        RefreshCooldownDisplay();
     }
 
-    public void TickCooldown()
+    public void TickCooldown(int tick=1)
     {
-        if (_cooldownLeft > 0)
-            _cooldownLeft--;
+            _cooldownLeft-=tick;
+            RefreshCooldownDisplay();
     }
 
     public void Play(CharacterManager characterManager)

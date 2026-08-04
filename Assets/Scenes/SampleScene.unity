@@ -1771,7 +1771,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3f73686acd87de44b3fd9ec18aaa8b7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RewardManager
-  inputManager: {fileID: 903970882}
+  rewardSprites:
+  - {fileID: 21300000, guid: 7615556aad8f17441b0c274f396fdd77, type: 3}
+  - {fileID: 21300000, guid: bcec2aa82a16dc7468630964fa0442e5, type: 3}
+  - {fileID: 21300000, guid: 0e2ed3ccf7309194c89cfa88aa90295c, type: 3}
   rewardCards:
   - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
   - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}

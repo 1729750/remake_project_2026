@@ -54,7 +54,8 @@ public class HandManager
         var visual = obj.GetComponent<CardVisual>();
         if (visual == null)
             visual = obj.AddComponent<CardVisual>();
-        visual.SetCard(_hand[i], _isHandVisualized);
+        _hand[i].SetVisual(visual);
+        _hand[i].SetFace(_isHandVisualized);
         _cardObjects[i] = obj;
     }
 
@@ -111,12 +112,7 @@ public class HandManager
         GameObject cardObject = _cardObjects[_selectedIndex];
         if (_characterManager.QueueCard(card, cardObject))
         {
-            if (cardObject != null)
-            {
-                var visual = cardObject.GetComponent<CardVisual>();
-                if (visual != null)
-                    visual.SetSelected(false);
-            }
+            card.SetSelected(false);
             _cardObjects[_selectedIndex] = null;
             _hand[_selectedIndex] = null;
             UnselectCard();
@@ -129,11 +125,6 @@ public class HandManager
     private void RefreshSelection()
     {
         for (int i = 0; i < HandSize; i++)
-        {
-            if (_cardObjects[i] == null) continue;
-            var visual = _cardObjects[i].GetComponent<CardVisual>();
-            if (visual != null)
-                visual.SetSelected(i == _selectedIndex);
-        }
+            _hand[i]?.SetSelected(i == _selectedIndex);
     }
 }

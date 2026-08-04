@@ -30,8 +30,7 @@ public class RewardManager : MonoBehaviour
     private int _rewardDisplaySelectedIndex;
 
     private GameObject _cardPrefab;
-    private CardDefinition[] _rewardCardOptions;
-    private CardVisual[] _rewardCardVisuals;
+    private CardInstance[] _rewardCardInstances;
     private int _rewardCardSelectedIndex;
 
     private CardEffect[] _enhanceOptions;
@@ -73,7 +72,7 @@ public class RewardManager : MonoBehaviour
         for (int i = 0; i < labels.Length; i++)
         {
             displays[i] = Instantiate(_rewardDisplayPrefab, transform).GetComponent<RewardDisplay>();
-            displays[i].Init(labels[i]);
+            displays[i].Init(labels[i],rewardSprites[i]);
         }
 
         SpriteRenderer card = displays[0].transform.Find("Card")?.GetComponent<SpriteRenderer>();
@@ -122,9 +121,9 @@ public class RewardManager : MonoBehaviour
     // RewardDisplay 왼쪽 패널: 카드 획득.
     private void RewardCard()
     {
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => MoveRewardCardSelection(-1),
             ["Right"]  = () => MoveRewardCardSelection(1),
@@ -145,12 +144,12 @@ public class RewardManager : MonoBehaviour
     // RewardDisplay 가운데 패널: 화면 크기 DeckDisplay를 띄워 버릴 카드를 고른다.
     private void RewardCardDelete()
     {
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
         DeckDisplay deckDisplay = GameManager.SummonDeck();
 
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),
             ["Right"]  = () => deckDisplay.MoveSelectionHorizontal(1),
@@ -169,7 +168,7 @@ public class RewardManager : MonoBehaviour
     // 랜덤으로 뽑아 보여주고 고르게 한다.
     private void RewardCardEnhance()
     {
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
         CardEffect[] options = new CardEffect[3];
@@ -177,7 +176,7 @@ public class RewardManager : MonoBehaviour
             options[i] = RollEnhanceOption();
 
         SelectEnhance(options);
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => MoveEnhanceSelection(-1),
             ["Right"]  = () => MoveEnhanceSelection(1),
@@ -211,7 +210,7 @@ public class RewardManager : MonoBehaviour
     private void ShowEnhanceDeckSelection()
     {
         CardEffect option = ConfirmEnhanceSelection();
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
 
         bool Filter(CardDefinition def)
         {
@@ -228,7 +227,7 @@ public class RewardManager : MonoBehaviour
         
         
         DeckDisplay deckDisplay = GameManager.SummonDeck(Filter);
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),
             ["Right"]  = () => deckDisplay.MoveSelectionHorizontal(1),
@@ -301,8 +300,7 @@ public class RewardManager : MonoBehaviour
             _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
         if (_cardPrefab == null) return;
 
-        _rewardCardOptions = cardOptions;
-        _rewardCardVisuals = new CardVisual[cardOptions.Length];
+        _rewardCardInstances = new CardInstance[cardOptions.Length];
         for (int i = 0; i < cardOptions.Length; i++)
         {
             if (cardOptions[i] == null) continue;
@@ -311,19 +309,22 @@ public class RewardManager : MonoBehaviour
             var visual = obj.GetComponent<CardVisual>();
             if (visual == null)
                 visual = obj.AddComponent<CardVisual>();
+
             // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다
-            visual.SetCard(new CardInstance(cardOptions[i], null), true);
-            visual.SetLayer("UI");
+            var instance = new CardInstance(cardOptions[i], null);
+            instance.SetVisual(visual);
+            instance.SetFace(true);
+            instance.SetLayer("UI");
             obj.transform.localScale = Vector3.one*4;
-            _rewardCardVisuals[i] = visual;
+            _rewardCardInstances[i] = instance;
         }
 
-        float spacing = (_rewardCardVisuals.Length > 0 && _rewardCardVisuals[0] != null
-            ? _rewardCardVisuals[0].GetBackgroundSize().x : 1f) * 2f;
-        for (int i = 0; i < _rewardCardVisuals.Length; i++)
+        float spacing = (_rewardCardInstances.Length > 0 && _rewardCardInstances[0] != null
+            ? _rewardCardInstances[0].GetBackgroundSize().x : 1f) * 2f;
+        for (int i = 0; i < _rewardCardInstances.Length; i++)
         {
-            if (_rewardCardVisuals[i] == null) continue;
-            _rewardCardVisuals[i].transform.localPosition = new Vector3((i - (cardOptions.Length - 1) / 2f) * spacing, 0f, 0f);
+            if (_rewardCardInstances[i] == null) continue;
+            _rewardCardInstances[i].GetVisual().transform.localPosition = new Vector3((i - (cardOptions.Length - 1) / 2f) * spacing, 0f, 0f);
         }
 
         _rewardCardSelectedIndex = 0;
@@ -332,44 +333,40 @@ public class RewardManager : MonoBehaviour
 
     private void MoveRewardCardSelection(int delta)
     {
-        if (_rewardCardVisuals == null || _rewardCardVisuals.Length == 0) return;
+        if (_rewardCardInstances == null || _rewardCardInstances.Length == 0) return;
 
-        int count = _rewardCardVisuals.Length;
+        int count = _rewardCardInstances.Length;
         _rewardCardSelectedIndex = ((_rewardCardSelectedIndex + delta) % count + count) % count;
         RefreshRewardCardSelection();
     }
 
     private CardDefinition ConfirmRewardCard()
     {
-        if (_rewardCardVisuals == null || _rewardCardVisuals.Length == 0) return null;
+        if (_rewardCardInstances == null || _rewardCardInstances.Length == 0) return null;
 
-        return _rewardCardOptions[_rewardCardSelectedIndex];
+        return _rewardCardInstances[_rewardCardSelectedIndex]?.GetDefinition();
     }
 
     // ShowRewardCard가 다시 불릴 때(다음 보상 라운드) 이전에 만들어둔 카드들을 정리한다.
     private void ClearRewardCard()
     {
-        if (_rewardCardVisuals == null) return;
-        foreach (CardVisual visual in _rewardCardVisuals)
-            if (visual != null) Destroy(visual.gameObject);
-        _rewardCardVisuals = null;
-        _rewardCardOptions = null;
+        if (_rewardCardInstances == null) return;
+        foreach (CardInstance instance in _rewardCardInstances)
+            if (instance != null && instance.GetVisual() != null) Destroy(instance.GetVisual().gameObject);
+        _rewardCardInstances = null;
     }
 
     private void RefreshRewardCardSelection()
     {
-        for (int i = 0; i < _rewardCardVisuals.Length; i++)
-        {
-            if (_rewardCardVisuals[i] != null)
-                _rewardCardVisuals[i].SetSelected(i == _rewardCardSelectedIndex);
-        }
+        for (int i = 0; i < _rewardCardInstances.Length; i++)
+            _rewardCardInstances[i]?.SetSelected(i == _rewardCardSelectedIndex);
     }
 
     // 보상 화면(카드 획득/삭제/강화 중 무엇이든)을 완전히 닫는 공통 지점.
     // reward 쪽에서 마지막으로 남아있던 input context를 여기서 pop한다.
     private void ConfirmReward()
     {
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         GameManager.Instance.ShowEnemySelection();
     }
 }

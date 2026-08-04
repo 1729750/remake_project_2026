@@ -15,7 +15,6 @@ public class CardVisual : MonoBehaviour
     private GameObject _selectHighlight;
     private GameObject _front;
     private GameObject _back;
-    private CardInstance _cardInstance;
     private Coroutine _moveCoroutine;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
 
@@ -42,21 +41,18 @@ public class CardVisual : MonoBehaviour
         _back.SetActive(!front);
     }
 
-    public void SetCard(CardInstance cardInstance, bool showFront)
+    // CardVisual은 CardInstance를 갖지 않는다 — 표시할 데이터는 전부 CardInstance가 밀어넣어 준다.
+    public void SetCardDefinition(CardDefinition def)
     {
-        _cardInstance = cardInstance;
-        CardDefinition def = cardInstance.GetDefinition();
-
        // _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
         _sprite.sprite = def.GetSprite();
         _spriteBackground.sprite = def.GetSpriteBackground();
         _costText.text = def.GetCost().ToString();
 
         RefreshEffectDisplays(def);
-
-        RefreshCooltime();
-        SetFace(showFront);
     }
+
+    public void SetCooldownText(string text) => _cooltimeText.text = text;
 
     // effect 영역을 3등분해서 왼쪽부터 EffectDisplay(아이콘+수치)를 채워 넣는다.
     private void RefreshEffectDisplays(CardDefinition def)
@@ -135,16 +131,5 @@ public class CardVisual : MonoBehaviour
 
         transform.position = targetPosition;
         _moveCoroutine = null;
-    }
-
-    private void Update()
-    {
-        if (_cardInstance != null)
-            RefreshCooltime();
-    }
-
-    private void RefreshCooltime()
-    {
-        _cooltimeText.text = $"{(_cardInstance.GetIsPlayed() ? _cardInstance.GetCooldownLeft():_cardInstance.GetCooldown())}";
     }
 }

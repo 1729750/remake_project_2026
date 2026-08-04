@@ -15,7 +15,7 @@ public class DeckDisplay : MonoBehaviour
 
     private Vector2 _containerSize;
     private GameObject _cardPrefab;
-    private readonly List<CardVisual> _cardVisuals = new List<CardVisual>();
+    private readonly List<CardInstance> _cardInstances = new List<CardInstance>();
     // _cardIndexMap[표시 인덱스] = filter를 통과해 표시된 카드의 원본 cards 리스트 인덱스.
     // 필터로 걸러진 카드가 있으면 표시 인덱스와 원본 인덱스가 어긋나므로 GetSelectedIndex가 이 맵을 거쳐 반환한다.
     private readonly List<int> _cardIndexMap = new List<int>();
@@ -49,13 +49,13 @@ public class DeckDisplay : MonoBehaviour
         for (int i = 0; i < cards.Count; i++)
         {
             if (!filter(cards[i])) continue;
-            _cardVisuals.Add(SpawnCard(cards[i]));
+            _cardInstances.Add(SpawnCard(cards[i]));
             _cardIndexMap.Add(i);
         }
-        if (_cardVisuals.Count == 0) return;
+        if (_cardInstances.Count == 0) return;
 
         // SetSize로 스케일하기 전, 카드 프리팹 원본(배경 SpriteRenderer) 크기를 기준으로 삼는다.
-        Vector2 nativeCardSize = _cardVisuals[0].GetBackgroundSize();
+        Vector2 nativeCardSize = _cardInstances[0].GetBackgroundSize();
         _cardWidth = nativeCardSize.x * cardSize;
         _cardHeight = nativeCardSize.y * cardSize;
 
@@ -76,13 +76,13 @@ public class DeckDisplay : MonoBehaviour
         _cellHeight = _cardHeight + ypadding;
 
         Vector2 cardTargetSize = new Vector2(_cardWidth, _cardHeight);
-        foreach (CardVisual visual in _cardVisuals)
-            visual.SetSize(cardTargetSize);
+        foreach (CardInstance instance in _cardInstances)
+            instance.SetSize(cardTargetSize);
 
         _selectedIndex = 0;
         _topRow = 0;
         LayoutCards();
-        _cardVisuals[0].SetSelected(true);
+        _cardInstances[0].SetSelected(true);
     }
 
     // 표시된(필터를 통과한) 카드 기준 선택 인덱스가 아니라, SetDeck에 넘겼던 원본 리스트 인덱스를 반환한다.
@@ -90,10 +90,10 @@ public class DeckDisplay : MonoBehaviour
 
     public void MoveSelectionHorizontal(int delta)
     {
-        if (_cardVisuals.Count == 0) return;
+        if (_cardInstances.Count == 0) return;
 
         int newIndex = _selectedIndex + delta;
-        if (newIndex < 0 || newIndex >= _cardVisuals.Count) return;
+        if (newIndex < 0 || newIndex >= _cardInstances.Count) return;
         if (newIndex / Columns != _selectedIndex / Columns) return;
 
         SetSelectedIndex(newIndex);
@@ -101,15 +101,15 @@ public class DeckDisplay : MonoBehaviour
 
     public void MoveSelectionVertical(int delta)
     {
-        if (_cardVisuals.Count == 0) return;
+        if (_cardInstances.Count == 0) return;
 
         int col = _selectedIndex % Columns;
         int row = _selectedIndex / Columns;
-        int totalRows = Mathf.CeilToInt((float)_cardVisuals.Count / Columns);
+        int totalRows = Mathf.CeilToInt((float)_cardInstances.Count / Columns);
         int newRow = Mathf.Clamp(row + delta, 0, totalRows - 1);
         if (newRow == row) return;
 
-        SetSelectedIndex(Mathf.Min(newRow * Columns + col, _cardVisuals.Count - 1));
+        SetSelectedIndex(Mathf.Min(newRow * Columns + col, _cardInstances.Count - 1));
 
         _topRow = Mathf.Clamp(_topRow, newRow - _visibleRows + 1, newRow);
         LayoutCards();
@@ -117,9 +117,9 @@ public class DeckDisplay : MonoBehaviour
 
     private void SetSelectedIndex(int index)
     {
-        _cardVisuals[_selectedIndex].SetSelected(false);
+        _cardInstances[_selectedIndex].SetSelected(false);
         _selectedIndex = index;
-        _cardVisuals[_selectedIndex].SetSelected(true);
+        _cardInstances[_selectedIndex].SetSelected(true);
     }
 
     private void LayoutCards()
@@ -128,36 +128,40 @@ public class DeckDisplay : MonoBehaviour
         float left = origin.x - _containerSize.x / 2f;
         float top = origin.y + _containerSize.y / 2f;
 
-        for (int i = 0; i < _cardVisuals.Count; i++)
+        for (int i = 0; i < _cardInstances.Count; i++)
         {
             int row = i / Columns;
             int col = i % Columns;
             int visibleRow = row - _topRow;
             bool visible = visibleRow >= 0 && visibleRow < _visibleRows;
 
-            _cardVisuals[i].gameObject.SetActive(visible);
+            GameObject cardObject = _cardInstances[i].GetVisual().gameObject;
+            cardObject.SetActive(visible);
             if (!visible) continue;
 
             float x = left + col * _cellWidth + _cardWidth / 2f;
             float y = top - visibleRow * _cellHeight - _cardHeight / 2f;
-            _cardVisuals[i].transform.position = new Vector3(x, y, origin.z);
+            cardObject.transform.position = new Vector3(x, y, origin.z);
         }
     }
 
-    private CardVisual SpawnCard(CardDefinition def)
+    // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다.
+    private CardInstance SpawnCard(CardDefinition def)
     {
         GameObject obj = Instantiate(_cardPrefab, transform);
         CardVisual visual = obj.GetComponent<CardVisual>();
-        visual.SetCard(new CardInstance(def, null), true);
-        visual.SetLayer("UI");
-        return visual;
+        var instance = new CardInstance(def, null);
+        instance.SetVisual(visual);
+        instance.SetFace(true);
+        instance.SetLayer("UI");
+        return instance;
     }
 
     private void ClearCards()
     {
-        foreach (CardVisual visual in _cardVisuals)
-            if (visual != null) Destroy(visual.gameObject);
-        _cardVisuals.Clear();
+        foreach (CardInstance instance in _cardInstances)
+            if (instance != null && instance.GetVisual() != null) Destroy(instance.GetVisual().gameObject);
+        _cardInstances.Clear();
         _cardIndexMap.Clear();
     }
 }

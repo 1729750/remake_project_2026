@@ -57,13 +57,15 @@ public class Effect
     public virtual void OnExpired(CharacterManager subject) { }
     public virtual void OnTurnStarted(CharacterManager subject) { }
     public virtual void OnTurnEnded(CharacterManager subject) { }
-
+    public virtual void OnUse(CharacterManager subject) { }
+    public virtual void OnTick(CharacterManager subject) { }
     // 즉시 발동하지 않는(스택형) 효과의 기본 동작: 같은 타입의 기존 효과가 있으면 magnitude만 합산하고,
     // 없으면 자신을 subject의 효과 목록에 새로 등록한다. Attack/Defend/EnergyHeal처럼 즉시 처리되는
     // 타입은 이 기본 동작 대신 override에서 바로 결과를 적용한다.
-    public virtual void OnApply(CharacterManager subject, CardEffect cardEffect)
+    public virtual void OnApply(CharacterManager subject)
     {
-        if(_effectType == EffectType.Preserve || _effectType == EffectType.Disposable)
+        if (_effectType == EffectType.Preserve || _effectType == EffectType.Disposable)
+            return;
         foreach (var existing in subject.GetEffects())
         {
             if (existing.GetEffectType() == _effectType)

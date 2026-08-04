@@ -39,11 +39,20 @@ public class CharacterManager: MonoBehaviour
     private Coroutine _defenseIndicatorCoroutine;
 
     private bool _isGuard = false;
+    public bool GetIsGuard() => _isGuard;
+    
+    private int tickSpeed=1;
+
+    public void ChangeTickSpeed(int delta)
+    {
+        tickSpeed += delta;
+    }
     public void CharacterInit(CardDefinition[] deck, int maxHealth)
     {
         _maxHealth=maxHealth;
         startDeck = deck;
         _isGuard = false;
+        tickSpeed=1;
         Clear();
 
         //덱 생성
@@ -104,8 +113,6 @@ public class CharacterManager: MonoBehaviour
             _effects[i].OnTurnEnded(this);
         if (!playerControlled)
             SelectRandomCard();
-
-        else
         {
             var selected = _handManager.GetSelectedCard();
             if (selected != null && _cost >= selected.GetCost())
@@ -206,7 +213,7 @@ public class CharacterManager: MonoBehaviour
         var valid = new List<int>();
         for (int i = 0; i < hand.Length; i++)
         {
-            if (hand[i] != null) valid.Add(i);
+            if (hand[i] != null && hand[i].GetCost()<=_cost) valid.Add(i);
         }
         if (valid.Count == 0) return;
         int idx = valid[UnityEngine.Random.Range(0, valid.Count)];
@@ -369,7 +376,7 @@ public class CharacterManager: MonoBehaviour
 
         EffectType effectType = cardEffect.GetEffect().GetEffectType();
         Effect effect = Effect.Create(effectType, cardEffect.GetMagnitude());
-        effect.OnApply(this, cardEffect);
+        effect.OnApply(this);
     }
 
     private void UpdateCostDisplay()
