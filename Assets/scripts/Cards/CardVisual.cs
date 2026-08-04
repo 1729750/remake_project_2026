@@ -5,10 +5,9 @@ using UnityEngine;
 
 public class CardVisual : MonoBehaviour
 {
-    private static GameObject _effectDisplayPrefab;
-
     private SpriteRenderer _background;
     private SpriteRenderer _sprite;
+    private SpriteRenderer _spriteBackground;
     private Transform _effectArea;
     private SpriteRenderer _effectAreaRenderer;
     private TextMeshPro _costText;
@@ -18,7 +17,7 @@ public class CardVisual : MonoBehaviour
     private GameObject _back;
     private CardInstance _cardInstance;
     private Coroutine _moveCoroutine;
-    private readonly List<GameObject> _effectDisplays = new List<GameObject>();
+    private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
 
     private void Awake()
     {
@@ -26,10 +25,11 @@ public class CardVisual : MonoBehaviour
         _back               = transform.Find("Back").gameObject;
         _background         = transform.Find("Front/background").GetComponent<SpriteRenderer>();
         _sprite             = transform.Find("Front/sprite").GetComponent<SpriteRenderer>();
+        _spriteBackground    = transform.Find("Front/sprite/background").GetComponent<SpriteRenderer>();
         _effectArea         = transform.Find("Front/effect");
         _effectAreaRenderer = _effectArea.GetComponent<SpriteRenderer>();
         _costText           = transform.Find("Front/cost/CostText").GetComponent<TextMeshPro>();
-        _cooltimeText       = transform.Find("Front/cooltimeText").GetComponent<TextMeshPro>();
+        _cooltimeText       = transform.Find("Front/cooltime/cooltimeText").GetComponent<TextMeshPro>();
         _selectHighlight    = transform.Find("Front/SelectHighlight").gameObject;
         _selectHighlight.SetActive(false);
     }
@@ -49,6 +49,7 @@ public class CardVisual : MonoBehaviour
 
        // _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
         _sprite.sprite = def.GetSprite();
+        _spriteBackground.sprite = def.GetSpriteBackground();
         _costText.text = def.GetCost().ToString();
 
         RefreshEffectDisplays(def);
@@ -57,22 +58,12 @@ public class CardVisual : MonoBehaviour
         SetFace(showFront);
     }
 
-    private static GameObject GetEffectDisplayPrefab()
-    {
-        if (_effectDisplayPrefab == null)
-            _effectDisplayPrefab = Resources.Load<GameObject>("Prefabs/EffectDisplay");
-        return _effectDisplayPrefab;
-    }
-
     // effect 영역을 3등분해서 왼쪽부터 EffectDisplay(아이콘+수치)를 채워 넣는다.
     private void RefreshEffectDisplays(CardDefinition def)
     {
-        foreach (GameObject display in _effectDisplays)
-            Destroy(display);
+        foreach (EffectDisplay display in _effectDisplays)
+            Destroy(display.gameObject);
         _effectDisplays.Clear();
-
-        GameObject effectDisplayPrefab = GetEffectDisplayPrefab();
-        if (effectDisplayPrefab == null) return;
 
         float areaWidth = _effectAreaRenderer.sprite.bounds.size.x;
         float slotWidth = areaWidth / 3f;
@@ -81,20 +72,18 @@ public class CardVisual : MonoBehaviour
         int index = 0;
         foreach (CardEffect cardEffect in def.GetEffects())
         {
-            GameObject display = Instantiate(effectDisplayPrefab, _effectArea);
+            EffectDisplay display = EffectDisplay.Spawn(_effectArea);
+            if (display == null) break;
             _effectDisplays.Add(display);
 
-            SpriteRenderer effectSprite = display.transform.Find("EffectSprite").GetComponent<SpriteRenderer>();
-            effectSprite.sprite = BattleManager.GetEmoji(cardEffect.GetEffect().GetEffectType());
-
             int magnitude = cardEffect.GetEffect().GetMagnitude();
-            TextMeshPro magnitudeText = display.transform.Find("MagnitudeText").GetComponent<TextMeshPro>();
-            magnitudeText.text = magnitude <= -1 ? "" : magnitude.ToString();
+            display.SetEffect(cardEffect.GetEffect().GetEffectType(), magnitude <= -1 ? "" : magnitude.ToString());
 
-            float nativeWidth = effectSprite.sprite != null ? effectSprite.sprite.bounds.size.x : slotWidth;
+            float nativeWidth = display.GetSpriteSize().x;
+            if (nativeWidth <= 0f) nativeWidth = slotWidth;
             float scale = nativeWidth > 0f ? slotWidth / nativeWidth : 1f;
-            display.transform.localScale = Vector3.one * scale;
-            display.transform.localPosition = new Vector3(leftEdge + slotWidth * (index + 0.5f), 0f, display.transform.localPosition.z);
+            display.SetScale(scale);
+            display.SetLocalPosition(new Vector3(leftEdge + slotWidth * (index + 0.5f), 0f, 0f));
 
             index++;
         }
@@ -156,6 +145,6 @@ public class CardVisual : MonoBehaviour
 
     private void RefreshCooltime()
     {
-        _cooltimeText.text = $"⏱:{_cardInstance.GetCooldownLeft()}";
+        _cooltimeText.text = $"{_cardInstance.GetCooldownLeft()}";
     }
 }

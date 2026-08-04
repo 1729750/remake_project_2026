@@ -12,9 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: defense
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 1
-  cost: 2
-  effects: []
-  sprite: {fileID: -2538186192755080977, guid: bd76407b9e7063241a69f1b49b9d9d53, type: 3}
+  cooldown: 3
+  cost: 4
+  _effects:
+  - _effect:
+      _effectType: 1
+      _magnitude: 5
+    _target: 0
+  sprite: {fileID: -3548974563023319978, guid: 3af915b049699de4b995a31cd66bb0f4, type: 3}
+  spriteBackground: {fileID: 21300000, guid: e90a2084f2fc5cd4b82dfd51394de74c, type: 3}
   cardType: 0
-  backGround: {fileID: 912036239635893973, guid: 9e9cc24594fadf446bdaca6f3f76ed7b, type: 3}

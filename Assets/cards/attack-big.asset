@@ -12,8 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: attack-big
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 0
-  cost: 0
-  _effects: []
-  sprite: {fileID: 0}
+  cooldown: 7
+  cost: 6
+  _effects:
+  - _effect:
+      _effectType: 0
+      _magnitude: 40
+    _target: 1
+  sprite: {fileID: 8960278200517875464, guid: 5058e3c2f2918bc418a1ccc303a82bee, type: 3}
+  spriteBackground: {fileID: 21300000, guid: 9e9cc24594fadf446bdaca6f3f76ed7b, type: 3}
   cardType: 0

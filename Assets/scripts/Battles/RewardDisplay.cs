@@ -4,12 +4,10 @@ using UnityEngine;
 // RewardDisplay 프리팹 루트에 부착. Card/HighLight를 켜고 끄는 것과 RewardSprite/RewardText 초기화를 담당한다.
 public class RewardDisplay : MonoBehaviour
 {
-    private static GameObject _effectDisplayPrefab;
-
     private GameObject _highlight;
     private SpriteRenderer _rewardSprite;
     private TMP_Text _rewardText;
-    private GameObject _effectDisplay;
+    private EffectDisplay _effectDisplay;
 
     private void Awake()
     {
@@ -31,35 +29,19 @@ public class RewardDisplay : MonoBehaviour
     {
         ClearEffect();
         _rewardText.text = "";
-        GameObject effectDisplayPrefab = GetEffectDisplayPrefab();
-        if (effectDisplayPrefab == null) return;
 
-        _effectDisplay = Instantiate(effectDisplayPrefab, transform);
-        _effectDisplay.transform.localPosition = Vector3.zero;
+        _effectDisplay = EffectDisplay.Spawn(transform);
+        if (_effectDisplay == null) return;
 
-        SpriteRenderer effectSprite = _effectDisplay.transform.Find("EffectSprite").GetComponent<SpriteRenderer>();
-        effectSprite.sprite = BattleManager.GetEmoji(cardEffect.GetEffect().GetEffectType());
-
-        TMP_Text magnitudeText = _effectDisplay.transform.Find("MagnitudeText").GetComponent<TMP_Text>();
-        magnitudeText.text = cardEffect.GetEffect().GetMagnitude().ToString();
-
-        // effectDisplay는 EffectSprite/MagnitudeText 둘뿐으로 구조가 고정이라 재귀 없이 직접 UI 레이어로 옮긴다.
-        int uiLayerID = SortingLayer.NameToID("UI");
-        effectSprite.sortingLayerID = uiLayerID;
-        magnitudeText.GetComponent<Renderer>().sortingLayerID = uiLayerID;
+        _effectDisplay.SetLocalPosition(Vector3.zero);
+        _effectDisplay.SetEffect(cardEffect.GetEffect().GetEffectType(), cardEffect.GetEffect().GetMagnitude().ToString());
+        _effectDisplay.SetSortingLayer("UI");
     }
 
     private void ClearEffect()
     {
-        if (_effectDisplay != null) Destroy(_effectDisplay);
+        if (_effectDisplay != null) Destroy(_effectDisplay.gameObject);
         _effectDisplay = null;
-    }
-
-    private static GameObject GetEffectDisplayPrefab()
-    {
-        if (_effectDisplayPrefab == null)
-            _effectDisplayPrefab = Resources.Load<GameObject>("Prefabs/EffectDisplay");
-        return _effectDisplayPrefab;
     }
 
     public void SetSelected(bool selected) => _highlight.SetActive(selected);

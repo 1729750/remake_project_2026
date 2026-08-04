@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cooldown: 3
   cost: 2
-  effects:
+  _effects:
   - _effect:
       _effectType: 0
       _magnitude: 10
     _target: 1
   sprite: {fileID: -1714608030021503318, guid: d0454edaf893d6748952080a7f3fe324, type: 3}
+  spriteBackground: {fileID: 21300000, guid: 9e9cc24594fadf446bdaca6f3f76ed7b, type: 3}
   cardType: 0
-  backGround: {fileID: 912036239635893973, guid: 9e9cc24594fadf446bdaca6f3f76ed7b, type: 3}

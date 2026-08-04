@@ -11,7 +11,7 @@ public class AddDumpEffect:Effect
 
     public override void OnApply(CharacterManager subject, CardEffect cardEffect)
     {
-        CardDefinition dumpDefinition = CardDefinition.Create(this._magnitude, 1, Array.Empty<CardEffect>(), null);
+        CardDefinition dumpDefinition = CardDefinition.Create(this._magnitude, 1, Array.Empty<CardEffect>(), null,null);
         dump = new CardInstance(dumpDefinition, subject);
         subject.ReturnToDeck(dump);
     

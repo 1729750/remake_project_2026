@@ -77,7 +77,7 @@ public class RewardManager : MonoBehaviour
         }
 
         SpriteRenderer card = displays[0].transform.Find("Card")?.GetComponent<SpriteRenderer>();
-        float spacing = (card != null ? card.bounds.size.x : 1f) * 1.2f;
+        float spacing = (card != null ? card.bounds.size.x : 1f) * 2f;
         for (int i = 0; i < displays.Length; i++)
             displays[i].transform.localPosition = new Vector3((i - (labels.Length - 1) / 2f) * spacing, 0f, 0f);
 
@@ -300,11 +300,12 @@ public class RewardManager : MonoBehaviour
             // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다
             visual.SetCard(new CardInstance(cardOptions[i], null), true);
             visual.SetLayer("UI");
+            obj.transform.localScale = Vector3.one*4;
             _rewardCardVisuals[i] = visual;
         }
 
         float spacing = (_rewardCardVisuals.Length > 0 && _rewardCardVisuals[0] != null
-            ? _rewardCardVisuals[0].GetBackgroundSize().x : 1f) * 1.2f;
+            ? _rewardCardVisuals[0].GetBackgroundSize().x : 1f) * 2f;
         for (int i = 0; i < _rewardCardVisuals.Length; i++)
         {
             if (_rewardCardVisuals[i] == null) continue;

@@ -10,15 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
-  m_Name: attack-down
+  m_Name: defense-buff
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cooldown: 4
-  cost: 5
+  cost: 6
   _effects:
   - _effect:
       _effectType: 4
-      _magnitude: -3
-    _target: 1
-  sprite: {fileID: 5711236732360261690, guid: bd76407b9e7063241a69f1b49b9d9d53, type: 3}
-  spriteBackground: {fileID: 21300000, guid: 63a2ba4b6a206254bbfbc91d9817499b, type: 3}
+      _magnitude: 4
+    _target: 0
+  - _effect:
+      _effectType: 1
+      _magnitude: 6
+    _target: 0
+  sprite: {fileID: 4612993254916154685, guid: 0912d3cafd60da94c8f34652b227aa93, type: 3}
+  spriteBackground: {fileID: 21300000, guid: 9e480d0be1fd4c04bbc49ad820afb58f, type: 3}
   cardType: 0
