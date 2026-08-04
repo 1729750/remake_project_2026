@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -27,11 +28,15 @@ public class CharacterManager: MonoBehaviour
     [SerializeField] private bool shrinkRight = true;
     [SerializeField] private bool playerControlled = true;
     [SerializeField] private TextMeshPro costText;
-    [SerializeField] private Transform effectList;
+    [SerializeField] private RectTransform effectList;
     [SerializeField] private TextMeshPro defenseText;
+    [SerializeField] private GameObject defenseIndicator;
+    [SerializeField] private Transform[] defenseIndicatorRestPosition;
+    [SerializeField] private float defenseIndicatorMoveDuration = 0.3f;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
     private HandManager _handManager;
     private QueueManager _queueManager;
+    private Coroutine _defenseIndicatorCoroutine;
     
     public void CharacterInit(CardDefinition[] deck, int maxHealth)
     {
@@ -49,6 +54,21 @@ public class CharacterManager: MonoBehaviour
 
         //손 채우기
         _handManager.FillHand();
+        
+        //(만약 플레이어라면) 조작키 할당
+        if (playerControlled)
+        {
+            
+            PlayerInputManager.Instance.Load("Battle", new Dictionary<string, Action>
+            {
+                ["PlayCard1"] = () => SelectCard(0),
+                ["PlayCard2"] = () => SelectCard(1),
+                ["PlayCard3"] = () => SelectCard(2),
+                ["PlayCard4"] = () => SelectCard(3),
+                ["ReDraw"]    = () => SelectCard(CharacterManager.RedrawAction),
+                ["Defense"]   = () => SelectCard(CharacterManager.DefenseAction),
+            });
+        }
     }
 
     private void ShuffleDeck()
@@ -83,10 +103,6 @@ public class CharacterManager: MonoBehaviour
         if (!playerControlled)
             SelectRandomCard();
 
-        if (_specialAction == RedrawAction)
-        {
-            Redraw();
-        }
         else if (_specialAction == DefenseAction)
         {
             GainGuard();
@@ -109,6 +125,8 @@ public class CharacterManager: MonoBehaviour
     // ReDraw: 손패 전부를 덱에 되돌리고 셔플 후 다시 채운다
     private void Redraw()
     {
+        if (_cost == 0) return;
+        _cost--;
         _handManager.ReturnHandToDeck();
         ShuffleDeck();
         _handManager.FillHand();
@@ -125,6 +143,46 @@ public class CharacterManager: MonoBehaviour
         Debug.Log($"[{gameObject.name}] Gained effect: {EffectType.Guard} :1");
     }
 
+    // defenseIndicator: Defense 액션이 선택되면 defenseIndicatorRestPosition[1]로,
+    // 아니면(다른 선택/턴 종료) [0]으로 Lerp를 이용해 부드럽게 이동한 뒤, [0]에 도달하면 비활성화된다.
+    private void SetDefenseIndicatorActive(bool active)
+    {
+        if (defenseIndicator == null || defenseIndicatorRestPosition == null) return;
+
+        int targetIndex = active ? 1 : 0;
+        if (targetIndex >= defenseIndicatorRestPosition.Length || defenseIndicatorRestPosition[targetIndex] == null) return;
+
+        if (!active && !defenseIndicator.activeSelf) return;
+
+        if (_defenseIndicatorCoroutine != null)
+            StopCoroutine(_defenseIndicatorCoroutine);
+
+        if (active)
+            defenseIndicator.SetActive(true);
+
+        _defenseIndicatorCoroutine = StartCoroutine(MoveDefenseIndicator(defenseIndicatorRestPosition[targetIndex].position, !active));
+    }
+
+    private IEnumerator MoveDefenseIndicator(Vector3 targetPosition, bool deactivateOnComplete)
+    {
+        Transform indicatorTransform = defenseIndicator.transform;
+        Vector3 startPosition = indicatorTransform.position;
+        float elapsed = 0f;
+
+        while (elapsed < defenseIndicatorMoveDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / defenseIndicatorMoveDuration));
+            indicatorTransform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            yield return null;
+        }
+
+        indicatorTransform.position = targetPosition;
+        if (deactivateOnComplete)
+            defenseIndicator.SetActive(false);
+        _defenseIndicatorCoroutine = null;
+    }
+
     public void SelectCard(int index)
     {
         if (BattleManager.Instance == null || BattleManager.Instance.CurrentState != BattleState.Turn) return;
@@ -134,12 +192,18 @@ public class CharacterManager: MonoBehaviour
             _specialAction = index;
             _handManager.UnselectCard();
             Debug.Log($"[{gameObject.name}] Selected action: {(index == RedrawAction ? "ReDraw" : "Defense")}");
+            SetDefenseIndicatorActive(index == DefenseAction);
+            if (index == RedrawAction)
+            {
+                Redraw();
+            }
             return;
         }
 
         var hand = _handManager.GetHand();
         if (index < 0 || index >= hand.Length || hand[index] == null) return;
         _specialAction = 0;
+        SetDefenseIndicatorActive(false);
         _handManager.SelectCard(index);
         Debug.Log($"[{gameObject.name}] Selected card: {hand[index].GetDefinition().name}");
     }
@@ -150,7 +214,7 @@ public class CharacterManager: MonoBehaviour
         var valid = new List<int>();
         for (int i = 0; i < hand.Length; i++)
         {
-            if (hand[i] != null && hand[i].GetCost() <= _cost) valid.Add(i);
+            if (hand[i] != null) valid.Add(i);
         }
         if (valid.Count == 0) return;
         int idx = valid[UnityEngine.Random.Range(0, valid.Count)];
@@ -175,9 +239,15 @@ public class CharacterManager: MonoBehaviour
         _queueManager = new QueueManager(queueRoots);
         _handManager = new HandManager(this, handsRoot, isHandVisualized);
 
+        if (defenseIndicator != null && defenseIndicatorRestPosition != null && defenseIndicatorRestPosition.Length > 0 && defenseIndicatorRestPosition[0] != null)
+        {
+            defenseIndicator.transform.position = defenseIndicatorRestPosition[0].position;
+            defenseIndicator.SetActive(false);
+        }
+
         Clear();
-        
-        
+
+
     }
 
     public void Clear()
@@ -333,8 +403,8 @@ public class CharacterManager: MonoBehaviour
             Destroy(display.gameObject);
         _effectDisplays.Clear();
 
-        float containerHeight = effectList.localScale.y;
-        float edge = (shrinkRight ? 1f : -1f) * effectList.localScale.x / 2f;
+        float containerHeight = effectList.sizeDelta.y;
+        float edge = (shrinkRight ? 1f : -1f) * effectList.sizeDelta.x / 2f;
         float direction = shrinkRight ? -1f : 1f;
         float cursor = edge;
 

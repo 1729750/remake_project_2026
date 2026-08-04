@@ -48,7 +48,7 @@ public class BattleManager:MonoBehaviour
         playerCharacterManager.CharacterInit(UnpackCardCollection(playerData.GetDeck()).ToArray(), playerData.GetMaxHealth());
         enemyCharacterManager.CharacterInit(UnpackCardCollection(enemyData.GetDeck()).ToArray(), enemyData.GetMaxHealth());
 
-
+        _turnManager.Reset();
         _startElapsed = 0f;
         _turnTimerOverlay?.SetFill(0f);
         SetState(BattleState.BattleStarting);
@@ -71,7 +71,6 @@ public class BattleManager:MonoBehaviour
         if (CurrentState == BattleState.BattleStarting)
         {
             _startElapsed += deltaTime;
-            _turnTimerOverlay?.SetFill(_startElapsed / startDelay);
             if (_startElapsed >= startDelay)
             {
                 OnBattleStarted();

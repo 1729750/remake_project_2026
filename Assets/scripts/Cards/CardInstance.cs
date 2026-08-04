@@ -4,10 +4,10 @@ using UnityEngine;
 public class CardInstance
 {
     private CardDefinition _definition;
-    private bool _isPlayed = false;
+    private bool _isPlayed;
     private int _cooldownLeft; 
-    private int cooldown;
-    private int cost;
+    private int _cooldown;
+    private int _cost;
     private CardType cardType;
     private List<CardEffect> _effects;
 
@@ -25,8 +25,8 @@ public class CardInstance
 
     private void RefreshInstance()
     {
-        cooldown =  _definition.GetCooldown();
-        cost  = _definition.GetCost();
+        _cooldown =  _definition.GetCooldown();
+        _cost  = _definition.GetCost();
         _effects = new List<CardEffect>();
         foreach (CardEffect cardEffect in _definition.GetEffects())
         {
@@ -35,7 +35,9 @@ public class CardInstance
     }
     public CardDefinition GetDefinition() => _definition;
     public List<CardEffect> GetEffects() => _effects;
-    public int GetCost() => cost;
+    public int GetCost() => _cost;
+    public int GetCooldown() => _cooldown;
+    public bool GetIsPlayed() => _isPlayed;
     public int GetCooldownLeft() => _cooldownLeft;
     public bool IsReady() => _cooldownLeft <= 0;
 

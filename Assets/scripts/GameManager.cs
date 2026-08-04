@@ -27,7 +27,7 @@ public class GameManager : MonoBehaviour
     {
         _currentState = GameState.StartScreen;
         battleManager.Init();
-        EndBattle();
+        StartBattle(firstEnemyData);
         //ShowEnemySelection();
     }
 
@@ -35,24 +35,9 @@ public class GameManager : MonoBehaviour
     {
         SetGameState(GameState.Battle);
         inputManager.Unload();
-        inputManager.Load("Battle", new Dictionary<string, Action>
-        {
-            ["PlayCard1"] = () => PlayCard(0),
-            ["PlayCard2"] = () => PlayCard(1),
-            ["PlayCard3"] = () => PlayCard(2),
-            ["PlayCard4"] = () => PlayCard(3),
-            ["ReDraw"]    = () => PlayCard(CharacterManager.RedrawAction),
-            ["Defense"]   = () => PlayCard(CharacterManager.DefenseAction),
-        });
         battleManager.StartBattle(PlayerManager.Instance.GetCharacterData(), enemyData);
     }
 
-    // Battle 맵의 PlayCard1..4/ReDraw/Defense가 공유하는 가드: 내 턴일 때만 카드를 낼 수 있다.
-    private void PlayCard(int index)
-    {
-        if (battleManager.CurrentState == BattleState.Turn)
-            PlayerManager.Instance.GetCharacterManager().SelectCard(index);
-    }
 
     public void EndBattle()
     {

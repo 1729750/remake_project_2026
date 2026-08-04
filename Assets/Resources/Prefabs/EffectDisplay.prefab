@@ -139,7 +139,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -237,7 +237,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4239095109775423320}
   - component: {fileID: 3440775004195398822}
-  - component: {fileID: 2358078528280161303}
   m_Layer: 0
   m_Name: EffectSprite
   m_TagString: Untagged
@@ -319,15 +318,3 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
---- !u!114 &2358078528280161303
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6886983117359860189}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 085303588d864abba491c568544f1fb6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EffectDisplay

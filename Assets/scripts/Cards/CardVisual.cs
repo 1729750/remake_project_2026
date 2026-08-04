@@ -145,6 +145,6 @@ public class CardVisual : MonoBehaviour
 
     private void RefreshCooltime()
     {
-        _cooltimeText.text = $"{_cardInstance.GetCooldownLeft()}";
+        _cooltimeText.text = $"{(_cardInstance.GetIsPlayed() ? _cardInstance.GetCooldownLeft():_cardInstance.GetCooldown())}";
     }
 }
