@@ -1,0 +1,72 @@
+flowchart TD
+    Start(["게임 시작 / 이전 보상 완료"]) --> GM1
+
+    subgraph PHASE1["① 적 선택 · GameState.SelectEnemy"]
+        direction TB
+        GM1["GameManager.ShowEnemySelection()\nGameState = SelectEnemy\nMapManager 활성화"]
+        MM1["MapManager.ShowEnemySelection(enemyCandidates)\n고정된 3개 CharacterData 기반\n적 3명 정보 표시 (#1)"]
+        MM2{"플레이어 좌/우 이동 →\nConfirmSelection"}
+        MM3["선택된 CharacterData를\nGameManager.StartBattle()로 전달"]
+        GM1 --> MM1 --> MM2 --> MM3
+    end
+
+    MM3 --> GM2
+
+    subgraph PHASE2A["전투 준비"]
+        direction TB
+        GM2["GameManager.StartBattle(enemyData)\nGameState = Battle\nPlayerManager.GetCharacterData() 새로 조회"]
+        BM1["BattleManager.StartBattle(playerData, enemyData)\n양쪽 CharacterManager.CharacterInit() 호출"]
+        CM1["CharacterInit(deck, maxHealth)\nmaxHealth·덱 리셋(Clear) → 덱 셔플\nHandManager.FillHand() 최초 호출"]
+        GM2 --> BM1 --> CM1
+    end
+
+    CM1 --> TS
+
+    subgraph PHASE2B["② 전투 턴 루프 · GameState.Battle"]
+        direction TB
+        TS["TurnStart\nOnTurnStart(): cost +1, 효과.OnTurnStarted\nHandManager.FillHand()로 빈 손패만 채움"]
+        T["Turn\n입력 → SelectCard(index)\n→ HandManager.SelectCard(index)\n(카드는 '선택'만, 아직 사용 아님)"]
+        TE["TurnEnd\nOnTurnEnd()\n① QueueManager.TickQueueCards\n　쿨타임 0 카드 → PlayCard() 효과 발동\n② 효과.OnTurnEnded\n③ 선택 카드 있으면 HandManager.UseCard()\n　→ QueueManager.AddCard로 대기열 등록"]
+        TS --> T --> TE
+    end
+
+    TE --> DMG{"이번 턴 피격으로\n어느 한쪽 HP ≤ 0 ?"}
+    DMG -- "아니오, 계속" --> TS
+    DMG -- "플레이어 패배" --> QUIT(["Application.Quit()\n보상 없이 게임 종료"])
+    DMG -- "적 패배" --> GM3
+
+    subgraph PHASE3["③ 보상 · GameState.BattleEnd"]
+        direction TB
+        GM3["GameManager.EndBattle()\nGameState = BattleEnd\nRewardManager.ShowRewardDisplay()"]
+        RW1["3개 옵션 표시: 카드 추가 / 카드 삭제 / 카드 강화"]
+        RW2{"플레이어 선택"}
+        RWA["카드 추가\n카드 3장 제시 → 선택\nPlayerManager.AddCard(selected) (#2)"]
+        RWD["카드 삭제\nPlayerManager.GetDeck() → DeckDisplay 표시\n선택 → PlayerManager.DiscardCard(index)"]
+        RWE["카드 강화\n현재 로직 없음, 즉시 종료"]
+        GM4["GameManager.ConfirmReward()\nGameState = SelectEnemy로 복귀"]
+        GM3 --> RW1 --> RW2
+        RW2 -- "추가" --> RWA --> GM4
+        RW2 -- "삭제" --> RWD --> GM4
+        RW2 -- "강화" --> RWE --> GM4
+    end
+
+    GM4 -. 다음 라운드로 반복 .-> GM1
+
+    classDef phase1 fill:#e3f5ee,stroke:#12805f,color:#0c3d2d,stroke-width:1.5px;
+    classDef phase2 fill:#fdeae0,stroke:#c2410c,color:#5c2108,stroke-width:1.5px;
+    classDef phase3 fill:#e7ecfc,stroke:#3457d5,color:#1c2c6b,stroke-width:1.5px;
+    classDef decision fill:#fff8e8,stroke:#8b6b13,color:#4a3a09,stroke-width:1.5px;
+    classDef danger fill:#f8d9d4,stroke:#8a2e0a,color:#5c2108,stroke-width:2px;
+    classDef startend fill:#eef0f4,stroke:#5c6673,color:#1b1f24,stroke-width:1.5px;
+
+    class GM1,MM1,MM3 phase1;
+    class GM2,BM1,CM1,TS,T,TE phase2;
+    class GM3,RW1,RWA,RWD,RWE,GM4 phase3;
+    class MM2,DMG,RW2 decision;
+    class QUIT danger;
+    class Start startend;
+
+    style PHASE1 fill:#eef9f4,stroke:#12805f,stroke-width:1px
+    style PHASE2A fill:#fdf3ee,stroke:#c2410c,stroke-width:1px
+    style PHASE2B fill:#fdf3ee,stroke:#c2410c,stroke-width:1px
+    style PHASE3 fill:#eef1fc,stroke:#3457d5,stroke-width:1px

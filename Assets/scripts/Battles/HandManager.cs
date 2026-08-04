@@ -64,6 +64,13 @@ public class HandManager
         for (int i = 0; i < HandSize; i++)
         {
             if (_hand[i] == null) continue;
+            foreach (CardEffect cardEffect in _hand[i].GetEffects())
+            {
+                if (cardEffect.GetEffect().GetEffectType() == EffectType.Preserve)
+                {
+                    continue;
+                }
+            }
             _characterManager.ReturnToDeck(_hand[i]);
             _hand[i] = null;
             if (_cardObjects[i] != null)

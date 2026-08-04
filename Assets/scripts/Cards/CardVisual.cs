@@ -1,5 +1,5 @@
 using System.Collections;
-using System.Text;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -7,7 +7,9 @@ public class CardVisual : MonoBehaviour
 {
     private SpriteRenderer _background;
     private SpriteRenderer _sprite;
-    private TextMeshPro _effectText;
+    private SpriteRenderer _spriteBackground;
+    private Transform _effectArea;
+    private SpriteRenderer _effectAreaRenderer;
     private TextMeshPro _costText;
     private TextMeshPro _cooltimeText;
     private GameObject _selectHighlight;
@@ -15,17 +17,20 @@ public class CardVisual : MonoBehaviour
     private GameObject _back;
     private CardInstance _cardInstance;
     private Coroutine _moveCoroutine;
+    private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
 
     private void Awake()
     {
-        _front           = transform.Find("Front").gameObject;
-        _back            = transform.Find("Back").gameObject;
-        _background      = transform.Find("Front/background").GetComponent<SpriteRenderer>();
-        _sprite          = transform.Find("Front/sprite").GetComponent<SpriteRenderer>();
-        _effectText      = transform.Find("Front/effect/effectText").GetComponent<TextMeshPro>();
-        _costText        = transform.Find("Front/CostText").GetComponent<TextMeshPro>();
-        _cooltimeText    = transform.Find("Front/cooltimeText").GetComponent<TextMeshPro>();
-        _selectHighlight = transform.Find("Front/SelectHighlight").gameObject;
+        _front              = transform.Find("Front").gameObject;
+        _back               = transform.Find("Back").gameObject;
+        _background         = transform.Find("Front/background").GetComponent<SpriteRenderer>();
+        _sprite             = transform.Find("Front/sprite").GetComponent<SpriteRenderer>();
+        _spriteBackground    = transform.Find("Front/sprite/background").GetComponent<SpriteRenderer>();
+        _effectArea         = transform.Find("Front/effect");
+        _effectAreaRenderer = _effectArea.GetComponent<SpriteRenderer>();
+        _costText           = transform.Find("Front/cost/CostText").GetComponent<TextMeshPro>();
+        _cooltimeText       = transform.Find("Front/cooltime/cooltimeText").GetComponent<TextMeshPro>();
+        _selectHighlight    = transform.Find("Front/SelectHighlight").gameObject;
         _selectHighlight.SetActive(false);
     }
 
@@ -42,31 +47,62 @@ public class CardVisual : MonoBehaviour
         _cardInstance = cardInstance;
         CardDefinition def = cardInstance.GetDefinition();
 
-        _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
+       // _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
         _sprite.sprite = def.GetSprite();
+        _spriteBackground.sprite = def.GetSpriteBackground();
         _costText.text = def.GetCost().ToString();
 
-        var sb = new StringBuilder();
-        foreach (CardEffect cardEffect in def.GetEffects())
-        {
-            string emoji = BattleManager.Instance.GetEmoji(cardEffect.GetEffect().GetEffectType());
-            int magnitude = cardEffect.GetEffect().GetMagnitude();
-            if (sb.Length > 0) sb.Append('\n');
-            sb.Append($"{emoji}:{magnitude}");
-        }
-        _effectText.text = sb.ToString();
+        RefreshEffectDisplays(def);
 
         RefreshCooltime();
         SetFace(showFront);
     }
 
-    private void FitToParent()
+    // effect 영역을 3등분해서 왼쪽부터 EffectDisplay(아이콘+수치)를 채워 넣는다.
+    private void RefreshEffectDisplays(CardDefinition def)
     {
-        if (transform.parent == null) return;
-        SpriteRenderer parentSR = transform.parent.GetComponent<SpriteRenderer>();
-        if (parentSR == null) return;
+        foreach (EffectDisplay display in _effectDisplays)
+            Destroy(display.gameObject);
+        _effectDisplays.Clear();
 
-        Vector2 targetSize = parentSR.bounds.size;
+        float areaWidth = _effectAreaRenderer.sprite.bounds.size.x;
+        float slotWidth = areaWidth / 3f;
+        float leftEdge = -areaWidth / 2f;
+
+        int index = 0;
+        foreach (CardEffect cardEffect in def.GetEffects())
+        {
+            EffectDisplay display = EffectDisplay.Spawn(_effectArea);
+            if (display == null) break;
+            _effectDisplays.Add(display);
+
+            int magnitude = cardEffect.GetEffect().GetMagnitude();
+            display.SetEffect(cardEffect.GetEffect().GetEffectType(), magnitude <= -1 ? "" : magnitude.ToString());
+
+            float nativeWidth = display.GetSpriteSize().x;
+            if (nativeWidth <= 0f) nativeWidth = slotWidth;
+            float scale = nativeWidth > 0f ? slotWidth / nativeWidth : 1f;
+            display.SetScale(scale);
+            display.SetLocalPosition(new Vector3(leftEdge + slotWidth * (index + 0.5f), 0f, 0f));
+
+            index++;
+        }
+    }
+
+    public Vector2 GetBackgroundSize() => _background.bounds.size;
+
+    // 자식에 있는 모든 Renderer(SpriteRenderer, TextMeshPro 내부 MeshRenderer 등)의 sortingLayer를
+    // 한 번에 옮긴다. 자주 호출되는 경로가 아니라 필드별로 캐싱하지 않고 그때그때 순회한다.
+    public void SetLayer(string sortingLayerName)
+    {
+        int sortingLayerID = SortingLayer.NameToID(sortingLayerName);
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+            renderer.sortingLayerID = sortingLayerID;
+    }
+
+    // 카드 배경(SpriteRenderer)의 월드 크기가 targetSize가 되도록 균등하지 않게(가로/세로 개별) 스케일한다.
+    public void SetSize(Vector2 targetSize)
+    {
         Vector2 currentSize = _background.bounds.size;
         if (currentSize.x == 0f || currentSize.y == 0f) return;
 
@@ -109,6 +145,6 @@ public class CardVisual : MonoBehaviour
 
     private void RefreshCooltime()
     {
-        _cooltimeText.text = $"⏱:{_cardInstance.GetCooldownLeft()}";
+        _cooltimeText.text = $"{_cardInstance.GetCooldownLeft()}";
     }
 }

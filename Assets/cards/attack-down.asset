@@ -12,12 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: attack-down
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 3
-  cost: 3
+  cooldown: 4
+  cost: 5
   _effects:
   - _effect:
-      _effectType: 2
-      _magnitude: 5
+      _effectType: 4
+      _magnitude: -3
     _target: 1
   sprite: {fileID: 5711236732360261690, guid: bd76407b9e7063241a69f1b49b9d9d53, type: 3}
+  spriteBackground: {fileID: 21300000, guid: 63a2ba4b6a206254bbfbc91d9817499b, type: 3}
   cardType: 0
