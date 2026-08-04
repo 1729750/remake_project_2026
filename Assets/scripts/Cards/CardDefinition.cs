@@ -9,13 +9,19 @@ public class CardDefinition: ScriptableObject
     [SerializeField] private int cost;
     [SerializeField] private List<CardEffect> _effects;
     [SerializeField] private Sprite sprite;
+    [SerializeField] private Sprite spriteBackground;
     [SerializeField] private CardType cardType;
-    public CardDefinition(int cooldown, int cost, CardEffect[] effects, Sprite sprite)
+
+    // ScriptableObject는 new로 생성하면 안 되므로 CreateInstance로 만든 뒤 이 메서드로 초기화한다.
+    public static CardDefinition Create(int cooldown, int cost, CardEffect[] effects, Sprite sprite, Sprite spriteBackground)
     {
-        this.cooldown = cooldown;
-        this.cost = cost;
-        this.sprite = sprite;
-        _effects = effects.ToList();
+        var definition = CreateInstance<CardDefinition>();
+        definition.cooldown = cooldown;
+        definition.cost = cost;
+        definition.sprite = sprite;
+        definition.spriteBackground = spriteBackground;
+        definition._effects = effects.ToList();
+        return definition;
     }
 
     public int GetCooldown() => cooldown;
@@ -23,7 +29,13 @@ public class CardDefinition: ScriptableObject
     public CardEffect[] GetEffects() => _effects.ToArray();
     public CardType GetCardType() => cardType;
     public Sprite GetSprite() => sprite;
+    public Sprite GetSpriteBackground() => spriteBackground;
     public void AddEffect(CardEffect effect) => _effects.Add(effect);
+
+    public void ChangeCooldown(int delta)
+    {
+        cooldown += delta;
+    }
 
     // 같은 EffectType의 효과가 이미 있으면 magnitude만 올리고, 없으면 넘겨받은 CardEffect를 그대로 추가한다.
     public void UpgradeEffect(CardEffect cardEffect)

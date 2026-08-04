@@ -34,6 +34,7 @@ public class CardInstance
         }
     }
     public CardDefinition GetDefinition() => _definition;
+    public List<CardEffect> GetEffects() => _effects;
     public int GetCost() => cost;
     public int GetCooldownLeft() => _cooldownLeft;
     public bool IsReady() => _cooldownLeft <= 0;
@@ -58,10 +59,9 @@ public class CardInstance
            cardEffect.Reset();
             Effect[] ownerEffects = characterManager.GetEffectPrioritize();
             for (int i = ownerEffects.Length - 1; i >= 0; i--)
-                ownerEffects[i].OnApplying(characterManager, cardEffect, true);
+                ownerEffects[i].OnApplyingOther(characterManager, cardEffect, true);
             CharacterManager resolved = cardEffect.GetTarget(characterManager);
             resolved.ApplyEffect(cardEffect);
         }
-        characterManager.ReturnToDeck(this);
     }
 }

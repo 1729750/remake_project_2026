@@ -77,7 +77,7 @@ public class RewardManager : MonoBehaviour
         }
 
         SpriteRenderer card = displays[0].transform.Find("Card")?.GetComponent<SpriteRenderer>();
-        float spacing = (card != null ? card.bounds.size.x : 1f) * 1.2f;
+        float spacing = (card != null ? card.bounds.size.x : 1f) * 2f;
         for (int i = 0; i < displays.Length; i++)
             displays[i].transform.localPosition = new Vector3((i - (labels.Length - 1) / 2f) * spacing, 0f, 0f);
 
@@ -190,9 +190,10 @@ public class RewardManager : MonoBehaviour
         var effectTypes = (EffectType[])Enum.GetValues(typeof(EffectType));
         EffectType effectType = effectTypes[UnityEngine.Random.Range(0, effectTypes.Length)];
         int magnitude = UnityEngine.Random.Range(1, 4) * (UnityEngine.Random.value < 0.5f ? 1 : -1);
-        EffectTargetPolarity polarity = (EffectTargetPolarity)UnityEngine.Random.Range(0, 3);
-        EffectTarget target = ResolveEnhanceTarget(polarity, magnitude);
-        return new CardEffect(Effect.Create(effectType, magnitude), target);
+
+        Effect effect = Effect.Create(effectType, magnitude);
+        EffectTarget target = ResolveEnhanceTarget(effect.TargetPolarity, magnitude);
+        return new CardEffect(effect, target);
     }
 
     private static EffectTarget ResolveEnhanceTarget(EffectTargetPolarity polarity, int magnitude)
@@ -229,20 +230,20 @@ public class RewardManager : MonoBehaviour
     }
 
     // RewardDisplay 오른쪽 패널(카드 강화)에서 뽑아둔 강화 후보 CardEffect 3개를 보여준다.
-    // 각 후보는 "{target}에게 {emoji}:{magnitude}"로 표기한다.
+    // RewardText는 비워 두고, 각 후보는 RewardDisplay 정 가운데의 effectDisplay(아이콘+수치)로 표기한다.
     private void SelectEnhance(CardEffect[] options)
     {
         _enhanceOptions = options;
 
         string[] labels = new string[options.Length];
-        for (int i = 0; i < options.Length; i++)
-        {
-            Effect effect = options[i].GetEffect();
-            labels[i] = $"{options[i].GetEffectTarget()}에게 {BattleManager.GetEmoji(effect.GetEffectType())}:{effect.GetMagnitude()}";
-        }
+        for (int i = 0; i < labels.Length; i++)
+            labels[i] = "";
 
         _enhanceDisplays = CreateRewardDisplayRow(labels);
         if (_enhanceDisplays == null) return;
+
+        for (int i = 0; i < options.Length; i++)
+            _enhanceDisplays[i].SetEffect(options[i]);
 
         _enhanceSelectedIndex = 0;
         RefreshEnhanceSelection();
@@ -299,11 +300,12 @@ public class RewardManager : MonoBehaviour
             // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다
             visual.SetCard(new CardInstance(cardOptions[i], null), true);
             visual.SetLayer("UI");
+            obj.transform.localScale = Vector3.one*4;
             _rewardCardVisuals[i] = visual;
         }
 
         float spacing = (_rewardCardVisuals.Length > 0 && _rewardCardVisuals[0] != null
-            ? _rewardCardVisuals[0].GetBackgroundSize().x : 1f) * 1.2f;
+            ? _rewardCardVisuals[0].GetBackgroundSize().x : 1f) * 2f;
         for (int i = 0; i < _rewardCardVisuals.Length; i++)
         {
             if (_rewardCardVisuals[i] == null) continue;
