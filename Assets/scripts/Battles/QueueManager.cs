@@ -81,6 +81,8 @@ public class QueueManager
             if (_queue[i] == null) continue;
 
             _queue[i].TickCooldown(tick);
+            foreach (CardEffect cardEffect in _queue[i].GetEffects())
+                cardEffect.GetEffect().OnTick(characterManager);
         }
         for (int i = 0; i < QueueSize; i++)
         {

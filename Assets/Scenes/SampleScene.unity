@@ -5256,6 +5256,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
   - {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
   - {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
+  effectPrices:
+  - effectType: 0
+    price: 0
+  - effectType: 0
+    price: 0
+  - effectType: 0
+    price: 0
+  - effectType: 0
+    price: 0
 --- !u!4 &1990682883
 Transform:
   m_ObjectHideFlags: 0

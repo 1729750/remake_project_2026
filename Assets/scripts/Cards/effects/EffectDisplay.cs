@@ -33,12 +33,21 @@ public class EffectDisplay : MonoBehaviour
         {
             case EffectType.Disposable:
             case EffectType.Preserve: 
+            case EffectType.CooldownToCost:
+            case EffectType.DivideCooldown:
+            case EffectType.CostToCooldown:
                 _magnitudeText.text = ""; 
                 break;
             default:
                 _magnitudeText.text = magnitudeText;
                 break;
         }
+    }
+
+    public void Clear()
+    {
+        _effectSprite.sprite = null;
+        _magnitudeText.text = "";
     }
 
     public Vector2 GetSpriteSize()

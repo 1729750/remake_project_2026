@@ -35,6 +35,13 @@ public class CardDefinition: ScriptableObject
     public void ChangeCooldown(int delta)
     {
         cooldown += delta;
+        if (cooldown < 1) cooldown = 1;
+    }
+
+    public void ChangeCost(int delta)
+    {
+        cost += delta;
+        if (cost < 0) cost = 0;
     }
 
     // 같은 EffectType의 효과가 이미 있으면 magnitude만 올리고, 없으면 넘겨받은 CardEffect를 그대로 추가한다.
@@ -50,5 +57,14 @@ public class CardDefinition: ScriptableObject
             }
         }
         AddEffect(cardEffect);
+    }
+
+    // 카드 강화 보상(effect + cost/cooldown delta)을 한 번에 적용한다.
+    public void ApplyUpgrade(CardUpgrade upgrade)
+    {
+        if (upgrade.effect != null)
+            UpgradeEffect(upgrade.effect);
+        ChangeCost(upgrade.costDelta);
+        ChangeCooldown(upgrade.cooldownDelta);
     }
 }

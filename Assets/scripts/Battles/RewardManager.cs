@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 // BattleManager 밖으로 분리된 보상 패널. 다른 오브젝트 위에 얹히는 패널이라 BattleManager와
@@ -22,7 +23,7 @@ public class RewardManager : MonoBehaviour
     private static readonly string[] RewardDisplayLabels = { "카드 획득", "카드 제거", "카드 강화" };
 
     [SerializeField] private Sprite[] rewardSprites;
-    // 임시: 보상 카드 로딩 로직이 생기기 전까지 인스펙터에서 직접 지정
+    // 카드 획득 후보 풀. RewardCard()가 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여준다.
     [SerializeField] private CardDefinition[] rewardCards;
 
     private GameObject _rewardDisplayPrefab;
@@ -33,7 +34,14 @@ public class RewardManager : MonoBehaviour
     private CardInstance[] _rewardCardInstances;
     private int _rewardCardSelectedIndex;
 
-    private CardEffect[] _enhanceOptions;
+    // 강화 후보로 등장하면 안 되는 EffectType(실제 카드 효과가 아니라 내부 마킹용).
+    private static readonly EffectType[] EnhanceableEffectTypes = ((EffectType[])Enum.GetValues(typeof(EffectType)))
+        .Where(type => type != EffectType.Disposable && type != EffectType.Preserve && type!=EffectType.Guard && type!=EffectType.Weak)
+        .ToArray();
+    // cost:cooldown 분배가 1:2 경향을 띄도록, 예산 1당 이 확률로 cooldown 쪽에 배분한다.
+    private const float CooldownAllocationChance = 2f / 3f;
+
+    private CardUpgrade[] _enhanceOptions;
     private RewardDisplay[] _enhanceDisplays;
     private int _enhanceSelectedIndex;
 
@@ -129,7 +137,7 @@ public class RewardManager : MonoBehaviour
             ["Right"]  = () => MoveRewardCardSelection(1),
             ["Select"] = ApplyRewardCardSelection,
         });
-        ShowRewardCard(rewardCards);
+        ShowRewardCard(GameManager.PickRandomDistinct(rewardCards, 3));
     }
 
     private void ApplyRewardCardSelection()
@@ -171,7 +179,7 @@ public class RewardManager : MonoBehaviour
         PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
-        CardEffect[] options = new CardEffect[3];
+        CardUpgrade[] options = new CardUpgrade[3];
         for (int i = 0; i < options.Length; i++)
             options[i] = RollEnhanceOption();
 
@@ -184,15 +192,60 @@ public class RewardManager : MonoBehaviour
         });
     }
 
-    private static CardEffect RollEnhanceOption()
+    // 강화 후보 하나 = 카드 effect(Disposable/Preserve 제외) + 그 가격(GameManager.GetEffectPrice)에
+    // magnitude를 곱한 예산을 cost/cooldown 감소량으로 랜덤 분배한 CardUpgrade.
+    // effectType을 정한 뒤 GameManager로부터 magnitude 범위(min/max/unit)를 받아 그 안에서 magnitude를
+    // 고르고, 그 magnitude로 price(예산)를 계산하는 순서를 따른다.
+    private static CardUpgrade RollEnhanceOption()
     {
-        var effectTypes = (EffectType[])Enum.GetValues(typeof(EffectType));
-        EffectType effectType = effectTypes[UnityEngine.Random.Range(0, effectTypes.Length)];
-        int magnitude = UnityEngine.Random.Range(1, 4);
+        EffectType effectType = EnhanceableEffectTypes[UnityEngine.Random.Range(0, EnhanceableEffectTypes.Length)];
+
+        EffectPriceInfo priceInfo = GameManager.GetEffectPriceInfo(effectType);
+        int magnitude = RollMagnitude(priceInfo);
 
         Effect effect = Effect.Create(effectType, magnitude);
         EffectTarget target = ResolveEnhanceTarget(effect.TargetPolarity, magnitude);
-        return new CardEffect(effect, target);
+        CardEffect cardEffect = new CardEffect(effect, target);
+
+        int budget = Mathf.FloorToInt(priceInfo.price) * magnitude;
+        (int costUnits, int cooldownUnits) = DistributeBudget(budget);
+
+        return new CardUpgrade(cardEffect, -costUnits, -cooldownUnits);
+    }
+
+    // magnitudeMin~magnitudeMax 사이를 magnitudeUnit 간격으로 나눈 값 중 하나를 랜덤으로 고른다.
+    // 예: min 10, max 20, unit 2 → 10/12/14/16/18/20 중 하나.
+    private static int RollMagnitude(EffectPriceInfo info)
+    {
+        int unit = Mathf.Max(1, info.magnitudeUnit);
+        int min = info.magnitudeMin;
+        int max = Mathf.Max(min, info.magnitudeMax);
+
+        int steps = (max - min) / unit + 1;
+        return min + unit * UnityEngine.Random.Range(0, steps);
+    }
+
+    // budget을 1씩 나눠 각각 베르누이 시행으로 cost/cooldown에 배분한다.
+    // CooldownAllocationChance(2/3)로 cooldown 쪽에 더 자주 배분되어 cost:cooldown이 대략 1:2가 된다.
+    // budget은 price(음수 가능)와 magnitude(magnitudeMin이 음수면 음수 가능)의 곱이라 음수로 들어올 수
+    // 있다. 음수면 for문이 그냥 0번 돌아 아무 일도 없는 것처럼 되어버리므로, isNegative 플래그로 부호만
+    // 정규화(양수로 뒤집기)한 뒤 기존 루프를 그대로 재사용한다 — 즉 |budget| 단위로 같은 방향(cost/cooldown
+    // 감소)만큼 배분된다.
+    private static (int costUnits, int cooldownUnits) DistributeBudget(int budget)
+    {
+        bool isNegative = budget < 0;
+        if (isNegative) budget = -budget;
+
+        int costUnits = 0;
+        int cooldownUnits = 0;
+        for (int i = 0; i < budget; i++)
+        {
+            if (UnityEngine.Random.value < CooldownAllocationChance)
+                cooldownUnits++;
+            else
+                costUnits++;
+        }
+        return (costUnits, cooldownUnits);
     }
 
     private static EffectTarget ResolveEnhanceTarget(EffectTargetPolarity polarity, int magnitude)
@@ -209,7 +262,7 @@ public class RewardManager : MonoBehaviour
     // 강화 후보 선택 확정: DeckDisplay를 띄워 강화할 카드를 고르게 한다.
     private void ShowEnhanceDeckSelection()
     {
-        CardEffect option = ConfirmEnhanceSelection();
+        CardUpgrade option = ConfirmEnhanceSelection();
         PlayerInputManager.Instance.Unload();
 
         bool Filter(CardDefinition def)
@@ -218,7 +271,7 @@ public class RewardManager : MonoBehaviour
                 return true;
             foreach (CardEffect effect in def.GetEffects())
             {
-                if (effect.GetEffect().GetEffectType() == option.GetEffect().GetEffectType()) return true;
+                if (effect.GetEffect().GetEffectType() == option.effect.GetEffect().GetEffectType()) return true;
             }
 
             return false;
@@ -244,7 +297,7 @@ public class RewardManager : MonoBehaviour
 
     // RewardDisplay 오른쪽 패널(카드 강화)에서 뽑아둔 강화 후보 CardEffect 3개를 보여준다.
     // RewardText는 비워 두고, 각 후보는 RewardDisplay 정 가운데의 effectDisplay(아이콘+수치)로 표기한다.
-    private void SelectEnhance(CardEffect[] options)
+    private void SelectEnhance(CardUpgrade[] options)
     {
         _enhanceOptions = options;
 
@@ -256,7 +309,7 @@ public class RewardManager : MonoBehaviour
         if (_enhanceDisplays == null) return;
 
         for (int i = 0; i < options.Length; i++)
-            _enhanceDisplays[i].SetEffect(options[i]);
+            _enhanceDisplays[i].SetUpgrade(options[i]);
 
         _enhanceSelectedIndex = 0;
         RefreshEnhanceSelection();
@@ -272,9 +325,9 @@ public class RewardManager : MonoBehaviour
     }
 
     // 강화 후보 선택을 확정하고, 표시해뒀던 RewardDisplay 3개를 정리한다.
-    private CardEffect ConfirmEnhanceSelection()
+    private CardUpgrade ConfirmEnhanceSelection()
     {
-        CardEffect selected = _enhanceOptions[_enhanceSelectedIndex];
+        CardUpgrade selected = _enhanceOptions[_enhanceSelectedIndex];
 
         if (_enhanceDisplays != null)
             foreach (RewardDisplay display in _enhanceDisplays)

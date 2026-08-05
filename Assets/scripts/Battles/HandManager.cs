@@ -56,7 +56,16 @@ public class HandManager
             visual = obj.AddComponent<CardVisual>();
         _hand[i].SetVisual(visual);
         _hand[i].SetFace(_isHandVisualized);
+        _hand[i].RefreshDisplay(_characterManager, _characterManager.GetQueue());
         _cardObjects[i] = obj;
+    }
+
+    // 매 턴 종료마다 CharacterManager가 호출해, 손패 카드들의 비용/효과 표시를 현재 버프 상태에 맞게 갱신한다.
+    public void RefreshHandDisplay()
+    {
+        CardInstance[] queue = _characterManager.GetQueue();
+        for (int i = 0; i < HandSize; i++)
+            _hand[i]?.RefreshDisplay(_characterManager, queue);
     }
 
     // 손패 전체를 소유자의 덱으로 되돌린다 (ReDraw용)

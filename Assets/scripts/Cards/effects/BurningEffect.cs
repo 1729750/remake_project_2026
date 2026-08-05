@@ -9,7 +9,7 @@ public class BurningEffect: Effect
 
     public override void OnTurnEnded(CharacterManager subject)
     {
-        subject.TakeDamage(_magnitude/10 + 1);
+        subject.TakeDamage(_magnitude/10);
         _magnitude -= 1;
         if (_magnitude <= 0)
         {

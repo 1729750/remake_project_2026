@@ -115,16 +115,24 @@ public class CharacterManager: MonoBehaviour
             SelectRandomCard();
         {
             var selected = _handManager.GetSelectedCard();
-            if (selected != null && _cost >= selected.GetCost())
+            if (selected != null)
             {
-                if(_handManager.UseCard())
+                CardInstance preview = selected.Clone();
+                preview.ResolveUse(this, _queueManager.GetQueue(), false);
+                if (_cost >= preview.GetCost())
                 {
-                    _cost -= selected.GetCost();
+                    selected.ResolveUse(this, _queueManager.GetQueue(), true);
+                    if(_handManager.UseCard())
+                    {
+                        _cost -= selected.GetCost();
+                    }
+                    UpdateCostDisplay();
                 }
-                UpdateCostDisplay();
             }
         }
         _specialAction = 0;
+        // 매 턴 종료마다 손패 카드들의 비용/효과 표시를 이번 턴에 바뀐 버프 상태에 맞게 다시 계산한다.
+        _handManager.RefreshHandDisplay();
     }
 
     // ReDraw: 손패 전부를 덱에 되돌리고 셔플 후 다시 채운다
@@ -332,6 +340,8 @@ public class CharacterManager: MonoBehaviour
     {
         return _queueManager.AddCard(card, cardObject);
     }
+
+    public CardInstance[] GetQueue() => _queueManager.GetQueue();
 
     public CardInstance DrawCard()
     {
