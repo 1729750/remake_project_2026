@@ -2055,6 +2055,7 @@ MonoBehaviour:
   turnText: {fileID: 1895152206}
   turnDuration: 1
   startDelay: 3
+  effectEmojis: []
 --- !u!4 &955717469
 Transform:
   m_ObjectHideFlags: 0
@@ -4110,8 +4111,11 @@ MonoBehaviour:
   shrinkRight: 0
   playerControlled: 1
   costText: {fileID: 1597749340}
-  effectListText: {fileID: 769539713}
+  effectList: {fileID: 0}
   defenseText: {fileID: 1121280546}
+  defenseIndicator: {fileID: 0}
+  defenseIndicatorRestPosition: []
+  defenseIndicatorMoveDuration: 0.3
 --- !u!1 &1919513114
 GameObject:
   m_ObjectHideFlags: 0
@@ -4237,7 +4241,6 @@ MonoBehaviour:
   inputManager: {fileID: 903970882}
   mapManager: {fileID: 0}
   firstEnemyData: {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
-  rewardCards: []
   enemyCandidates: []
 --- !u!4 &1990682883
 Transform:
@@ -4405,8 +4408,11 @@ MonoBehaviour:
   shrinkRight: 1
   playerControlled: 0
   costText: {fileID: 1255012159}
-  effectListText: {fileID: 910664239}
+  effectList: {fileID: 0}
   defenseText: {fileID: 1884688786}
+  defenseIndicator: {fileID: 0}
+  defenseIndicatorRestPosition: []
+  defenseIndicatorMoveDuration: 0.3
 --- !u!1 &2098708658
 GameObject:
   m_ObjectHideFlags: 0
