@@ -5,8 +5,8 @@ public class DefendEffect : Effect
 {
     public DefendEffect(int magnitude) : base(EffectType.Defend, magnitude) { }
 
-    public override void OnApply(CharacterManager subject, CardEffect cardEffect)
+    public override void OnApply(CharacterManager subject)
     {
-        subject.AddDefense(cardEffect.GetMagnitude());
+        subject.AddDefense(_magnitude);
     }
 }

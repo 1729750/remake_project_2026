@@ -1,0 +1,144 @@
+{
+  "prices": [
+    {
+      "effectType": "Attack",
+      "price": 0.1,
+      "magnitudeMin": 1,
+      "magnitudeMax": 5,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Defend",
+      "price": 0.2,
+      "magnitudeMin": 1,
+      "magnitudeMax": 5,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Weak",
+      "price": 0,
+      "magnitudeMin": 1,
+      "magnitudeMax": 3,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Vulnerable",
+      "price": 1,
+      "magnitudeMin": 1,
+      "magnitudeMax": 3,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Strength",
+      "price": 1,
+      "magnitudeMin": 1,
+      "magnitudeMax": 3,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Harden",
+      "price": 1.5,
+      "magnitudeMin": 1,
+      "magnitudeMax": 3,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Guard",
+      "price": 0,
+      "magnitudeMin": 1,
+      "magnitudeMax": 3,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "PoseBreak",
+      "price": 6,
+      "magnitudeMin": 1,
+      "magnitudeMax": 2,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "EnergyHeal",
+      "price": 1.5,
+      "magnitudeMin": 2,
+      "magnitudeMax": 10,
+      "magnitudeUnit": 2
+    },
+    {
+      "effectType": "AddDump",
+      "price": 3.5,
+      "magnitudeMin": 1,
+      "magnitudeMax": 3,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Burning",
+      "price": 0.4,
+      "magnitudeMin": 1,
+      "magnitudeMax": 3,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "CostToCooldown",
+      "price": 11,
+      "magnitudeMin": 1,
+      "magnitudeMax": 2,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "CooldownToCost",
+      "price": 11,
+      "magnitudeMin": 1,
+      "magnitudeMax": 2,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "DivideCooldown",
+      "price": 15,
+      "magnitudeMin": 1,
+      "magnitudeMax": 1,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "TimeSkip",
+      "price": 4,
+      "magnitudeMin": 10,
+      "magnitudeMax": 20,
+      "magnitudeUnit": 2
+    },
+    {
+      "effectType": "Preserve",
+      "price": 0,
+      "magnitudeMin": 0,
+      "magnitudeMax": 0,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Disposable",
+      "price": 0,
+      "magnitudeMin": 0,
+      "magnitudeMax": 0,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "DefenseToCooldown",
+      "price": 10,
+      "magnitudeMin": 1,
+      "magnitudeMax": 1,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "EnergyDrain",
+      "price": 1.6,
+      "magnitudeMin": 1,
+      "magnitudeMax": 5,
+      "magnitudeUnit": 1
+    },
+    {
+      "effectType": "Quicker",
+      "price": 2.5,
+      "magnitudeMin": 1,
+      "magnitudeMax": 1,
+      "magnitudeUnit": 1
+    }
+  ]
+}

@@ -9,13 +9,11 @@ public class CardVisual : MonoBehaviour
     private SpriteRenderer _sprite;
     private SpriteRenderer _spriteBackground;
     private Transform _effectArea;
-    private SpriteRenderer _effectAreaRenderer;
     private TextMeshPro _costText;
     private TextMeshPro _cooltimeText;
     private GameObject _selectHighlight;
     private GameObject _front;
     private GameObject _back;
-    private CardInstance _cardInstance;
     private Coroutine _moveCoroutine;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
 
@@ -27,11 +25,13 @@ public class CardVisual : MonoBehaviour
         _sprite             = transform.Find("Front/sprite").GetComponent<SpriteRenderer>();
         _spriteBackground    = transform.Find("Front/sprite/background").GetComponent<SpriteRenderer>();
         _effectArea         = transform.Find("Front/effect");
-        _effectAreaRenderer = _effectArea.GetComponent<SpriteRenderer>();
         _costText           = transform.Find("Front/cost/CostText").GetComponent<TextMeshPro>();
         _cooltimeText       = transform.Find("Front/cooltime/cooltimeText").GetComponent<TextMeshPro>();
         _selectHighlight    = transform.Find("Front/SelectHighlight").gameObject;
         _selectHighlight.SetActive(false);
+
+        // 카드 프리팹이 effect 아래에 고정 개수의 EffectDisplay 슬롯을 미리 자식으로 가지고 있다.
+        _effectDisplays.AddRange(_effectArea.GetComponentsInChildren<EffectDisplay>(true));
     }
 
     public void SetSelected(bool selected) => _selectHighlight.SetActive(selected);
@@ -42,50 +42,38 @@ public class CardVisual : MonoBehaviour
         _back.SetActive(!front);
     }
 
-    public void SetCard(CardInstance cardInstance, bool showFront)
+    // CardVisual은 CardInstance를 갖지 않는다 — 표시할 데이터는 전부 CardInstance가 밀어넣어 준다.
+    // 여기서는 카드의 정적인 부분(그림)만 다룬다 — cost/cooldown/effect는 CardInstance가 상황에 따라
+    // (최초 표시 시 기본값, 매 턴 종료 시 버프 반영값) 별도로 SetCostText/SetCooldownText/
+    // RefreshEffectDisplays를 통해 갱신한다.
+    public void SetCardDefinition(CardDefinition def)
     {
-        _cardInstance = cardInstance;
-        CardDefinition def = cardInstance.GetDefinition();
-
        // _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
         _sprite.sprite = def.GetSprite();
         _spriteBackground.sprite = def.GetSpriteBackground();
-        _costText.text = def.GetCost().ToString();
-
-        RefreshEffectDisplays(def);
-
-        RefreshCooltime();
-        SetFace(showFront);
     }
 
-    // effect 영역을 3등분해서 왼쪽부터 EffectDisplay(아이콘+수치)를 채워 넣는다.
-    private void RefreshEffectDisplays(CardDefinition def)
+    public void SetCostText(string text) => _costText.text = text;
+
+    public void SetCooldownText(string text) => _cooltimeText.text = text;
+
+    // effect 아래에 미리 배치되어 있는 고정 개수의 EffectDisplay 슬롯 내용물(아이콘+수치)만 갈아 끼운다.
+    // cardEffects는 이미 최종 계산이 끝난(버프 반영 여부와 무관하게 GetMagnitude()가 바로 표시값인) 목록이다.
+    // cardEffects보다 슬롯이 남으면 해당 슬롯은 비워둔다.
+    public void RefreshEffectDisplays(List<CardEffect> cardEffects)
     {
-        foreach (EffectDisplay display in _effectDisplays)
-            Destroy(display.gameObject);
-        _effectDisplays.Clear();
-
-        float areaWidth = _effectAreaRenderer.sprite.bounds.size.x;
-        float slotWidth = areaWidth / 3f;
-        float leftEdge = -areaWidth / 2f;
-
-        int index = 0;
-        foreach (CardEffect cardEffect in def.GetEffects())
+        for (int i = 0; i < _effectDisplays.Count; i++)
         {
-            EffectDisplay display = EffectDisplay.Spawn(_effectArea);
-            if (display == null) break;
-            _effectDisplays.Add(display);
-
-            int magnitude = cardEffect.GetEffect().GetMagnitude();
-            display.SetEffect(cardEffect.GetEffect().GetEffectType(), magnitude <= -1 ? "" : magnitude.ToString());
-
-            float nativeWidth = display.GetSpriteSize().x;
-            if (nativeWidth <= 0f) nativeWidth = slotWidth;
-            float scale = nativeWidth > 0f ? slotWidth / nativeWidth : 1f;
-            display.SetScale(scale);
-            display.SetLocalPosition(new Vector3(leftEdge + slotWidth * (index + 0.5f), 0f, 0f));
-
-            index++;
+            if (i < cardEffects.Count)
+            {
+                CardEffect cardEffect = cardEffects[i];
+                int magnitude = cardEffect.GetMagnitude();
+                _effectDisplays[i].SetEffect(cardEffect.GetEffect(), magnitude <= -1 ? "" : magnitude.ToString());
+            }
+            else
+            {
+                _effectDisplays[i].Clear();
+            }
         }
     }
 
@@ -135,16 +123,5 @@ public class CardVisual : MonoBehaviour
 
         transform.position = targetPosition;
         _moveCoroutine = null;
-    }
-
-    private void Update()
-    {
-        if (_cardInstance != null)
-            RefreshCooltime();
-    }
-
-    private void RefreshCooltime()
-    {
-        _cooltimeText.text = $"{_cardInstance.GetCooldownLeft()}";
     }
 }

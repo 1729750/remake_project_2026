@@ -5,8 +5,8 @@ public class EnergyHealEffect : Effect
 {
     public EnergyHealEffect(int magnitude) : base(EffectType.EnergyHeal, magnitude) { }
 
-    public override void OnApply(CharacterManager subject, CardEffect cardEffect)
+    public override void OnApply(CharacterManager subject)
     {
-        subject.EnergyHeal(cardEffect.GetMagnitude());
+        subject.EnergyHeal(_magnitude);
     }
 }
