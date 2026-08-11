@@ -15,7 +15,9 @@ public enum EffectType
     CooldownToCost,
     DivideCooldown,
     TimeSkip,
+    Quicker,
     Preserve,
     Disposable,
-    
+    DefenseToCooldown,
+    EnergyDrain,
 }

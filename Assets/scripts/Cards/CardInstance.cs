@@ -172,17 +172,25 @@ public class CardInstance
         if(actualUse)
         {
             foreach (CardEffect cardEffect in _effects)
-                cardEffect.GetEffect().OnUse(subject, this, actualUse);
+                ResolveEffect(cardEffect).OnUse(subject, this, actualUse);
         }
-        
+
         if (queuedCards == null) return;
         foreach (CardInstance queued in queuedCards)
         {
             if (queued == null) continue;
             foreach (CardEffect cardEffect in queued.GetEffects())
-                cardEffect.GetEffect().OnUsingOther(subject, this, actualUse);
+                ResolveEffect(cardEffect).OnUsingOther(subject, this, actualUse);
         }
     }
+
+    // cardEffect.GetEffect()는 CardDefinition 애셋에 그대로 저장된 authoring용 Effect라
+    // (SerializeReference가 아니라 평범한 SerializeField라) 서브클래스로 역직렬화되지 않고 항상
+    // base Effect로 들어온다. OnUse/OnUsingOther처럼 서브클래스 오버라이드(DivideCooldown,
+    // DefenseToCooldown, CostToCooldown, CooldownToCost 등)에 실제 동작이 있는 훅은 Effect.Create로
+    // 매번 진짜 런타임 서브클래스를 새로 만들어 호출해야 한다.
+    private static Effect ResolveEffect(CardEffect cardEffect) =>
+        Effect.Create(cardEffect.GetEffect().GetEffectType(), cardEffect.GetEffect().GetMagnitude());
 
     // 매 턴 종료마다 호출되어, 현재 버프 상태(subject의 OnApplyingOther / 대상의 OnAppliedOther)를
     // 반영한 비용·효과 수치로 시각화를 다시 계산한다. 원본 데이터가 오염되지 않도록 복제본에서

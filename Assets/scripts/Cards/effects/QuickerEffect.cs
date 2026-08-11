@@ -3,7 +3,7 @@ using System;
 [Serializable]
 public class QuickerEffect: Effect
 {
-    public QuickerEffect(int magnitude):base(EffectType.Burning, magnitude) { }
+    public QuickerEffect(int magnitude):base(EffectType.Quicker, magnitude) { }
 
     public override void OnExpired(CharacterManager subject)
     {
@@ -19,7 +19,7 @@ public class QuickerEffect: Effect
         _magnitude -= 1;
         if (_magnitude <= 0)
         {
-            subject.RemoveEffect<BurningEffect>();
+            subject.RemoveEffect<QuickerEffect>();
         }
     }
 

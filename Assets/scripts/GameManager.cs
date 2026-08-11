@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 
@@ -13,8 +14,15 @@ public class GameManager : MonoBehaviour
     [SerializeField] private InputManager inputManager;
     [SerializeField] private MapManager mapManager;
     [SerializeField] private CharacterData firstEnemyData;
-    // 적 후보 풀. ShowEnemySelection이 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여준다.
+    // 적 후보 풀(인스펙터 원본). Awake에서 _enemyCandidatePool로 복제되고, 이후로는 이 배열 자체를
+    // 직접 건드리지 않는다.
     [SerializeField] private CharacterData[] enemyCandidates;
+    // 실제로 뽑아가는 풀. ShowEnemySelection이 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여주고,
+    // 선택 여부와 무관하게 뽑힌 캐릭터는 여기서 제거되어 다시는 후보로 나오지 않는다.
+    private List<CharacterData> _enemyCandidatePool;
+
+    // MonoBehaviour가 아닌 순수 C# 클래스라 그냥 인스턴스를 들고 있는다.
+    private readonly CharacterScaler characterScaler = new CharacterScaler();
 
     private const string EffectPricesResourcePath = "Data/EffectPrices";
     private static Dictionary<EffectType, EffectPriceInfo> _effectPriceCache;
@@ -24,6 +32,8 @@ public class GameManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        _enemyCandidatePool = new List<CharacterData>(enemyCandidates);
 
         BuildEffectPriceCache();
     }
@@ -145,6 +155,10 @@ public class GameManager : MonoBehaviour
         return info;
     }
 
+    // 마지막 후보 슬롯은 _enemyCandidatePool에서 뽑지 않고 GenerateRandomEnemy로 완전히 새로
+    // 생성한다. 나머지 (EnemySelectionCount - 1)개만 풀에서 뽑아 소모한다.
+    private const int EnemySelectionCount = 3;
+
     public void ShowEnemySelection()
     {
         SetGameState(GameState.SelectEnemy);
@@ -154,11 +168,48 @@ public class GameManager : MonoBehaviour
             ["Right"]  = () => mapManager.MoveSelection(1),
             ["Select"] = mapManager.ConfirmSelection,
         });
-        mapManager.ShowEnemySelection(PickRandomDistinct(enemyCandidates, 3));
+
+        CharacterData[] picks = PickRandomDistinct(_enemyCandidatePool, EnemySelectionCount - 1);
+        foreach (CharacterData pick in picks)
+            _enemyCandidatePool.Remove(pick);
+
+        CharacterData enemyA = picks.Length > 0 ? picks[0] : null;
+        CharacterData enemyB = picks.Length > 1 ? picks[1] : null;
+        CharacterData randomEnemy = GenerateRandomEnemy(mapManager.GetCurrentRound());
+
+        // characterScaler가 셋 다 복사본으로 강화까지 마쳐서 돌려준다 — 원본(풀에서 뽑힌 에셋,
+        // 방금 만든 randomEnemy)은 건드리지 않는다.
+        CharacterData[] scaled = characterScaler.Scale(enemyA, enemyB, randomEnemy, mapManager.GetCurrentRound());
+        CharacterData[] candidates = scaled.Where(c => c != null).ToArray();
+
+        mapManager.ShowEnemySelection(candidates);
+    }
+
+    // 완전 무작위 적의 덱만 생성한다(강화는 CharacterScaler가 맡는다).
+    // 1) RewardManager의 rewardCards 풀에서 8~12장을 중복 허용 랜덤으로 뽑아(각각 Clone) 덱을 구성한다.
+    // 2) 80 ~ (120 + enemySelectionCount * 10) 사이의 체력을 골라 CharacterData로 감싼다.
+    // enemySelectionCount: 지금까지 플레이어가 적을 선택(확정)한 횟수(MapManager.GetCurrentRound()).
+    private CharacterData GenerateRandomEnemy(int enemySelectionCount)
+    {
+        CardDefinition[] rewardCards = rewardManager.GetRewardCards();
+        if (rewardCards == null || rewardCards.Length == 0) return null;
+
+        int cardCount = UnityEngine.Random.Range(8, 13); // 8~12
+        List<CardDefinition> deck = new List<CardDefinition>(cardCount);
+        for (int i = 0; i < cardCount; i++)
+        {
+            CardDefinition source = rewardCards[UnityEngine.Random.Range(0, rewardCards.Length)];
+            deck.Add(source.Clone());
+        }
+
+        int maxHealth = UnityEngine.Random.Range(80, 121 + enemySelectionCount * 10);
+        CardCollection collection = CardCollection.Create(deck);
+        return CharacterData.Create(maxHealth, collection);
     }
 
     // source에서 최대 count개를 중복 없이 랜덤으로 뽑아 반환한다. source가 count보다 작으면 전부 반환한다.
-    public static T[] PickRandomDistinct<T>(IReadOnlyList<T> source, int count)
+    // 적 후보 풀(_enemyCandidatePool) 전용 — 카드 보상 쪽 랜덤 뽑기는 RewardManager가 자체적으로 갖는다.
+    private static T[] PickRandomDistinct<T>(IReadOnlyList<T> source, int count)
     {
         if (source == null || source.Count == 0) return Array.Empty<T>();
 

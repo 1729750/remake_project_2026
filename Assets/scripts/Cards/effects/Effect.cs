@@ -37,6 +37,27 @@ public class Effect
         }
     }
 
+    // true면 EffectDisplay가 수치를 표시하지 않고(SetEffect), 강화 후보 가격 계산에서 magnitude를
+    // 무조건 1로 취급하고(RewardManager.RollEnhanceOption), 강화 대상 덱 표시에서 이미 이 효과를
+    // 가진 카드를 후보에서 제외한다(RewardManager.ShowEnhanceDeckSelection) — magnitude가 의미를
+    // 갖지 않는(스택형이 아닌) 타입들의 공통 성격이다.
+    public virtual bool DoesntUseMagnitude
+    {
+        get
+        {
+            switch (_effectType)
+            {
+                case EffectType.Disposable:
+                case EffectType.Preserve:
+                case EffectType.DivideCooldown:
+                case EffectType.DefenseToCooldown:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
+
     public static Effect Create(EffectType type, int magnitude)
     {
         switch (type)
@@ -51,7 +72,14 @@ public class Effect
             case EffectType.Guard:      return new GuardEffect(magnitude);
             case EffectType.PoseBreak : return new PoseBreakEffect(magnitude);
             case EffectType.DivideCooldown: return new DivideCooldown(magnitude);
+            case EffectType.DefenseToCooldown: return new DefenseToCooldown(magnitude);
             case EffectType.TimeSkip:   return new TimeSkip(magnitude);
+            case EffectType.CostToCooldown: return new CostToCooldown(magnitude);
+            case EffectType.CooldownToCost: return new CooldownToCost(magnitude);
+            case EffectType.Burning:    return new BurningEffect(magnitude);
+            case EffectType.AddDump:    return new AddDumpEffect(magnitude);
+            case EffectType.Quicker: return new QuickerEffect(magnitude);
+            case EffectType.EnergyDrain: return new EnergyDrainEffect(magnitude);
             default:                    return new Effect(type, magnitude);
         }
     }
