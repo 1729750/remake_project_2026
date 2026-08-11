@@ -50,6 +50,8 @@ public class Effect
             case EffectType.Harden:     return new HardenEffect(magnitude);
             case EffectType.Guard:      return new GuardEffect(magnitude);
             case EffectType.PoseBreak : return new PoseBreakEffect(magnitude);
+            case EffectType.DivideCooldown: return new DivideCooldown(magnitude);
+            case EffectType.TimeSkip:   return new TimeSkip(magnitude);
             default:                    return new Effect(type, magnitude);
         }
     }
@@ -57,12 +59,30 @@ public class Effect
     public virtual void OnExpired(CharacterManager subject) { }
     public virtual void OnTurnStarted(CharacterManager subject) { }
     public virtual void OnTurnEnded(CharacterManager subject) { }
-
+    // self: 이 Effect가 속한 CardInstance(지금 사용되는 카드 자신). actualUse가 true면 실제로 카드가
+    // 사용되는 시점의 호출이고, false면 시각화 갱신을 위한 미리보기(dry-run) 호출이다 — 실제 상태를
+    // 바꾸는 부수효과(스택 소모 등)는 actualUse일 때만 해야 한다.
+    public virtual void OnUse(CharacterManager subject, CardInstance self, bool actualUse) { }
+    // subject: 이 CardInstance(자신이 속한 카드)를 사용하는 주체. cardInstance: 지금 막 사용되는 카드
+    // (큐에 있던 자신이 아니라 새로 사용되는 카드 쪽). 큐에 있던 카드가 새 카드 사용에 반응할 때 쓴다.
+    public virtual void OnUsingOther(CharacterManager subject, CardInstance cardInstance, bool actualUse) { }
+    public virtual void OnTick(CharacterManager subject) { }
     // 즉시 발동하지 않는(스택형) 효과의 기본 동작: 같은 타입의 기존 효과가 있으면 magnitude만 합산하고,
     // 없으면 자신을 subject의 효과 목록에 새로 등록한다. Attack/Defend/EnergyHeal처럼 즉시 처리되는
     // 타입은 이 기본 동작 대신 override에서 바로 결과를 적용한다.
-    public virtual void OnApply(CharacterManager subject, CardEffect cardEffect)
+    public virtual void OnApply(CharacterManager subject)
     {
+        switch (_effectType)
+        {
+            case EffectType.Disposable:
+            case EffectType.Preserve: 
+            case EffectType.CooldownToCost:
+            case EffectType.DivideCooldown:
+            case EffectType.CostToCooldown:
+                return;
+            default:
+                break;
+        }
         foreach (var existing in subject.GetEffects())
         {
             if (existing.GetEffectType() == _effectType)

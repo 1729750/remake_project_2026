@@ -29,7 +29,25 @@ public class EffectDisplay : MonoBehaviour
     public void SetEffect(EffectType effectType, string magnitudeText)
     {
         _effectSprite.sprite = BattleManager.GetEmoji(effectType);
-        _magnitudeText.text = magnitudeText;
+        switch (effectType)
+        {
+            case EffectType.Disposable:
+            case EffectType.Preserve: 
+            case EffectType.CooldownToCost:
+            case EffectType.DivideCooldown:
+            case EffectType.CostToCooldown:
+                _magnitudeText.text = ""; 
+                break;
+            default:
+                _magnitudeText.text = magnitudeText;
+                break;
+        }
+    }
+
+    public void Clear()
+    {
+        _effectSprite.sprite = null;
+        _magnitudeText.text = "";
     }
 
     public Vector2 GetSpriteSize()

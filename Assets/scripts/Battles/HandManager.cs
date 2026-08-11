@@ -54,8 +54,18 @@ public class HandManager
         var visual = obj.GetComponent<CardVisual>();
         if (visual == null)
             visual = obj.AddComponent<CardVisual>();
-        visual.SetCard(_hand[i], _isHandVisualized);
+        _hand[i].SetVisual(visual);
+        _hand[i].SetFace(_isHandVisualized);
+        _hand[i].RefreshDisplay(_characterManager, _characterManager.GetQueue());
         _cardObjects[i] = obj;
+    }
+
+    // 매 턴 종료마다 CharacterManager가 호출해, 손패 카드들의 비용/효과 표시를 현재 버프 상태에 맞게 갱신한다.
+    public void RefreshHandDisplay()
+    {
+        CardInstance[] queue = _characterManager.GetQueue();
+        for (int i = 0; i < HandSize; i++)
+            _hand[i]?.RefreshDisplay(_characterManager, queue);
     }
 
     // 손패 전체를 소유자의 덱으로 되돌린다 (ReDraw용)
@@ -64,13 +74,17 @@ public class HandManager
         for (int i = 0; i < HandSize; i++)
         {
             if (_hand[i] == null) continue;
+            bool trigger = false;
             foreach (CardEffect cardEffect in _hand[i].GetEffects())
             {
                 if (cardEffect.GetEffect().GetEffectType() == EffectType.Preserve)
                 {
-                    continue;
+                    trigger = true;
                 }
             }
+
+            if (trigger) continue;
+            
             _characterManager.ReturnToDeck(_hand[i]);
             _hand[i] = null;
             if (_cardObjects[i] != null)
@@ -84,7 +98,8 @@ public class HandManager
 
     public void SelectCard(int index)
     {
-        _selectedIndex = index;
+        if (_selectedIndex == index) _selectedIndex = -1;
+        else _selectedIndex = index;
         RefreshSelection();
     }
 
@@ -106,12 +121,7 @@ public class HandManager
         GameObject cardObject = _cardObjects[_selectedIndex];
         if (_characterManager.QueueCard(card, cardObject))
         {
-            if (cardObject != null)
-            {
-                var visual = cardObject.GetComponent<CardVisual>();
-                if (visual != null)
-                    visual.SetSelected(false);
-            }
+            card.SetSelected(false);
             _cardObjects[_selectedIndex] = null;
             _hand[_selectedIndex] = null;
             UnselectCard();
@@ -124,11 +134,6 @@ public class HandManager
     private void RefreshSelection()
     {
         for (int i = 0; i < HandSize; i++)
-        {
-            if (_cardObjects[i] == null) continue;
-            var visual = _cardObjects[i].GetComponent<CardVisual>();
-            if (visual != null)
-                visual.SetSelected(i == _selectedIndex);
-        }
+            _hand[i]?.SetSelected(i == _selectedIndex);
     }
 }

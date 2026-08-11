@@ -18,6 +18,8 @@ public class WeakEffect : Effect
         {
             effect.Multiply(1.2f);
         }
+
+        if (!a) return;
         _magnitude--;
         if(_magnitude <= 0)
             subject.RemoveEffect<WeakEffect>();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 // BattleManager 밖으로 분리된 보상 패널. 다른 오브젝트 위에 얹히는 패널이라 BattleManager와
@@ -21,8 +22,8 @@ public class RewardManager : MonoBehaviour
 
     private static readonly string[] RewardDisplayLabels = { "카드 획득", "카드 제거", "카드 강화" };
 
-    [SerializeField] private InputManager inputManager;
-    // 임시: 보상 카드 로딩 로직이 생기기 전까지 인스펙터에서 직접 지정
+    [SerializeField] private Sprite[] rewardSprites;
+    // 카드 획득 후보 풀. RewardCard()가 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여준다.
     [SerializeField] private CardDefinition[] rewardCards;
 
     private GameObject _rewardDisplayPrefab;
@@ -30,11 +31,17 @@ public class RewardManager : MonoBehaviour
     private int _rewardDisplaySelectedIndex;
 
     private GameObject _cardPrefab;
-    private CardDefinition[] _rewardCardOptions;
-    private CardVisual[] _rewardCardVisuals;
+    private CardInstance[] _rewardCardInstances;
     private int _rewardCardSelectedIndex;
 
-    private CardEffect[] _enhanceOptions;
+    // 강화 후보로 등장하면 안 되는 EffectType(실제 카드 효과가 아니라 내부 마킹용).
+    private static readonly EffectType[] EnhanceableEffectTypes = ((EffectType[])Enum.GetValues(typeof(EffectType)))
+        .Where(type => type != EffectType.Disposable && type != EffectType.Preserve && type!=EffectType.Guard && type!=EffectType.Weak)
+        .ToArray();
+    // cost:cooldown 분배가 1:2 경향을 띄도록, 예산 1당 이 확률로 cooldown 쪽에 배분한다.
+    private const float CooldownAllocationChance = 2f / 3f;
+
+    private CardUpgrade[] _enhanceOptions;
     private RewardDisplay[] _enhanceDisplays;
     private int _enhanceSelectedIndex;
 
@@ -54,7 +61,7 @@ public class RewardManager : MonoBehaviour
         _rewardDisplaySelectedIndex = 0;
         RefreshRewardDisplaySelection();
 
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => MoveRewardDisplaySelection(-1),
             ["Right"]  = () => MoveRewardDisplaySelection(1),
@@ -73,7 +80,7 @@ public class RewardManager : MonoBehaviour
         for (int i = 0; i < labels.Length; i++)
         {
             displays[i] = Instantiate(_rewardDisplayPrefab, transform).GetComponent<RewardDisplay>();
-            displays[i].Init(labels[i]);
+            displays[i].Init(labels[i],rewardSprites[i]);
         }
 
         SpriteRenderer card = displays[0].transform.Find("Card")?.GetComponent<SpriteRenderer>();
@@ -122,15 +129,15 @@ public class RewardManager : MonoBehaviour
     // RewardDisplay 왼쪽 패널: 카드 획득.
     private void RewardCard()
     {
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => MoveRewardCardSelection(-1),
             ["Right"]  = () => MoveRewardCardSelection(1),
             ["Select"] = ApplyRewardCardSelection,
         });
-        ShowRewardCard(rewardCards);
+        ShowRewardCard(GameManager.PickRandomDistinct(rewardCards, 3));
     }
 
     private void ApplyRewardCardSelection()
@@ -145,12 +152,12 @@ public class RewardManager : MonoBehaviour
     // RewardDisplay 가운데 패널: 화면 크기 DeckDisplay를 띄워 버릴 카드를 고른다.
     private void RewardCardDelete()
     {
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
         DeckDisplay deckDisplay = GameManager.SummonDeck();
 
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),
             ["Right"]  = () => deckDisplay.MoveSelectionHorizontal(1),
@@ -169,15 +176,15 @@ public class RewardManager : MonoBehaviour
     // 랜덤으로 뽑아 보여주고 고르게 한다.
     private void RewardCardEnhance()
     {
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
-        CardEffect[] options = new CardEffect[3];
+        CardUpgrade[] options = new CardUpgrade[3];
         for (int i = 0; i < options.Length; i++)
             options[i] = RollEnhanceOption();
 
         SelectEnhance(options);
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => MoveEnhanceSelection(-1),
             ["Right"]  = () => MoveEnhanceSelection(1),
@@ -185,15 +192,60 @@ public class RewardManager : MonoBehaviour
         });
     }
 
-    private static CardEffect RollEnhanceOption()
+    // 강화 후보 하나 = 카드 effect(Disposable/Preserve 제외) + 그 가격(GameManager.GetEffectPrice)에
+    // magnitude를 곱한 예산을 cost/cooldown 감소량으로 랜덤 분배한 CardUpgrade.
+    // effectType을 정한 뒤 GameManager로부터 magnitude 범위(min/max/unit)를 받아 그 안에서 magnitude를
+    // 고르고, 그 magnitude로 price(예산)를 계산하는 순서를 따른다.
+    private static CardUpgrade RollEnhanceOption()
     {
-        var effectTypes = (EffectType[])Enum.GetValues(typeof(EffectType));
-        EffectType effectType = effectTypes[UnityEngine.Random.Range(0, effectTypes.Length)];
-        int magnitude = UnityEngine.Random.Range(1, 4) * (UnityEngine.Random.value < 0.5f ? 1 : -1);
+        EffectType effectType = EnhanceableEffectTypes[UnityEngine.Random.Range(0, EnhanceableEffectTypes.Length)];
+
+        EffectPriceInfo priceInfo = GameManager.GetEffectPriceInfo(effectType);
+        int magnitude = RollMagnitude(priceInfo);
 
         Effect effect = Effect.Create(effectType, magnitude);
         EffectTarget target = ResolveEnhanceTarget(effect.TargetPolarity, magnitude);
-        return new CardEffect(effect, target);
+        CardEffect cardEffect = new CardEffect(effect, target);
+
+        int budget = Mathf.FloorToInt(priceInfo.price) * magnitude;
+        (int costUnits, int cooldownUnits) = DistributeBudget(budget);
+
+        return new CardUpgrade(cardEffect, -costUnits, -cooldownUnits);
+    }
+
+    // magnitudeMin~magnitudeMax 사이를 magnitudeUnit 간격으로 나눈 값 중 하나를 랜덤으로 고른다.
+    // 예: min 10, max 20, unit 2 → 10/12/14/16/18/20 중 하나.
+    private static int RollMagnitude(EffectPriceInfo info)
+    {
+        int unit = Mathf.Max(1, info.magnitudeUnit);
+        int min = info.magnitudeMin;
+        int max = Mathf.Max(min, info.magnitudeMax);
+
+        int steps = (max - min) / unit + 1;
+        return min + unit * UnityEngine.Random.Range(0, steps);
+    }
+
+    // budget을 1씩 나눠 각각 베르누이 시행으로 cost/cooldown에 배분한다.
+    // CooldownAllocationChance(2/3)로 cooldown 쪽에 더 자주 배분되어 cost:cooldown이 대략 1:2가 된다.
+    // budget은 price(음수 가능)와 magnitude(magnitudeMin이 음수면 음수 가능)의 곱이라 음수로 들어올 수
+    // 있다. 음수면 for문이 그냥 0번 돌아 아무 일도 없는 것처럼 되어버리므로, isNegative 플래그로 부호만
+    // 정규화(양수로 뒤집기)한 뒤 기존 루프를 그대로 재사용한다 — 즉 |budget| 단위로 같은 방향(cost/cooldown
+    // 감소)만큼 배분된다.
+    private static (int costUnits, int cooldownUnits) DistributeBudget(int budget)
+    {
+        bool isNegative = budget < 0;
+        if (isNegative) budget = -budget;
+
+        int costUnits = 0;
+        int cooldownUnits = 0;
+        for (int i = 0; i < budget; i++)
+        {
+            if (UnityEngine.Random.value < CooldownAllocationChance)
+                cooldownUnits++;
+            else
+                costUnits++;
+        }
+        return (costUnits, cooldownUnits);
     }
 
     private static EffectTarget ResolveEnhanceTarget(EffectTargetPolarity polarity, int magnitude)
@@ -210,11 +262,25 @@ public class RewardManager : MonoBehaviour
     // 강화 후보 선택 확정: DeckDisplay를 띄워 강화할 카드를 고르게 한다.
     private void ShowEnhanceDeckSelection()
     {
-        CardEffect option = ConfirmEnhanceSelection();
-        inputManager.Unload();
+        CardUpgrade option = ConfirmEnhanceSelection();
+        PlayerInputManager.Instance.Unload();
 
-        DeckDisplay deckDisplay = GameManager.SummonDeck();
-        inputManager.Load("Select", new Dictionary<string, Action>
+        bool Filter(CardDefinition def)
+        {
+            if (def.GetEffects().Length < 3)
+                return true;
+            foreach (CardEffect effect in def.GetEffects())
+            {
+                if (effect.GetEffect().GetEffectType() == option.effect.GetEffect().GetEffectType()) return true;
+            }
+
+            return false;
+        }
+
+        
+        
+        DeckDisplay deckDisplay = GameManager.SummonDeck(Filter);
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),
             ["Right"]  = () => deckDisplay.MoveSelectionHorizontal(1),
@@ -231,7 +297,7 @@ public class RewardManager : MonoBehaviour
 
     // RewardDisplay 오른쪽 패널(카드 강화)에서 뽑아둔 강화 후보 CardEffect 3개를 보여준다.
     // RewardText는 비워 두고, 각 후보는 RewardDisplay 정 가운데의 effectDisplay(아이콘+수치)로 표기한다.
-    private void SelectEnhance(CardEffect[] options)
+    private void SelectEnhance(CardUpgrade[] options)
     {
         _enhanceOptions = options;
 
@@ -243,7 +309,7 @@ public class RewardManager : MonoBehaviour
         if (_enhanceDisplays == null) return;
 
         for (int i = 0; i < options.Length; i++)
-            _enhanceDisplays[i].SetEffect(options[i]);
+            _enhanceDisplays[i].SetUpgrade(options[i]);
 
         _enhanceSelectedIndex = 0;
         RefreshEnhanceSelection();
@@ -259,9 +325,9 @@ public class RewardManager : MonoBehaviour
     }
 
     // 강화 후보 선택을 확정하고, 표시해뒀던 RewardDisplay 3개를 정리한다.
-    private CardEffect ConfirmEnhanceSelection()
+    private CardUpgrade ConfirmEnhanceSelection()
     {
-        CardEffect selected = _enhanceOptions[_enhanceSelectedIndex];
+        CardUpgrade selected = _enhanceOptions[_enhanceSelectedIndex];
 
         if (_enhanceDisplays != null)
             foreach (RewardDisplay display in _enhanceDisplays)
@@ -287,8 +353,7 @@ public class RewardManager : MonoBehaviour
             _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
         if (_cardPrefab == null) return;
 
-        _rewardCardOptions = cardOptions;
-        _rewardCardVisuals = new CardVisual[cardOptions.Length];
+        _rewardCardInstances = new CardInstance[cardOptions.Length];
         for (int i = 0; i < cardOptions.Length; i++)
         {
             if (cardOptions[i] == null) continue;
@@ -297,19 +362,22 @@ public class RewardManager : MonoBehaviour
             var visual = obj.GetComponent<CardVisual>();
             if (visual == null)
                 visual = obj.AddComponent<CardVisual>();
+
             // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다
-            visual.SetCard(new CardInstance(cardOptions[i], null), true);
-            visual.SetLayer("UI");
+            var instance = new CardInstance(cardOptions[i], null);
+            instance.SetVisual(visual);
+            instance.SetFace(true);
+            instance.SetLayer("UI");
             obj.transform.localScale = Vector3.one*4;
-            _rewardCardVisuals[i] = visual;
+            _rewardCardInstances[i] = instance;
         }
 
-        float spacing = (_rewardCardVisuals.Length > 0 && _rewardCardVisuals[0] != null
-            ? _rewardCardVisuals[0].GetBackgroundSize().x : 1f) * 2f;
-        for (int i = 0; i < _rewardCardVisuals.Length; i++)
+        float spacing = (_rewardCardInstances.Length > 0 && _rewardCardInstances[0] != null
+            ? _rewardCardInstances[0].GetBackgroundSize().x : 1f) * 2f;
+        for (int i = 0; i < _rewardCardInstances.Length; i++)
         {
-            if (_rewardCardVisuals[i] == null) continue;
-            _rewardCardVisuals[i].transform.localPosition = new Vector3((i - (cardOptions.Length - 1) / 2f) * spacing, 0f, 0f);
+            if (_rewardCardInstances[i] == null) continue;
+            _rewardCardInstances[i].GetVisual().transform.localPosition = new Vector3((i - (cardOptions.Length - 1) / 2f) * spacing, 0f, 0f);
         }
 
         _rewardCardSelectedIndex = 0;
@@ -318,44 +386,40 @@ public class RewardManager : MonoBehaviour
 
     private void MoveRewardCardSelection(int delta)
     {
-        if (_rewardCardVisuals == null || _rewardCardVisuals.Length == 0) return;
+        if (_rewardCardInstances == null || _rewardCardInstances.Length == 0) return;
 
-        int count = _rewardCardVisuals.Length;
+        int count = _rewardCardInstances.Length;
         _rewardCardSelectedIndex = ((_rewardCardSelectedIndex + delta) % count + count) % count;
         RefreshRewardCardSelection();
     }
 
     private CardDefinition ConfirmRewardCard()
     {
-        if (_rewardCardVisuals == null || _rewardCardVisuals.Length == 0) return null;
+        if (_rewardCardInstances == null || _rewardCardInstances.Length == 0) return null;
 
-        return _rewardCardOptions[_rewardCardSelectedIndex];
+        return _rewardCardInstances[_rewardCardSelectedIndex]?.GetDefinition();
     }
 
     // ShowRewardCard가 다시 불릴 때(다음 보상 라운드) 이전에 만들어둔 카드들을 정리한다.
     private void ClearRewardCard()
     {
-        if (_rewardCardVisuals == null) return;
-        foreach (CardVisual visual in _rewardCardVisuals)
-            if (visual != null) Destroy(visual.gameObject);
-        _rewardCardVisuals = null;
-        _rewardCardOptions = null;
+        if (_rewardCardInstances == null) return;
+        foreach (CardInstance instance in _rewardCardInstances)
+            if (instance != null && instance.GetVisual() != null) Destroy(instance.GetVisual().gameObject);
+        _rewardCardInstances = null;
     }
 
     private void RefreshRewardCardSelection()
     {
-        for (int i = 0; i < _rewardCardVisuals.Length; i++)
-        {
-            if (_rewardCardVisuals[i] != null)
-                _rewardCardVisuals[i].SetSelected(i == _rewardCardSelectedIndex);
-        }
+        for (int i = 0; i < _rewardCardInstances.Length; i++)
+            _rewardCardInstances[i]?.SetSelected(i == _rewardCardSelectedIndex);
     }
 
     // 보상 화면(카드 획득/삭제/강화 중 무엇이든)을 완전히 닫는 공통 지점.
     // reward 쪽에서 마지막으로 남아있던 input context를 여기서 pop한다.
     private void ConfirmReward()
     {
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         GameManager.Instance.ShowEnemySelection();
     }
 }
