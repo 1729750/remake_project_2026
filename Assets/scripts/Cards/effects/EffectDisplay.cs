@@ -26,22 +26,17 @@ public class EffectDisplay : MonoBehaviour
         return Instantiate(_prefab, parent).GetComponent<EffectDisplay>();
     }
 
+    public void SetEffect(Effect effect, string magnitudeText)
+    {
+        _effectSprite.sprite = BattleManager.GetEmoji(effect.GetEffectType());
+        _magnitudeText.text = effect.DoesntUseMagnitude ? "" : magnitudeText;
+    }
+
+    // Effect 인스턴스 없이 EffectType만 있는 호출부(MapVisual처럼 항상 수치를 비워 두는 경우)를 위한 오버로드.
     public void SetEffect(EffectType effectType, string magnitudeText)
     {
         _effectSprite.sprite = BattleManager.GetEmoji(effectType);
-        switch (effectType)
-        {
-            case EffectType.Disposable:
-            case EffectType.Preserve: 
-            case EffectType.CooldownToCost:
-            case EffectType.DivideCooldown:
-            case EffectType.CostToCooldown:
-                _magnitudeText.text = ""; 
-                break;
-            default:
-                _magnitudeText.text = magnitudeText;
-                break;
-        }
+        _magnitudeText.text = magnitudeText;
     }
 
     public void Clear()

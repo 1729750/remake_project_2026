@@ -67,4 +67,25 @@ public class CardDefinition: ScriptableObject
         ChangeCost(upgrade.costDelta);
         ChangeCooldown(upgrade.cooldownDelta);
     }
+
+    // 깊은 복제: CardEffect/Effect까지 전부 새로 만들어서, 원본 에셋이나 같은 소스에서 나온 다른
+    // 클론과 강화(ApplyUpgrade/UpgradeEffect의 AddMagnitude) 상태를 공유하지 않게 한다.
+    // RewardManager.GenerateRandomEnemy처럼 강화를 적용해야 하는 임시 카드가 필요할 때 사용한다.
+    public CardDefinition Clone()
+    {
+        var clone = CreateInstance<CardDefinition>();
+        clone.cooldown = cooldown;
+        clone.cost = cost;
+        clone.sprite = sprite;
+        clone.spriteBackground = spriteBackground;
+        clone.cardType = cardType;
+        clone._effects = new List<CardEffect>(_effects.Count);
+        foreach (CardEffect cardEffect in _effects)
+        {
+            Effect effect = cardEffect.GetEffect();
+            Effect clonedEffect = new Effect(effect.GetEffectType(), effect.GetMagnitude());
+            clone._effects.Add(new CardEffect(clonedEffect, cardEffect.GetEffectTarget()));
+        }
+        return clone;
+    }
 }

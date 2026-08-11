@@ -24,7 +24,10 @@ public class RewardManager : MonoBehaviour
 
     [SerializeField] private Sprite[] rewardSprites;
     // 카드 획득 후보 풀. RewardCard()가 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여준다.
+    // GameManager.GenerateRandomEnemy도 GetRewardCards()로 이 풀을 그대로 가져다 쓴다.
     [SerializeField] private CardDefinition[] rewardCards;
+
+    public CardDefinition[] GetRewardCards() => rewardCards;
 
     private GameObject _rewardDisplayPrefab;
     private RewardDisplay[] _rewardDisplays;
@@ -137,7 +140,7 @@ public class RewardManager : MonoBehaviour
             ["Right"]  = () => MoveRewardCardSelection(1),
             ["Select"] = ApplyRewardCardSelection,
         });
-        ShowRewardCard(GameManager.PickRandomDistinct(rewardCards, 3));
+        ShowRewardCard(PickRandomDistinct(rewardCards, 3));
     }
 
     private void ApplyRewardCardSelection()
@@ -196,7 +199,8 @@ public class RewardManager : MonoBehaviour
     // magnitude를 곱한 예산을 cost/cooldown 감소량으로 랜덤 분배한 CardUpgrade.
     // effectType을 정한 뒤 GameManager로부터 magnitude 범위(min/max/unit)를 받아 그 안에서 magnitude를
     // 고르고, 그 magnitude로 price(예산)를 계산하는 순서를 따른다.
-    private static CardUpgrade RollEnhanceOption()
+    // GameManager.GenerateRandomEnemy도 이 메서드로 강화 옵션을 뽑으므로 public.
+    public static CardUpgrade RollEnhanceOption()
     {
         EffectType effectType = EnhanceableEffectTypes[UnityEngine.Random.Range(0, EnhanceableEffectTypes.Length)];
 
@@ -207,10 +211,29 @@ public class RewardManager : MonoBehaviour
         EffectTarget target = ResolveEnhanceTarget(effect.TargetPolarity, magnitude);
         CardEffect cardEffect = new CardEffect(effect, target);
 
-        int budget = Mathf.FloorToInt(priceInfo.price) * magnitude;
+        int priceMagnitude = effect.DoesntUseMagnitude ? 1 : magnitude;
+        int budget = Mathf.FloorToInt(priceInfo.price) * priceMagnitude;
         (int costUnits, int cooldownUnits) = DistributeBudget(budget);
 
         return new CardUpgrade(cardEffect, -costUnits, -cooldownUnits);
+    }
+
+    // source에서 최대 count개를 중복 없이 랜덤으로 뽑아 반환한다. source가 count보다 작으면 전부 반환한다.
+    // 뽑고 난 뒤 source 자체는 건드리지 않는다(같은 카드가 다음 보상 라운드에 다시 나올 수 있다).
+    private static T[] PickRandomDistinct<T>(IReadOnlyList<T> source, int count)
+    {
+        if (source == null || source.Count == 0) return Array.Empty<T>();
+
+        List<T> pool = new List<T>(source);
+        int pickCount = Mathf.Min(count, pool.Count);
+        T[] result = new T[pickCount];
+        for (int i = 0; i < pickCount; i++)
+        {
+            int index = UnityEngine.Random.Range(0, pool.Count);
+            result[i] = pool[index];
+            pool.RemoveAt(index);
+        }
+        return result;
     }
 
     // magnitudeMin~magnitudeMax 사이를 magnitudeUnit 간격으로 나눈 값 중 하나를 랜덤으로 고른다.
@@ -259,27 +282,33 @@ public class RewardManager : MonoBehaviour
         }
     }
 
+    // option을 def에 강화로 적용해도 되는지: effect가 3개 미만이면 항상 가능(새 슬롯에 추가),
+    // 3개 이상이면 이미 같은 EffectType을 갖고 있어 병합(AddMagnitude)될 때만 가능하다.
+    // 단, magnitude를 안 쓰는 효과(Disposable/Preserve/DivideCooldown류)는 이미 가진 카드에 또
+    // 얹어봐야 의미가 없으므로 effect 개수와 무관하게 아예 제외한다.
+    // ShowEnhanceDeckSelection(DeckDisplay 필터)과 GameManager.GenerateRandomEnemy(무작위 적 생성)가
+    // 전부 이 판정을 공유하므로 public.
+    public static bool CanEnhance(CardDefinition def, CardUpgrade option)
+    {
+        EffectType upgradeType = option.effect.GetEffect().GetEffectType();
+        bool alreadyHasEffect = def.GetEffects().Any(effect => effect.GetEffect().GetEffectType() == upgradeType);
+
+        if (option.effect.GetEffect().DoesntUseMagnitude && alreadyHasEffect)
+            return false;
+
+        if (def.GetEffects().Length < 3)
+            return true;
+
+        return alreadyHasEffect;
+    }
+
     // 강화 후보 선택 확정: DeckDisplay를 띄워 강화할 카드를 고르게 한다.
     private void ShowEnhanceDeckSelection()
     {
         CardUpgrade option = ConfirmEnhanceSelection();
         PlayerInputManager.Instance.Unload();
 
-        bool Filter(CardDefinition def)
-        {
-            if (def.GetEffects().Length < 3)
-                return true;
-            foreach (CardEffect effect in def.GetEffects())
-            {
-                if (effect.GetEffect().GetEffectType() == option.effect.GetEffect().GetEffectType()) return true;
-            }
-
-            return false;
-        }
-
-        
-        
-        DeckDisplay deckDisplay = GameManager.SummonDeck(Filter);
+        DeckDisplay deckDisplay = GameManager.SummonDeck(def => CanEnhance(def, option));
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),

@@ -10,15 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
-  m_Name: defense-medium
+  m_Name: junk-overflow
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 2
+  cooldown: 5
   cost: 7
   _effects:
   - _effect:
-      _effectType: 1
-      _magnitude: 10
-    _target: 0
-  sprite: {fileID: -2593166470929257815, guid: bb47f83f95470a0498ec9e4bb0d6f527, type: 3}
-  spriteBackground: {fileID: 21300000, guid: e90a2084f2fc5cd4b82dfd51394de74c, type: 3}
+      _effectType: 9
+      _magnitude: 2
+    _target: 1
+  - _effect:
+      _effectType: 9
+      _magnitude: 2
+    _target: 1
+  sprite: {fileID: 0}
+  spriteBackground: {fileID: 0}
   cardType: 0

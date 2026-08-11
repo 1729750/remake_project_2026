@@ -18,7 +18,7 @@ public class CharacterManager: MonoBehaviour
     private int _health;
     private int _defense;
     private int _cost;
-    private const int MaxCost = 10;
+    private const int MaxCost = 15;
     private List<Effect> _effects;
     [SerializeField] private CardDefinition[] startDeck;
     [SerializeField] private GameObject queueRoots;
@@ -101,7 +101,10 @@ public class CharacterManager: MonoBehaviour
         if (_handManager == null) return;
         for (int i = _effects.Count - 1; i >= 0; i--)
             _effects[i].OnTurnStarted(this);
-        EnergyHeal(_isGuard ? 1:2);
+        int healEnergyAmount = 2;
+        if (_isGuard) healEnergyAmount--;
+        if (_cost >= 10) healEnergyAmount--;
+        EnergyHeal(healEnergyAmount);
         UpdateEffectList();
         _handManager.FillHand();
     }
@@ -311,13 +314,13 @@ public class CharacterManager: MonoBehaviour
 
     public void EnergyHeal(int amount)
     {
-        _cost = Mathf.Min(_cost + amount, MaxCost);
+        _cost = Mathf.Clamp(_cost + amount, 0, MaxCost);
         UpdateCostDisplay();
     }
     
     public void AddDefense(int amount)
     {
-        _defense += Math.Max(amount,0);
+        _defense += amount;
         UpdateDefenseDisplay();
     }
 
@@ -426,7 +429,7 @@ public class CharacterManager: MonoBehaviour
             if (display == null) return;
             _effectDisplays.Add(display);
 
-            display.SetEffect(effect.GetEffectType(), effect.GetMagnitude().ToString());
+            display.SetEffect(effect, effect.GetMagnitude().ToString());
 
             Vector2 spriteSize = display.GetSpriteSize();
             float nativeHeight = spriteSize.y > 0f ? spriteSize.y : containerHeight;

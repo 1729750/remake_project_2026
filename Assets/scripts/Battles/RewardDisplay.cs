@@ -47,7 +47,7 @@ public class RewardDisplay : MonoBehaviour
         if (_effectDisplay != null)
         {
             _effectDisplay.SetLocalPosition(Vector3.zero);
-            _effectDisplay.SetEffect(cardEffect.GetEffect().GetEffectType(), cardEffect.GetEffect().GetMagnitude().ToString());
+            _effectDisplay.SetEffect(cardEffect.GetEffect(), cardEffect.GetEffect().GetMagnitude().ToString());
             _effectDisplay.SetSortingLayer("UI");
         }
 

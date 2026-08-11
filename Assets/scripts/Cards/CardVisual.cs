@@ -68,7 +68,7 @@ public class CardVisual : MonoBehaviour
             {
                 CardEffect cardEffect = cardEffects[i];
                 int magnitude = cardEffect.GetMagnitude();
-                _effectDisplays[i].SetEffect(cardEffect.GetEffect().GetEffectType(), magnitude <= -1 ? "" : magnitude.ToString());
+                _effectDisplays[i].SetEffect(cardEffect.GetEffect(), magnitude <= -1 ? "" : magnitude.ToString());
             }
             else
             {
