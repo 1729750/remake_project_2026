@@ -33,11 +33,7 @@ public class QueueManager
                 _queue[i] = card;
                 _cardObjects[i] = cardObject;
                 if (cardObject != null)
-                {
-                    var visual = cardObject.GetComponent<CardVisual>();
-                    if (visual != null)
-                        visual.SetFace(true);
-                }
+                    card.SetFace(true);
                 for (int j = i; j > 0; j--)
                 {
                     if (_queue[j].GetCooldownLeft() < _queue[j - 1].GetCooldownLeft())
@@ -68,9 +64,8 @@ public class QueueManager
             if (_cardObjects[i] == null || _slots[i] == null) continue;
 
             _cardObjects[i].transform.SetParent(_slots[i], true);
-            var visual = _cardObjects[i].GetComponent<CardVisual>();
-            if (visual != null)
-                visual.MoveTo(_slots[i].position);
+            if (_queue[i] != null)
+                _queue[i].MoveTo(_slots[i].position);
             else
                 _cardObjects[i].transform.position = _slots[i].position;
         }
@@ -79,18 +74,26 @@ public class QueueManager
     public CardInstance[] GetQueue() => _queue;
     public Transform GetSlot(int index) => (_slots != null && index >= 0 && index < _slots.Length) ? _slots[index] : null;
 
-    public void TickQueueCards(CharacterManager characterManager)
+    public void TickQueueCards(CharacterManager characterManager, int tick = 1)
     {
         for (int i = 0; i < QueueSize; i++)
         {
             if (_queue[i] == null) continue;
 
-            _queue[i].TickCooldown();
+            _queue[i].TickCooldown(tick);
+            foreach (CardEffect cardEffect in _queue[i].GetEffects())
+                cardEffect.GetEffect().OnTick(characterManager);
+        }
+        for (int i = 0; i < QueueSize; i++)
+        {
+            if (_queue[i] == null) continue;
+
             if (_queue[i].IsReady())
             {
                 characterManager.PlayCard(_queue[i]);
                 _queue[i] = null;
                 DestroyCardVisual(i);
+                i = 0;
             }
         }
         CompactQueue();

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: defense
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 3
+  cooldown: 2
   cost: 4
   _effects:
   - _effect:

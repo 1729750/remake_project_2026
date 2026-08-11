@@ -11,6 +11,13 @@ public enum EffectType
     EnergyHeal,
     AddDump,
     Burning,
+    CostToCooldown,
+    CooldownToCost,
+    DivideCooldown,
+    TimeSkip,
+    Quicker,
     Preserve,
     Disposable,
+    DefenseToCooldown,
+    EnergyDrain,
 }

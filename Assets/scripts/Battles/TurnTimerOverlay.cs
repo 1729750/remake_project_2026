@@ -19,7 +19,7 @@ public class TurnTimerOverlay : MonoBehaviour
 
         var mr = GetComponent<MeshRenderer>();
         mr.sortingLayerName = "Default";
-        mr.sortingOrder = 3;
+        mr.sortingOrder = 13;
         var mat = new Material(Shader.Find("Sprites/Default"));
         mat.color = shadowColor;
         mr.material = mat;
