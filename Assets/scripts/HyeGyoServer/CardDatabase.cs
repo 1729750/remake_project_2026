@@ -4,44 +4,53 @@ using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "CardDatabase",
-    menuName = "Game/Card Database"
-)]
-public sealed class CardDatabase :
-    ScriptableObject
+    menuName = "Scriptable Objects/CardDatabase")]
+public class CardDatabase : ScriptableObject
 {
+    [Serializable]
+    public class CardEntry
+    {
+        public int cardId;
+        public CardDefinition card;
+    }
+
     [SerializeField]
-    private List<CardDefinition> cards =
-        new List<CardDefinition>();
+    private List<CardEntry> cards = new List<CardEntry>();
 
     public bool TryGetCard(
         int cardId,
         out CardDefinition card)
     {
-        for (int i = 0;
-             i < cards.Count;
-             i++)
+        for (int i = 0; i < cards.Count; i++)
         {
-            if (cards[i].Id == cardId)
-            {
-                card = cards[i];
-                return true;
-            }
+            CardEntry entry = cards[i];
+
+            if (entry == null)
+                continue;
+
+            if (entry.cardId != cardId)
+                continue;
+
+            if (entry.card == null)
+                continue;
+
+            card = entry.card;
+            return true;
         }
 
         card = null;
         return false;
     }
-}
 
+    public CardDefinition GetCard(int cardId)
+    {
+        if (TryGetCard(
+            cardId,
+            out CardDefinition card))
+        {
+            return card;
+        }
 
-[Serializable]
-public sealed class CardDefinition
-{
-    [SerializeField] private int id;
-    [SerializeField] private string cardName;
-    [SerializeField] private int value;
-
-    public int Id => id;
-    public string CardName => cardName;
-    public int Value => value;
+        return null;
+    }
 }
