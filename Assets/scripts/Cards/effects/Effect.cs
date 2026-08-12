@@ -32,6 +32,10 @@ public class Effect
                 case EffectType.Attack: return EffectTargetPolarity.Negative;
                 case EffectType.Defend: return EffectTargetPolarity.Positive;
                 case EffectType.EnergyHeal: return EffectTargetPolarity.Positive;
+                // Preserve/Disposable은 서브클래스 없이 이 베이스 클래스 그대로 쓰이는 카드 자신의
+                // 성질(마커) 플래그라 User를 향한다.
+                case EffectType.Preserve: return EffectTargetPolarity.Positive;
+                case EffectType.Disposable: return EffectTargetPolarity.Positive;
                 default:                return EffectTargetPolarity.Neutral;
             }
         }

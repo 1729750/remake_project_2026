@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using UnityEngine;
 
@@ -26,7 +27,7 @@ public class CharacterData : ScriptableObject
     {
         CardDefinition[] clonedCards = deck != null
             ? deck.GetCards().Select(card => card.Clone()).ToArray()
-            : new CardDefinition[0];
+            : Array.Empty<CardDefinition>();
         return Create(maxHealth, CardCollection.Create(clonedCards));
     }
 }

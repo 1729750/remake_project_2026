@@ -4,6 +4,11 @@ using System;
 public class CostToCooldown:Effect
 {
     public CostToCooldown(int magnitude):base(EffectType.CostToCooldown, magnitude) { }
+
+    // CostToCooldown은 subject 자신의 카드를 유리하게 바꿔주는 자기 강화 유틸리티이므로 양수
+    // magnitude는 User, 음수는 Opponent(효과 약화)를 향한다.
+    public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Positive;
+
     public override void OnExpired(CharacterManager subject) { }
     public override void OnTurnStarted(CharacterManager subject) { }
     public override void OnTurnEnded(CharacterManager subject) { }

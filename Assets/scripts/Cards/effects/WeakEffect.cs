@@ -12,16 +12,25 @@ public class WeakEffect : Effect
     public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Negative;
 
     // Weak: target deals reduced damage while applied
-    public override void OnAppliedOther(CharacterManager subject, CardEffect effect,bool a)
+    public override void OnApplyingOther(CharacterManager subject, CardEffect effect,bool a)
     {
         if (effect.GetEffect().GetEffectType() == EffectType.Attack)
         {
-            effect.Multiply(1.2f);
+            effect.Multiply(0.8f);
         }
 
         if (!a) return;
         _magnitude--;
         if(_magnitude <= 0)
             subject.RemoveEffect<WeakEffect>();
+    }
+
+    public override void OnTurnEnded(CharacterManager subject)
+    {
+        _magnitude -= 1;
+        if (_magnitude <= 0)
+        {
+            subject.RemoveEffect<BurningEffect>();
+        }
     }
 }

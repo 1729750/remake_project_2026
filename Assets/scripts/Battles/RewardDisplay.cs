@@ -28,9 +28,20 @@ public class RewardDisplay : MonoBehaviour
         SetCostCooldownActive(false);
     }
 
+    // RewardDisplay를 빈 상태로 되돌린다: RewardText/RewardSprite를 비우고, SetUpgrade가 띄웠던
+    // effectDisplay를 지우고, cost/cooltime 표시를 끈다. Init/SetUpgrade 둘 다 각자 내용을 채우기
+    // 전에 먼저 이걸 불러서, 이전에 표시했던 내용(RewardSprite 아이콘 등)이 안 지워지고 새 내용과
+    // 겹쳐 보이는 일이 없게 한다.
+    public void ResetDisplay()
+    {
+        _rewardText.text = "";
+        _rewardSprite.sprite = null;
+        ClearEffect();
+    }
+
     public void Init(string rewardText, Sprite rewardSprite)
     {
-        ClearEffect();
+        ResetDisplay();
         _rewardText.text = rewardText;
         _rewardSprite.sprite = rewardSprite;
     }
@@ -39,16 +50,24 @@ public class RewardDisplay : MonoBehaviour
     // cost/cooltime 변화량도 함께 켜서 표기한다. 카드 획득/삭제 등 다른 항목에서는 꺼진 채로 남는다.
     public void SetUpgrade(CardUpgrade upgrade)
     {
-        ClearEffect();
-        _rewardText.text = "";
+        ResetDisplay();
 
         CardEffect cardEffect = upgrade.effect;
         _effectDisplay = EffectDisplay.Spawn(transform);
         if (_effectDisplay != null)
         {
-            _effectDisplay.SetLocalPosition(Vector3.zero);
             _effectDisplay.SetEffect(cardEffect.GetEffect(), cardEffect.GetEffect().GetMagnitude().ToString());
             _effectDisplay.SetSortingLayer("UI");
+
+            // EffectDisplay 프리팹은 항상 원본(1x1) 스케일로 스폰되므로, RewardSprite가 이미
+            // 카드 아이콘 자리에 맞게 튜닝된 localScale.y를 목표 높이로 삼아 맞춘다
+            // (CharacterManager.UpdateEffectList와 동일한 높이 기준 스케일 방식).
+            Vector2 spriteSize = _effectDisplay.GetSpriteSize();
+            float targetHeight = _rewardSprite.transform.localScale.y;
+            float nativeHeight = spriteSize.y > 0f ? spriteSize.y : targetHeight;
+            float scale = nativeHeight > 0f ? targetHeight / nativeHeight : 1f;
+            _effectDisplay.SetScale(scale);
+            _effectDisplay.SetLocalPosition(Vector3.zero);
         }
 
         SetCostCooldownActive(true);
