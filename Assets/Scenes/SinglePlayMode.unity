@@ -1776,9 +1776,35 @@ MonoBehaviour:
   - {fileID: 21300000, guid: bcec2aa82a16dc7468630964fa0442e5, type: 3}
   - {fileID: 21300000, guid: 0e2ed3ccf7309194c89cfa88aa90295c, type: 3}
   rewardCards:
-  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 6e4e4276562262248aecbc66706b5a51, type: 2}
+  - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+  - {fileID: 11400000, guid: 0f5fba19a89ce0d4ca8f9e31e19b809a, type: 2}
+  - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}
+  - {fileID: 11400000, guid: d8282a6efacc94948870bdc623775219, type: 2}
+  - {fileID: 11400000, guid: e3905ac462ed1064bb284a2c7278014d, type: 2}
+  - {fileID: 11400000, guid: b6f12a9d57055c9459cedcfdb93442fc, type: 2}
+  - {fileID: 11400000, guid: fd0cd6fd89259c64eb1a1d8b72537eb8, type: 2}
+  - {fileID: 11400000, guid: 61c2840774674e3f9c1c449ae8866cf2, type: 2}
+  - {fileID: 11400000, guid: e1875c35347d4f329d55fd6fe8f6a982, type: 2}
+  - {fileID: 11400000, guid: 487e1117532a455bbf97bb73edfd001c, type: 2}
+  - {fileID: 11400000, guid: 7b5dfdeb1ab14e0f83732438e0804218, type: 2}
+  - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+  - {fileID: 11400000, guid: 7941aedc84ff4262be4b816c332100dc, type: 2}
+  - {fileID: 11400000, guid: f42992e211d149fdaaeb501fa66b2124, type: 2}
+  - {fileID: 11400000, guid: 139a1bc889eb4b3bbfb5f23d53e2df1b, type: 2}
+  - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+  - {fileID: 11400000, guid: 6794d21a31874765a7334e396b07bc3f, type: 2}
+  - {fileID: 11400000, guid: f38c189ec00642e0b41978b1b8a2f08d, type: 2}
+  - {fileID: 11400000, guid: 1d0f4083eb82443ca4739191f210b0dc, type: 2}
+  - {fileID: 11400000, guid: 64d603a27f1e4efeb8ea6cd43ebd5dc8, type: 2}
+  - {fileID: 11400000, guid: 25c9899db6794fab9460fa5fae71efb5, type: 2}
+  - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+  - {fileID: 11400000, guid: 8ac2a13904754e5aa42070b1ac54f545, type: 2}
+  - {fileID: 11400000, guid: ccf8f9dfcc5f4a8e90a171c84d2323d5, type: 2}
+  - {fileID: 11400000, guid: fcaa4318c10e47eaa173c9aa749c997b, type: 2}
+  - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
+  - {fileID: 11400000, guid: ce7596a0626246bb9b31e06b87e1ace5, type: 2}
+  - {fileID: 11400000, guid: 237f6ed46cf7484eaf83b6465bb9d8bf, type: 2}
 --- !u!1 &809160019
 GameObject:
   m_ObjectHideFlags: 0
@@ -2285,17 +2311,31 @@ MonoBehaviour:
   - effectType: 6
     sprite: {fileID: -7746483929725356217, guid: bd76407b9e7063241a69f1b49b9d9d53, type: 3}
   - effectType: 7
-    sprite: {fileID: -1143052083508786481, guid: bd76407b9e7063241a69f1b49b9d9d53, type: 3}
+    sprite: {fileID: 21300000, guid: e5fe154e1eb1b0242bac81a4e7c69729, type: 3}
   - effectType: 8
-    sprite: {fileID: -2286808058832972506, guid: 223a6b9c6573af641b48dd5ca808db20, type: 3}
+    sprite: {fileID: 21300000, guid: 962e2d77b0edbbb48b5375573c41c7fe, type: 3}
   - effectType: 9
-    sprite: {fileID: -1171175124282165417, guid: e85b61ad0735a1f43bb5525e8e335e15, type: 3}
+    sprite: {fileID: 21300000, guid: 836c997dc123d9142a96396ef956cf74, type: 3}
   - effectType: 10
-    sprite: {fileID: 1846145418682362763, guid: 876e67cc23696cd4fa676cad8bd89cac, type: 3}
+    sprite: {fileID: 21300000, guid: ded04d5cd4acead469f632599543dfc1, type: 3}
   - effectType: 11
-    sprite: {fileID: 4656978322949265672, guid: dd71bd5a68f0eb84db1e1ba5efc2f7ff, type: 3}
+    sprite: {fileID: 21300000, guid: 01ed87108cb46a54d8efa33151cf72eb, type: 3}
   - effectType: 12
-    sprite: {fileID: -5252754215550629752, guid: b662a7e74e1697047b87bb16274d69d6, type: 3}
+    sprite: {fileID: 21300000, guid: 5361a1ca50c7457419c4f4364f6eba37, type: 3}
+  - effectType: 13
+    sprite: {fileID: 21300000, guid: 22cc668ea67469147988527edad8eac3, type: 3}
+  - effectType: 14
+    sprite: {fileID: 21300000, guid: 3b9c915e6f15d0a47951a2a0413087fb, type: 3}
+  - effectType: 15
+    sprite: {fileID: 21300000, guid: d044de8bf84f5004bbeb4b8dd5078042, type: 3}
+  - effectType: 16
+    sprite: {fileID: 0}
+  - effectType: 17
+    sprite: {fileID: 0}
+  - effectType: 18
+    sprite: {fileID: 21300000, guid: 706200e4caa445842bca051cbbac3f7d, type: 3}
+  - effectType: 19
+    sprite: {fileID: 21300000, guid: 8b353d31dd7025c4094fddad6db2abd8, type: 3}
 --- !u!4 &955717469
 Transform:
   m_ObjectHideFlags: 0
@@ -5253,9 +5293,13 @@ MonoBehaviour:
   mapManager: {fileID: 1474451737}
   firstEnemyData: {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
   enemyCandidates:
-  - {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
-  - {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
-  - {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
+  - {fileID: 11400000, guid: 7f7735e5f0ca4b06a3b82179e70c2ae2, type: 2}
+  - {fileID: 11400000, guid: 6a4799f864a74783abb3beac373165d7, type: 2}
+  - {fileID: 11400000, guid: c4989c84f6b64c5986318c133aac8f33, type: 2}
+  - {fileID: 11400000, guid: 0c54e1fbcee54487978472b233cac7e2, type: 2}
+  - {fileID: 11400000, guid: 103eea38d1d4429dbb97d2f0a7659daf, type: 2}
+  - {fileID: 11400000, guid: 6029ab442b794ef7866049d9928ea30a, type: 2}
+  - {fileID: 11400000, guid: ac045211727241178adc0367a0bf875e, type: 2}
 --- !u!4 &1990682883
 Transform:
   m_ObjectHideFlags: 0

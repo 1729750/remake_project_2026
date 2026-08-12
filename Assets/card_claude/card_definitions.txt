@@ -1,4 +1,4 @@
-# CardDefinition dump — source: Assets/card_claude/*.asset (19 cards found via script GUID 3a8cc5b9a2688154ab7153dacfb3a7fc)
+# CardDefinition dump — source: Assets/card_claude/*.asset (21 cards found via script GUID 3a8cc5b9a2688154ab7153dacfb3a7fc)
 # sprite / spriteBackground는 제외했습니다. 편집 후 저에게 반영을 맡기실 땐 이 파일 포맷 그대로 주시면 됩니다.
 #
 # 블록 포맷:
@@ -108,6 +108,14 @@ cardType: Attack
 effects:
   - TimeSkip 6 -> User
 
+[Sap]
+cost: 5
+cooldown: 5
+cardType: Attack
+effects:
+  - EnergyHeal 4 -> User
+  - EnergyDrain 4 -> Opponent
+
 [guarded-riposte]
 cost: 3
 cooldown: 4
@@ -153,6 +161,13 @@ cooldown: 3
 cardType: Attack
 effects:
   - AddDump 6 -> Opponent
+
+[GreatWall]
+cost: 13
+cooldown: 3
+cardType: Attack
+effects:
+  - Defend 30 -> User
 
 [chrono-fracture]
 cost: 20

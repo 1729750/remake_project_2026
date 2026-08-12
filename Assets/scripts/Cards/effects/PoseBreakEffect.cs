@@ -23,6 +23,6 @@ public class PoseBreakEffect:Effect
     {
         _magnitude--;
         if(_magnitude <= 0)
-            subject.RemoveEffect<WeakEffect>();
+            subject.RemoveEffect<PoseBreakEffect>();
     }
 }

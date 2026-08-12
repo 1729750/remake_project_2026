@@ -212,10 +212,10 @@ public class RewardManager : MonoBehaviour
         CardEffect cardEffect = new CardEffect(effect, target);
 
         int priceMagnitude = effect.DoesntUseMagnitude ? 1 : magnitude;
-        int budget = Mathf.FloorToInt(priceInfo.price) * priceMagnitude;
+        int budget = Mathf.FloorToInt(priceInfo.price * (float)priceMagnitude);
         (int costUnits, int cooldownUnits) = DistributeBudget(budget);
 
-        return new CardUpgrade(cardEffect, -costUnits, -cooldownUnits);
+        return new CardUpgrade(cardEffect, costUnits, cooldownUnits);
     }
 
     // source에서 최대 count개를 중복 없이 랜덤으로 뽑아 반환한다. source가 count보다 작으면 전부 반환한다.
@@ -446,8 +446,13 @@ public class RewardManager : MonoBehaviour
 
     // 보상 화면(카드 획득/삭제/강화 중 무엇이든)을 완전히 닫는 공통 지점.
     // reward 쪽에서 마지막으로 남아있던 input context를 여기서 pop한다.
+    // ClearRewardCard는 원래 ShowRewardCard 시작 시점에만 불려서, "카드 획득"을 confirm한 뒤에는
+    // 카드 오브젝트 3장이 계속 RewardPanel 밑에 남아있었다(다음에 다시 "카드 획득"을 고를 때만
+    // 지워짐) — delete/enhance로 확정해도 마찬가지였다. 여기서 공통으로 정리해 어떤 경로로
+    // confirm하든 남지 않게 한다.
     private void ConfirmReward()
     {
+        ClearRewardCard();
         PlayerInputManager.Instance.Unload();
         GameManager.Instance.ShowEnemySelection();
     }

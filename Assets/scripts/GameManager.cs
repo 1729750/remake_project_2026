@@ -275,7 +275,7 @@ public class GameManager : MonoBehaviour
         float screenWidth = screenHeight * cam.aspect;
         deckDisplay.transform.position = new Vector3(cam.transform.position.x, cam.transform.position.y, deckDisplay.transform.position.z);
         deckDisplay.SetSize(new Vector2(screenWidth/3*2, screenHeight/3*2));
-        deckDisplay.SetDeck(PlayerManager.Instance.GetDeck(), filter);
+        deckDisplay.SetDeck(PlayerManager.Instance.GetDeck(), filter, 1.2f);
         return deckDisplay;
     }
 }

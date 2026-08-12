@@ -5,6 +5,10 @@ public class QuickerEffect: Effect
 {
     public QuickerEffect(int magnitude):base(EffectType.Quicker, magnitude) { }
 
+    // Quicker는 subject 자신의 틱 속도를 올려주는 버프이므로 양수 magnitude는 User, 음수는
+    // Opponent(효과 약화)를 향한다.
+    public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Positive;
+
     public override void OnExpired(CharacterManager subject)
     {
         subject.ChangeTickSpeed(-1);

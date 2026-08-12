@@ -5,6 +5,11 @@ public class DefenseToCooldown : Effect
 {
     public DefenseToCooldown(int magnitude) : base(EffectType.DefenseToCooldown, magnitude) { }
 
+    // DefenseToCooldown은 subject 자신의 방어도를 자기 카드 쿨다운으로 바꿔주는 자기 강화
+    // 유틸리티이므로 User를 향한다. magnitude를 쓰지 않는 타입(DoesntUseMagnitude)이라 부호로
+    // 방향을 가르는 의미는 없지만, 다른 자기 강화 유틸리티 타입들과 동일하게 Positive로 맞춰둔다.
+    public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Positive;
+
     public override void OnExpired(CharacterManager subject) { }
     public override void OnTurnStarted(CharacterManager subject) { }
     public override void OnTurnEnded(CharacterManager subject) { }
