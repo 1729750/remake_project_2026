@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af00b57afd04267419cdebad631758f4, type: 3}
+  m_Name: DebuffAttackDeck
+  m_EditorClassIdentifier: Assembly-CSharp::CardCollection
+  cards:
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 6e4e4276562262248aecbc66706b5a51, type: 2}
+  - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+  - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+  - {fileID: 11400000, guid: 0f5fba19a89ce0d4ca8f9e31e19b809a, type: 2}
+  - {fileID: 11400000, guid: 8ac2a13904754e5aa42070b1ac54f545, type: 2}
+  - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+  - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+  - {fileID: 11400000, guid: 7941aedc84ff4262be4b816c332100dc, type: 2}

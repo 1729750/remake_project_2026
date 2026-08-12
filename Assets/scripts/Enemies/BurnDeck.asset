@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af00b57afd04267419cdebad631758f4, type: 3}
+  m_Name: BurnDeck
+  m_EditorClassIdentifier: Assembly-CSharp::CardCollection
+  cards:
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+  - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+  - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}
+  - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}
+  - {fileID: 11400000, guid: fcaa4318c10e47eaa173c9aa749c997b, type: 2}
+  - {fileID: 11400000, guid: fcaa4318c10e47eaa173c9aa749c997b, type: 2}
+  - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+  - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+  - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}

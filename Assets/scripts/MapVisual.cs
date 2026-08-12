@@ -11,6 +11,7 @@ public class MapVisual : MonoBehaviour
     private SpriteRenderer _atkBar;
     private SpriteRenderer _defBar;
     private Transform _mainEffects;
+    private SpriteRenderer _mainEffectsBackground;
     private GameObject _highlight;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
 
@@ -19,6 +20,7 @@ public class MapVisual : MonoBehaviour
         _atkBar = transform.Find("AtkDefBar/AtkBar").GetComponent<SpriteRenderer>();
         _defBar = transform.Find("AtkDefBar/DefBar").GetComponent<SpriteRenderer>();
         _mainEffects = transform.Find("MainEffects");
+        _mainEffectsBackground = _mainEffects.GetComponent<SpriteRenderer>();
         _highlight = transform.Find("HighLight").gameObject;
         _highlight.SetActive(false);
     }
@@ -53,6 +55,16 @@ public class MapVisual : MonoBehaviour
         var widths = new float[emojiCount];
         var displays = new EffectDisplay[emojiCount];
 
+        // effectDisplay는 MainEffects의 자식으로 스폰되므로 MainEffects의 자체 스케일(1.2배)을
+        // 그대로 물려받는다. 그래서 목표 높이도 MainEffects의 월드 bounds(이미 그 1.2배가 반영된 값)가
+        // 아니라 sprite 자체의(스케일 미반영) 크기를 써야 한다 — 안 그러면 자식에게 스케일을 한 번 더
+        // 곱해 얹는 꼴이 되어(1.2배가 중복 적용) 이중으로 커진다. GetSpriteSize()도 동일하게
+        // sprite.bounds(스케일 미반영)를 반환하므로 이렇게 해야 서로 같은 기준(스프라이트 원본 크기)으로
+        // 비교된다.
+        float targetHeight = _mainEffectsBackground != null && _mainEffectsBackground.sprite != null
+            ? _mainEffectsBackground.sprite.bounds.size.y
+            : 1f;
+
         for (int i = 0; i < emojiCount; i++)
         {
             EffectDisplay display = EffectDisplay.Spawn(_mainEffects);
@@ -63,7 +75,12 @@ public class MapVisual : MonoBehaviour
             display.SetEffect(topEffects[i], "");
             display.SetSortingLayer("UI");
 
-            widths[i] = display.GetSpriteSize().x * display.transform.localScale.x;
+            Vector2 spriteSize = display.GetSpriteSize();
+            float nativeHeight = spriteSize.y > 0f ? spriteSize.y : targetHeight;
+            float scale = nativeHeight > 0f ? targetHeight / nativeHeight : 1f;
+            display.SetScale(scale);
+
+            widths[i] = spriteSize.x * scale;
         }
 
         float totalWidth = 0f;

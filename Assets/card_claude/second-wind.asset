@@ -20,5 +20,5 @@ MonoBehaviour:
       _magnitude: 7
     _target: 0
   sprite: {fileID: 0}
-  spriteBackground: {fileID: 0}
+  spriteBackground: {fileID: 21300000, guid: 63a2ba4b6a206254bbfbc91d9817499b, type: 3}
   cardType: 0

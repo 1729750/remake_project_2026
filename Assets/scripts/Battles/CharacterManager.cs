@@ -189,10 +189,9 @@ public class CharacterManager: MonoBehaviour
         _defenseIndicatorCoroutine = null;
     }
 
-    public void SelectCard(int index)
+    private void SelectCard(int index)
     {
         if (BattleManager.Instance == null || BattleManager.Instance.CurrentState != BattleState.Turn) return;
-        _isGuard = false;
         if (index == RedrawAction || index == DefenseAction)
         {
             _specialAction = index;
@@ -210,6 +209,7 @@ public class CharacterManager: MonoBehaviour
             return;
         }
 
+        _isGuard = false;
         var hand = _handManager.GetHand();
         if (index < 0 || index >= hand.Length || hand[index] == null) return;
         _specialAction = 0;
