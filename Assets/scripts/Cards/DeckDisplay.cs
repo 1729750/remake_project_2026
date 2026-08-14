@@ -13,7 +13,9 @@ public class DeckDisplay : MonoBehaviour
 {
     private const int Columns = 4;
 
+    private RectTransform _rectTransform;
     private Vector2 _containerSize;
+    private bool _sizeExplicitlySet;
     private GameObject _cardPrefab;
     private readonly List<CardInstance> _cardInstances = new List<CardInstance>();
     // _cardIndexMap[표시 인덱스] = filter를 통과해 표시된 카드의 원본 cards 리스트 인덱스.
@@ -28,19 +30,42 @@ public class DeckDisplay : MonoBehaviour
     private int _topRow;
     private int _selectedIndex;
 
-    // 레이아웃 계산에 쓰일 컨테이너 크기(월드 단위). SetDeck 전에 호출해야 한다.
-    public void SetSize(Vector2 size) => _containerSize = size;
+    private void Awake()
+    {
+        _rectTransform = GetComponent<RectTransform>();
+    }
+
+    // 레이아웃 계산에 쓰일 컨테이너 크기(월드 단위)를 명시적으로 지정한다. 이후 SetDeck을 몇 번을
+    // 다시 불러도(재활용) 이 값이 계속 쓰이고, RectTransform 기반 기본값은 더 이상 참조하지 않는다.
+    public void SetSize(Vector2 size)
+    {
+        _containerSize = size;
+        _sizeExplicitlySet = true;
+    }
+
+    // SetSize로 크기를 명시적으로 받은 적이 없으면 자신의 RectTransform 크기를 그대로 컨테이너
+    // 크기로 쓴다. DeckDisplay를 재활용(같은 인스턴스에 매번 다른 덱을 보여주는 용도)할 때, 매번
+    // SetSize를 호출하지 않아도 프리팹/인스펙터에 잡아둔 RectTransform 크기가 기본값이 되게 한다.
+    private void EnsureContainerSize()
+    {
+        if (_sizeExplicitlySet || _rectTransform == null) return;
+        _containerSize = _rectTransform.rect.size;
+    }
 
     // cardSize: cardPrefab 원본 크기 대비 배율(1이 원본 크기). 이 값으로 카드의 실제 표시 크기를
     // 정하고, 카드 사이 padding은 Columns장이 컨테이너 가로 폭을 정확히 채우도록 역산한다.
     // 예: 가로 폭 100, 카드 가로 길이 10이면 100 - 10*4 = 60을 카드 사이 3칸에 나눠 padding 20.
     // filter: cards 중 표시할 카드만 골라낸다. 기본값은 전부 표시(항상 true).
+    // 기존에 표시하고 있던 카드가 있으면 전부 정리(ClearCards)하고 새로 채우므로, DeckDisplay를
+    // 파괴/재생성하지 않고 반복 호출해서 재활용하는 용도로도 그대로 쓸 수 있다.
     public void SetDeck(List<CardDefinition> cards, Func<CardDefinition, bool> filter, float cardSize = 1f)
     {
         filter ??= _ => true;
 
         ClearCards();
         if (cards == null || cards.Count == 0) return;
+
+        EnsureContainerSize();
 
         if (_cardPrefab == null)
             _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
@@ -79,18 +104,54 @@ public class DeckDisplay : MonoBehaviour
         foreach (CardInstance instance in _cardInstances)
             instance.SetSize(cardTargetSize);
 
-        _selectedIndex = 0;
+        // 생성 시점에는 아무 카드도 select되지 않은 상태(-1)로 둔다. select되려면 자신의 input이
+        // load될 때 호출되는 SelectFirst를 거쳐야 한다.
+        _selectedIndex = -1;
         _topRow = 0;
         LayoutCards();
+    }
+
+    // 이 DeckDisplay를 조작하는 input context가 load될 때 호출: 0번 카드를 select하고, 보이는
+    // 행 구간도 맨 위(0행)로 되돌린다 — 이전에 스크롤해뒀던 상태로 재진입하지 않게 한다.
+    public void SelectFirst()
+    {
+        if (_cardInstances.Count == 0) return;
+
+        if (_selectedIndex >= 0)
+            _cardInstances[_selectedIndex].SetSelected(false);
+        _selectedIndex = 0;
         _cardInstances[0].SetSelected(true);
+
+        _topRow = 0;
+        LayoutCards();
+    }
+
+    // 이 DeckDisplay를 조작하던 input context가 unload될 때 호출: 다시 아무 것도 select되지 않은
+    // 상태(-1)로 되돌린다.
+    public void Deselect()
+    {
+        if (_selectedIndex >= 0 && _selectedIndex < _cardInstances.Count)
+            _cardInstances[_selectedIndex].SetSelected(false);
+        _selectedIndex = -1;
     }
 
     // 표시된(필터를 통과한) 카드 기준 선택 인덱스가 아니라, SetDeck에 넘겼던 원본 리스트 인덱스를 반환한다.
-    public int GetSelectedIndex() => _cardIndexMap[_selectedIndex];
+    // 아직 아무 것도 select되지 않았다면(-1) -1을 그대로 반환한다.
+    public int GetSelectedIndex() => _selectedIndex >= 0 ? _cardIndexMap[_selectedIndex] : -1;
 
+    // 현재 select된 카드가 마지막 행에 있는지. 아직 아무 것도 select되지 않았다면(-1) false를 반환한다.
+    public bool IsSelectionOnBottomRow()
+    {
+        if (_selectedIndex < 0 || _cardInstances.Count == 0) return false;
+
+        int lastRow = Mathf.CeilToInt((float)_cardInstances.Count / Columns) - 1;
+        return _selectedIndex / Columns == lastRow;
+    }
+
+    // 아직 아무 것도 select되지 않았다면(-1, input이 아직 load되지 않은 상태) 아무 일도 하지 않는다.
     public void MoveSelectionHorizontal(int delta)
     {
-        if (_cardInstances.Count == 0) return;
+        if (_cardInstances.Count == 0 || _selectedIndex < 0) return;
 
         int newIndex = _selectedIndex + delta;
         if (newIndex < 0 || newIndex >= _cardInstances.Count) return;
@@ -101,7 +162,7 @@ public class DeckDisplay : MonoBehaviour
 
     public void MoveSelectionVertical(int delta)
     {
-        if (_cardInstances.Count == 0) return;
+        if (_cardInstances.Count == 0 || _selectedIndex < 0) return;
 
         int col = _selectedIndex % Columns;
         int row = _selectedIndex / Columns;

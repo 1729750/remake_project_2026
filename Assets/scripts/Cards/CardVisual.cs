@@ -16,6 +16,14 @@ public class CardVisual : MonoBehaviour
     private GameObject _back;
     private Coroutine _moveCoroutine;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
+    private PopupDisplay _popupDisplay;
+
+    // SetLayer("UI")로 표시된 카드가 select된 동안에만 effect 팝업을 띄우기 위한 상태.
+    // SetCardDefinition이 SetLayer/SetSelected보다 먼저 불리는 경우(DeckDisplay/RewardManager 둘 다
+    // 그렇다)가 있어서, effect 목록은 일단 저장해뒀다가 RefreshPopupVisibility가 조건이 맞을 때 적용한다.
+    private bool _popupTrigger;
+    private bool _selected;
+    private List<EffectType> _pendingEffectTypes = new List<EffectType>();
 
     private void Awake()
     {
@@ -29,12 +37,18 @@ public class CardVisual : MonoBehaviour
         _cooltimeText       = transform.Find("Front/cooltime/cooltimeText").GetComponent<TextMeshPro>();
         _selectHighlight    = transform.Find("Front/SelectHighlight").gameObject;
         _selectHighlight.SetActive(false);
+        _popupDisplay       = transform.Find("PopUpDisplay").GetComponent<PopupDisplay>();
 
         // 카드 프리팹이 effect 아래에 고정 개수의 EffectDisplay 슬롯을 미리 자식으로 가지고 있다.
         _effectDisplays.AddRange(_effectArea.GetComponentsInChildren<EffectDisplay>(true));
     }
 
-    public void SetSelected(bool selected) => _selectHighlight.SetActive(selected);
+    public void SetSelected(bool selected)
+    {
+        _selectHighlight.SetActive(selected);
+        _selected = selected;
+        RefreshPopupVisibility();
+    }
 
     public void SetFace(bool front)
     {
@@ -51,6 +65,13 @@ public class CardVisual : MonoBehaviour
        // _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
         _sprite.sprite = def.GetSprite();
         _spriteBackground.sprite = def.GetSpriteBackground();
+
+        CardEffect[] effects = def.GetEffects();
+        _pendingEffectTypes = new List<EffectType>(effects.Length);
+        foreach (CardEffect cardEffect in effects)
+            _pendingEffectTypes.Add(cardEffect.GetEffect().GetEffectType());
+
+        RefreshPopupVisibility();
     }
 
     public void SetCostText(string text) => _costText.text = text;
@@ -83,9 +104,19 @@ public class CardVisual : MonoBehaviour
     // 한 번에 옮긴다. 자주 호출되는 경로가 아니라 필드별로 캐싱하지 않고 그때그때 순회한다.
     public void SetLayer(string sortingLayerName)
     {
+        _popupTrigger = sortingLayerName == "UI";
+        RefreshPopupVisibility();
+
         int sortingLayerID = SortingLayer.NameToID(sortingLayerName);
         foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
             renderer.sortingLayerID = sortingLayerID;
+    }
+
+    // UI 레이어 카드이면서(trigger) 동시에 select된(_selected) 동안에만 팝업을 보여준다.
+    // 셋 중 하나라도 바뀌는 지점(SetLayer/SetSelected/SetCardDefinition)에서 공통으로 호출한다.
+    private void RefreshPopupVisibility()
+    {
+        _popupDisplay.SetEffects(_popupTrigger && _selected ? _pendingEffectTypes : null);
     }
 
     // 카드 배경(SpriteRenderer)의 월드 크기가 targetSize가 되도록 균등하지 않게(가로/세로 개별) 스케일한다.

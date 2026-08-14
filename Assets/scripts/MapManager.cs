@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,6 +9,10 @@ using UnityEngine;
 public class MapManager : MonoBehaviour
 {
     public static MapManager Instance { get; private set; }
+
+    // mapManager의 child로 이미 존재하는 DeckDisplay. 선택 인덱스가 바뀔 때마다 그 인덱스의
+    // 상대 deck을 여기에 다시 채워 넣는 방식으로 재활용한다(인스턴스를 새로 만들지 않는다).
+    [SerializeField] private DeckDisplay opponentDeckDisplay;
 
     private CharacterData[] _candidates;
     private int _selectedIndex;
@@ -52,6 +57,46 @@ public class MapManager : MonoBehaviour
     {
         for (int i = 0; i < _enemyVisuals.Length; i++)
             _enemyVisuals[i]?.SetSelected(i == _selectedIndex);
+
+        RefreshOpponentDeckDisplay();
+    }
+
+    // 현재 선택된 후보의 deck을 opponentDeckDisplay에 다시 채워 넣는다.
+    private void RefreshOpponentDeckDisplay()
+    {
+        if (opponentDeckDisplay == null || _candidates == null || _candidates.Length == 0) return;
+
+        CardCollection deck = _candidates[_selectedIndex]?.GetDeck();
+        List<CardDefinition> cards = deck != null ? deck.GetCards().ToList() : new List<CardDefinition>();
+        opponentDeckDisplay.SetDeck(cards, null, 0.7f);
+    }
+
+    // 적 후보 선택("Select") 컨텍스트 위에 opponentDeckDisplay 탐색용 컨텍스트를 새로 쌓는다.
+    // RewardManager.RewardCardDelete와 같은 패턴 — DeckDisplay의 Move* 함수들을 그대로 바인딩한다.
+    // 다만 Down은 맨 아래 행에서 눌리면 이동 대신 Unload로 상위(적 후보 선택) 입력으로 돌아간다.
+    public void LoadDeckDisplayInput()
+    {
+        if (opponentDeckDisplay == null) return;
+
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
+        {
+            ["Left"]  = () => opponentDeckDisplay.MoveSelectionHorizontal(-1),
+            ["Right"] = () => opponentDeckDisplay.MoveSelectionHorizontal(1),
+            ["Up"]    = () => opponentDeckDisplay.MoveSelectionVertical(-1),
+            ["Down"]  = () =>
+            {
+                if (opponentDeckDisplay.IsSelectionOnBottomRow())
+                {
+                    PlayerInputManager.Instance.Unload();
+                    opponentDeckDisplay.Deselect();
+                }
+                else
+                {
+                    opponentDeckDisplay.MoveSelectionVertical(1);
+                }
+            },
+        });
+        opponentDeckDisplay.SelectFirst();
     }
 
     public void ConfirmSelection()
