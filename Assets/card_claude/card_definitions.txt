@@ -1,0 +1,178 @@
+# CardDefinition dump — source: Assets/card_claude/*.asset (21 cards found via script GUID 3a8cc5b9a2688154ab7153dacfb3a7fc)
+# sprite / spriteBackground는 제외했습니다. 편집 후 저에게 반영을 맡기실 땐 이 파일 포맷 그대로 주시면 됩니다.
+#
+# 블록 포맷:
+#   [object 이름]            <- 에셋 파일명 = ScriptableObject 이름(m_Name)
+#   cost: N                  <- 코스트
+#   cooldown: N               <- 쿨다운
+#   cardType: Attack|Skill    <- CardType enum
+#   effects:
+#     - EffectType magnitude -> Target   <- Target은 User(자기 자신) / Opponent(상대)
+#
+# EffectType 전체 목록(참고용): Attack, Defend, Weak, Vulnerable, Strength, Harden, Guard, PoseBreak,
+#   EnergyHeal, AddDump, Burning, CostToCooldown, CooldownToCost, DivideCooldown, TimeSkip, Quicker,
+#   Preserve, Disposable, DefenseToCooldown, EnergyDrain
+#
+# 새 카드를 추가하려면 새 [이름] 블록을 똑같은 포맷으로 추가하시면 됩니다. 카드 삭제는 블록 통째로 지우면 됩니다.
+#
+# 2026-08-11: 엑셀에서 수정한 내용을 반영 — twin-fang, fracture-guard, vital-ward는 삭제되었습니다.
+
+[flicker-blade]
+cost: 2
+cooldown: 3
+cardType: Attack
+effects:
+  - Attack 5 -> Opponent
+  - Strength 3 -> User
+
+[aegis-plate]
+cost: 4
+cooldown: 3
+cardType: Attack
+effects:
+  - Defend 5 -> User
+  - Harden 3 -> User
+
+[adrenal-surge]
+cost: 4
+cooldown: 2
+cardType: Attack
+effects:
+  - Strength 5 -> User
+  - Harden -5 -> Opponent
+  - Vulnerable 1 -> Opponent
+
+[bastion-core]
+cost: 1
+cooldown: 2
+cardType: Attack
+effects:
+  - Harden 5 -> User
+
+[rift-fang]
+cost: 2
+cooldown: 3
+cardType: Attack
+effects:
+  - Strength 2 -> User
+  - Vulnerable 2 -> Opponent
+
+[sunder-pose]
+cost: 0
+cooldown: 3
+cardType: Attack
+effects:
+  - PoseBreak 1 -> Opponent
+
+[second-wind]
+cost: 0
+cooldown: 6
+cardType: Attack
+effects:
+  - EnergyHeal 7 -> User
+
+[junk-overflow]
+cost: 7
+cooldown: 5
+cardType: Attack
+effects:
+  - AddDump 2 -> Opponent
+  - AddDump 2 -> Opponent
+
+[slow-burn]
+cost: 0
+cooldown: 1
+cardType: Attack
+effects:
+  - Burning 5 -> Opponent
+
+[overclock-core]
+cost: 14
+cooldown: 1
+cardType: Attack
+effects:
+  - DivideCooldown 1 -> User
+
+[bloodwardens-toll]
+cost: 4
+cooldown: 10
+cardType: Attack
+effects:
+  - DefenseToCooldown 1 -> User
+  - Attack 40 -> Opponent
+
+[temporal-snare]
+cost: 15
+cooldown: 3
+cardType: Attack
+effects:
+  - TimeSkip 6 -> User
+
+[Sap]
+cost: 5
+cooldown: 5
+cardType: Attack
+effects:
+  - EnergyHeal 4 -> User
+  - EnergyDrain 4 -> Opponent
+
+[guarded-riposte]
+cost: 3
+cooldown: 4
+cardType: Attack
+effects:
+  - Defend 10 -> User
+  - Attack 10 -> Opponent
+
+[iron-resolve]
+cost: 1
+cooldown: 1
+cardType: Attack
+effects:
+  - Harden 1 -> User
+  - Strength 1 -> User
+
+[weakpoint-strike]
+cost: 7
+cooldown: 2
+cardType: Attack
+effects:
+  - Attack 10 -> Opponent
+  - PoseBreak 2 -> Opponent
+
+[overheal-core]
+cost: 0
+cooldown: 3
+cardType: Attack
+effects:
+  - EnergyHeal 10 -> User
+  - PoseBreak 3 -> Opponent
+
+[corrosive-spores]
+cost: 5
+cooldown: 4
+cardType: Attack
+effects:
+  - Burning 25 -> Opponent
+
+[blight-bomb]
+cost: 2
+cooldown: 3
+cardType: Attack
+effects:
+  - AddDump 6 -> Opponent
+
+[GreatWall]
+cost: 13
+cooldown: 3
+cardType: Attack
+effects:
+  - Defend 30 -> User
+
+[chrono-fracture]
+cost: 20
+cooldown: 1
+cardType: Attack
+effects:
+  - DivideCooldown 1 -> User
+  - Quicker 8 -> User

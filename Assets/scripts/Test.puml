@@ -1,0 +1,263 @@
+@startuml
+title remake_project_2026 — Class Diagram
+caption Unity C# 카드 배틀 시스템 구조도
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam roundcorner 12
+
+skinparam class {
+  BackgroundColor #EAF4FF
+  BorderColor #5B7DB1
+  ArrowColor #555555
+}
+
+class GameManager #F7D8C8 {
+  {static} + Instance : GameManager
+  - playerCharacterManager : CharacterManager
+  - enemyCharacterManager : CharacterManager
+  - turnText : TextMeshPro
+  - turnDuration : float
+  - startDelay : float
+  --
+  (Awake/Start/Update만 담당, 실제 전투 로직은 BattleManager에 위임)
+}
+
+class BattleManager #F7D8C8 {
+  {static} + Instance : BattleManager
+  - _playerCharacterManager : CharacterManager
+  - _enemyCharacterManager : CharacterManager
+  - _turnManager : TurnManager
+  - _turnTimerOverlay : TurnTimerOverlay
+  - _startDelay : float
+  + CurrentState : GameState
+  --
+  + StartBattle()
+  + Tick(deltaTime : float)
+  - OnGameStarted()
+  - OnTurnStarted()
+  - OnTurnEnded()
+  + NotifyDefeat(loser : CharacterManager)
+  + GetOpponent(user : CharacterManager) : CharacterManager
+  + GetEmoji(effectType : EffectType) : string
+}
+
+enum GameState #FFF2CC {
+  GameStarting
+  TurnStart
+  Turn
+  TurnEnd
+  GameFinish
+}
+
+class TurnManager #D9F3E6 {
+  + OnTurnStarted : event Action
+  + OnTurnEnded : event Action
+  - _isActive : bool
+  - _currentTurn : int
+  - _turnDuration : float
+  - _elapsed : float
+  - _overlay : TurnTimerOverlay
+  - _turnText : TextMeshPro
+  --
+  + StartTurn()
+  + EndTurn()
+  + Reset()
+  + Tick(deltaTime : float)
+}
+
+class TurnTimerOverlay #D9F3E6 {
+  - radius : float
+  - segments : int
+  - shadowColor : Color
+  - _meshFilter : MeshFilter
+  - _mesh : Mesh
+  --
+  + SetFill(ratio : float)
+  - BuildMesh(ratio : float)
+}
+
+class CharacterManager #F7D8C8 {
+  - _maxHealth : int
+  - _health : int
+  - _defense : int
+  - _cost : int
+  - _effects : List<Effect>
+  - startDeck : CardDefinition[]
+  - queueManager : QueueManager
+  - _deck : List<CardInstance>
+  - _handManager : HandManager
+  --
+  + Init()
+  + OnTurnStart()
+  + OnTurnEnd()
+  + TakeDamage(amount : int)
+  + Heal(amount : int)
+  + AddDefense(amount : int)
+  + DrawCard() : CardInstance
+  + ReturnToDeck(card : CardInstance)
+  + ApplyEffect(cardEffect : CardEffect)
+  + NotifyVictory()
+}
+
+class HandManager #E8F5E9 {
+  - _hand : CardInstance[]
+  - _selectedIndex : int
+  - _characterManager : CharacterManager
+  - _queueManager : QueueManager
+  --
+  + FillHand()
+  + SelectCard(index : int)
+  + UnselectCard()
+  + GetHand() : CardInstance[]
+  + GetSelectedCard() : CardInstance
+  + UseCard() : bool
+}
+
+class QueueManager #E8F5E9 {
+  - _queue : CardInstance[]
+  - cardPrefab : GameObject
+  - _slots : Transform[]
+  --
+  + AddCard(card : CardInstance) : bool
+  + GetQueue() : CardInstance[]
+  + TickQueueCards(characterManager : CharacterManager)
+}
+
+class CardDefinition #D8E8FF {
+  - cooldown : int
+  - cost : int
+  - _effects : List<CardEffect>
+  - sprite : Sprite
+  - cardType : CardType
+  --
+  + GetCooldown() : int
+  + GetCost() : int
+  + GetEffects() : CardEffect[]
+  + GetCardType() : CardType
+  + GetSprite() : Sprite
+}
+
+class CardInstance #D8E8FF {
+  - _definition : CardDefinition
+  - _owner : CharacterManager
+  - _cooldownLeft : int
+  - cost : int
+  - _effects : List<CardEffect>
+  --
+  + Use()
+  + TickCooldown()
+  + IsReady() : bool
+  + Play(characterManager : CharacterManager)
+  + GetDefinition() : CardDefinition
+  + GetCost() : int
+}
+
+class CardEffect #D8E8FF {
+  - _effect : Effect
+  - _target : EffectTarget
+  - multiplier : float
+  - adder : int
+  --
+  + Reset()
+  + Add(i : int)
+  + Multiply(i : float)
+  + GetEffect() : Effect
+  + GetTarget(user : CharacterManager) : CharacterManager
+  + GetMagnitude() : int
+}
+
+class CardVisual #EEEEEE {
+  - _cardInstance : CardInstance
+  --
+  + SetSelected(selected : bool)
+  + SetCard(cardInstance : CardInstance)
+}
+
+enum CardType #FFF2CC {
+  Attack
+  Skill
+}
+
+enum EffectTarget #FFF2CC {
+  User
+  Opponent
+}
+
+enum EffectType #FFF2CC {
+  Attack
+  Defend
+  Weak
+  Vulnerable
+  Strength
+  Harden
+}
+
+class Effect #FFE6CC {
+  - _effectType : EffectType
+  # _magnitude : int
+  --
+  + GetEffectType() : EffectType
+  + GetMagnitude() : int
+  + AddMagnitude(magnitude : int)
+  {static} + Create(type : EffectType, magnitude : int) : Effect
+  + OnApplied(subject : CharacterManager)
+  + OnExpired(subject : CharacterManager)
+  + OnTurnStarted(subject : CharacterManager)
+  + OnTurnEnded(subject : CharacterManager)
+  + OnApplying(subject : CharacterManager, effect : CardEffect, actualUse : bool)
+  + OnApplyed(subject : CharacterManager, effect : CardEffect, actualUse : bool)
+}
+
+class HardenEffect #FFE6CC
+class StrengthEffect #FFE6CC
+class VulnerableEffect #FFE6CC
+class WeakEffect #FFE6CC
+
+GameManager --> TurnManager : 생성
+GameManager --> TurnTimerOverlay : 생성
+GameManager --> BattleManager : 생성 및 Tick 위임
+
+BattleManager --> GameState : 현재 상태
+BattleManager --> TurnManager : 제어
+BattleManager --> CharacterManager : player/enemy 관리
+
+TurnManager --> TurnTimerOverlay : 타이머 표시
+TurnManager --> BattleManager : 턴 이벤트 호출
+
+CharacterManager --> HandManager : 손패 관리
+CharacterManager --> QueueManager : 카드 큐 처리
+CharacterManager --> CardDefinition : 시작 덱
+CharacterManager --> CardInstance : 덱/손패 카드
+CharacterManager --> Effect : 상태 효과 보유
+CharacterManager --> BattleManager : 패배 알림
+
+HandManager --> CardInstance : 손패 보관
+HandManager --> QueueManager : 사용 카드 등록
+HandManager --> CardVisual : 카드 오브젝트 표시
+
+QueueManager --> CardInstance : 대기 카드 보관
+QueueManager --> CardVisual : 큐 카드 표시
+
+CardInstance --> CardDefinition : 원본 카드 데이터
+CardInstance --> CardEffect : 카드 효과 실행
+CardInstance --> CharacterManager : 대상에게 효과 적용
+
+CardEffect --> Effect : 실제 효과
+CardEffect --> EffectTarget : 대상 결정
+CardEffect --> BattleManager : 상대 찾기
+
+CardDefinition --> CardEffect : 효과 목록
+CardDefinition --> CardType : 카드 종류
+
+CardVisual --> CardInstance : 카드 정보 표시
+CardVisual --> CardDefinition : 이름/비용/이미지/효과 표시
+CardVisual --> BattleManager : 이모지 표시
+
+Effect --> EffectType : 효과 타입
+Effect <|-- HardenEffect
+Effect <|-- StrengthEffect
+Effect <|-- VulnerableEffect
+Effect <|-- WeakEffect
+
+@enduml

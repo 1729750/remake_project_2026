@@ -1,0 +1,94 @@
+# CardDefinition dump — source: Assets/cards/*.asset (11 cards found via script GUID 3a8cc5b9a2688154ab7153dacfb3a7fc)
+# sprite / spriteBackground는 제외했습니다. 편집 후 저에게 반영을 맡기실 땐 이 파일 포맷 그대로 주시면 됩니다.
+#
+# 블록 포맷:
+#   [object 이름]            <- 에셋 파일명 = ScriptableObject 이름(m_Name)
+#   cost: N                  <- 코스트
+#   cooldown: N               <- 쿨다운
+#   cardType: Attack|Skill    <- CardType enum
+#   effects:
+#     - EffectType magnitude -> Target   <- Target은 User(자기 자신) / Opponent(상대)
+#
+# EffectType 전체 목록(참고용): Attack, Defend, Weak, Vulnerable, Strength, Harden, Guard, PoseBreak,
+#   EnergyHeal, AddDump, Burning, CostToCooldown, CooldownToCost, DivideCooldown, TimeSkip, Quicker,
+#   Preserve, Disposable, DefenseToCooldown, EnergyDrain
+#
+# 새 카드를 추가하려면 새 [이름] 블록을 똑같은 포맷으로 추가하시면 됩니다. 카드 삭제는 블록 통째로 지우면 됩니다.
+
+[attack]
+cost: 2
+cooldown: 3
+cardType: Attack
+effects:
+  - Attack 10 -> Opponent
+
+[attack-big]
+cost: 6
+cooldown: 7
+cardType: Attack
+effects:
+  - Attack 40 -> Opponent
+
+[attack-medium]
+cost: 5
+cooldown: 3
+cardType: Attack
+effects:
+  - Attack 20 -> Opponent
+
+[attack-up]
+cost: 5
+cooldown: 4
+cardType: Attack
+effects:
+  - Strength 3 -> User
+
+[attack-down]
+cost: 5
+cooldown: 4
+cardType: Attack
+effects:
+  - Strength -3 -> Opponent
+
+[defense]
+cost: 4
+cooldown: 2
+cardType: Attack
+effects:
+  - Defend 5 -> User
+
+[defense-medium]
+cost: 7
+cooldown: 2
+cardType: Attack
+effects:
+  - Defend 10 -> User
+
+[defense-up]
+cost: 3
+cooldown: 5
+cardType: Attack
+effects:
+  - Harden 5 -> User
+
+[defense-down]
+cost: 3
+cooldown: 2
+cardType: Attack
+effects:
+  - Harden -4 -> User
+
+[defense-buff]
+cost: 6
+cooldown: 4
+cardType: Attack
+effects:
+  - Strength 4 -> User
+  - Defend 6 -> User
+
+[CostGet]
+cost: 3
+cooldown: 3
+cardType: Attack
+effects:
+  - EnergyHeal 6 -> User

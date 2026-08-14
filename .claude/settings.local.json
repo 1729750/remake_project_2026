@@ -11,8 +11,9 @@
       "mcp__mcp-unity__duplicate_gameobject",
       "mcp__mcp-unity__batch_execute",
       "mcp__mcp-unity__get_console_logs",
-      "Bash(del \"C:\\\\Users\\\\tuiko\\\\remake_project\\\\remake project\\\\Assets\\\\Editor\\\\EffectDrawer.cs\")",
-      "Bash(del \"C:\\\\Users\\\\tuiko\\\\remake_project\\\\remake project\\\\Assets\\\\Editor\\\\EffectDrawer.cs.meta\")"
+      "mcp__mcp-unity__get_play_mode_status",
+      "mcp__mcp-unity__get_scenes_hierarchy",
+      "PowerShell(Get-Content *)"
     ]
   },
   "enabledMcpjsonServers": [

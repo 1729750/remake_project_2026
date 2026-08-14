@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af00b57afd04267419cdebad631758f4, type: 3}
+  m_Name: DefenseCostDeck
+  m_EditorClassIdentifier: Assembly-CSharp::CardCollection
+  cards:
+  - {fileID: 11400000, guid: e1875c35347d4f329d55fd6fe8f6a982, type: 2}
+  - {fileID: 11400000, guid: e1875c35347d4f329d55fd6fe8f6a982, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: f38c189ec00642e0b41978b1b8a2f08d, type: 2}
