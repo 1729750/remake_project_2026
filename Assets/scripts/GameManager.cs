@@ -155,6 +155,13 @@ public class GameManager : MonoBehaviour
         return info;
     }
 
+    // effect 설명 텍스트. 지금은 항상 "test"를 반환하는 임시 버전이고, 추후 effectType별로
+    // 적절한 설명 문자열을 반환하도록 바꿀 예정이다(PopupDisplay가 팝업 텍스트로 사용).
+    public static string GetSummary(EffectType effectType)
+    {
+        return "test";
+    }
+
     // 마지막 후보 슬롯은 _enemyCandidatePool에서 뽑지 않고 GenerateRandomEnemy로 완전히 새로
     // 생성한다. 나머지 (EnemySelectionCount - 1)개만 풀에서 뽑아 소모한다.
     private const int EnemySelectionCount = 3;
@@ -166,6 +173,7 @@ public class GameManager : MonoBehaviour
         {
             ["Left"]   = () => mapManager.MoveSelection(-1),
             ["Right"]  = () => mapManager.MoveSelection(1),
+            ["Up"]     = mapManager.LoadDeckDisplayInput,
             ["Select"] = mapManager.ConfirmSelection,
         });
 

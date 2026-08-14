@@ -242,24 +242,19 @@ public class CharacterManager: MonoBehaviour
     public Effect[] GetEffectPrioritize() => _effects.OrderByDescending(e => e.GetEffectPriority()).ToArray();
 
     public void Init()
-    { 
+    {
         _effects = new List<Effect>();
         _deck = new List<CardInstance>();
 
         _queueManager = new QueueManager(queueRoots);
         _handManager = new HandManager(this, handsRoot, isHandVisualized);
 
-        if (defenseIndicator != null && defenseIndicatorRestPosition != null && defenseIndicatorRestPosition.Length > 0 && defenseIndicatorRestPosition[0] != null)
-        {
-            defenseIndicator.transform.position = defenseIndicatorRestPosition[0].position;
-            defenseIndicator.SetActive(false);
-        }
-
         Clear();
-
-
     }
 
+    // CharacterInit(전투 시작마다 호출되어 같은 CharacterManager를 재사용)에서도 불리므로,
+    // 데이터(_effects/_health/_defense/_cost)뿐 아니라 그걸 반영하는 시각 요소(HP바, 방어도 표시,
+    // effectList 아이콘, defenseIndicator)까지 전부 이전 전투의 흔적 없이 리셋해야 한다.
     public void Clear()
     {
         _effects.Clear();
@@ -269,6 +264,26 @@ public class CharacterManager: MonoBehaviour
         _cost = 0;
         UpdateHPBar();
         UpdateDefenseDisplay();
+        UpdateEffectList();
+        ResetDefenseIndicator();
+    }
+
+    // defenseIndicator를 비활성 상태로, rest position[0]으로 되돌린다. 진행 중이던 이동 코루틴이
+    // 있으면 중단한다(순간 리셋이라 Lerp로 움직일 필요가 없다).
+    private void ResetDefenseIndicator()
+    {
+        if (defenseIndicator == null || defenseIndicatorRestPosition == null
+            || defenseIndicatorRestPosition.Length == 0 || defenseIndicatorRestPosition[0] == null)
+            return;
+
+        if (_defenseIndicatorCoroutine != null)
+        {
+            StopCoroutine(_defenseIndicatorCoroutine);
+            _defenseIndicatorCoroutine = null;
+        }
+
+        defenseIndicator.transform.position = defenseIndicatorRestPosition[0].position;
+        defenseIndicator.SetActive(false);
     }
 
     private void UpdateHPBar()

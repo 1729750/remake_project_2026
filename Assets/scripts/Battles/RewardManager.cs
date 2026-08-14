@@ -173,6 +173,7 @@ public class RewardManager : MonoBehaviour
                 ConfirmReward();
             },
         });
+        deckDisplay.SelectFirst();
     }
 
     // RewardDisplay 오른쪽 패널: 카드 강화. 강화 후보(EffectType/정수 값/EffectTarget) 3개를
@@ -322,6 +323,7 @@ public class RewardManager : MonoBehaviour
                 ConfirmReward();
             },
         });
+        deckDisplay.SelectFirst();
     }
 
     // RewardDisplay 오른쪽 패널(카드 강화)에서 뽑아둔 강화 후보 CardEffect 3개를 보여준다.
