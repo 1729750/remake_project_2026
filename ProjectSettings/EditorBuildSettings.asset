@@ -9,10 +9,13 @@ EditorBuildSettings:
     path: Assets/Scenes/BeforeGame.unity
     guid: 88084fc39ba9a5e428dccf42e8bcfa6d
   - enabled: 1
+    path: Assets/Scenes/MultiLobbyScene.unity
+    guid: a74fcb17f9c65564c88dadebc361a3af
+  - enabled: 1
     path: Assets/Scenes/SinglePlayMode.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
   - enabled: 1
-    path: Assets/Scenes/HyeGyoServerTest.unity
+    path: "Assets/Scenes/\uC61B\uB0A0\uAEBC/HyeGyoServerTest.unity"
     guid: ef3ecbcc0b6553d4f85ef43ef1025a7a
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
