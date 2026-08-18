@@ -145,28 +145,37 @@ public class CharacterManager: MonoBehaviour
         _queueManager.TickQueueCards(this);
         for (int i = _effects.Count - 1; i >= 0; i--)
             _effects[i].OnTurnEnded(this);
+        // 플레이어는 SelectCard에서 선택 즉시 UseSelectedCard가 이미 호출되므로 여기선 AI만 처리한다.
         if (!playerControlled)
-            SelectRandomCard();
         {
-            var selected = _handManager.GetSelectedCard();
-            if (selected != null)
-            {
-                CardInstance preview = selected.Clone();
-                preview.ResolveUse(this, _queueManager.GetQueue(), false);
-                if (_cost >= preview.GetCost())
-                {
-                    selected.ResolveUse(this, _queueManager.GetQueue(), true);
-                    if(_handManager.UseCard())
-                    {
-                        _cost -= selected.GetCost();
-                    }
-                    UpdateCostDisplay();
-                }
-            }
+            SelectRandomCard();
+            UseSelectedCard();
         }
         _specialAction = 0;
         // 매 턴 종료마다 손패 카드들의 비용/효과 표시를 이번 턴에 바뀐 버프 상태에 맞게 다시 계산한다.
         _handManager.RefreshHandDisplay();
+    }
+
+    // 현재 선택된 카드를 실제로 사용한다: preview cost가 현재 코스트 이내면 ResolveUse(actualUse
+    // true)로 확정하고 손패에서 큐로 넘긴다. 감당 못 하면 선택 상태만 남고 아무 일도 없다.
+    // playerControlled면 SelectCard가 선택 즉시 호출하고, 그 외(AI)에는 OnTurnEnd가
+    // SelectRandomCard 직후 호출한다. FillHand는 이 메서드가 건드리지 않는다 — 여전히
+    // OnTurnStart에서만 일어난다.
+    private void UseSelectedCard()
+    {
+        var selected = _handManager.GetSelectedCard();
+        if (selected == null) return;
+
+        CardInstance preview = selected.Clone();
+        preview.ResolveUse(this, _queueManager.GetQueue(), false);
+        if (_cost < preview.GetCost()) return;
+
+        selected.ResolveUse(this, _queueManager.GetQueue(), true);
+        if (_handManager.UseCard())
+        {
+            _cost -= selected.GetCost();
+        }
+        UpdateCostDisplay();
     }
 
     // ReDraw: 손패 전부를 덱에 되돌리고 셔플 후 다시 채운다
@@ -247,6 +256,7 @@ public class CharacterManager: MonoBehaviour
         SetDefenseIndicatorActive(false);
         _handManager.SelectCard(index);
         Debug.Log($"[{gameObject.name}] Selected card: {hand[index].GetDefinition().name}");
+        UseSelectedCard();
     }
 
     public void SelectRandomCard()

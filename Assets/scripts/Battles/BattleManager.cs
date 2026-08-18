@@ -105,6 +105,7 @@ public class BattleManager:MonoBehaviour
     private void OnBattleStarted()
     {
         SoundManager.Instance?.Play(EffectSound.BattleStart);
+        SoundManager.Instance?.Play(BgmName.BattleBGM);
         _turnManager.StartTurn();
     }
 
@@ -145,6 +146,9 @@ public class BattleManager:MonoBehaviour
             _nextTurnEndIsFirst = true;
             playerCharacterManager.ClearHandAndQueue();
             enemyCharacterManager.ClearHandAndQueue();
+            // battleBGM은 전투가 끝나는 이 시점부터 다음 BattleStart(OnBattleStarted가 다시
+            // BgmName.BattleBGM을 틀 때)까지 나오지 않아야 하므로 여기서 완전히 멈춘다.
+            SoundManager.Instance?.StopBgm();
             if (loser == playerCharacterManager)
             {
                 Application.Quit();
@@ -152,6 +156,11 @@ public class BattleManager:MonoBehaviour
             else
             {
                 SoundManager.Instance?.Play(EffectSound.PlayerWin);
+                // menu BGM은 playerWin 효과음이 끝난 뒤부터 틀어야 하므로 그 클립 길이만큼 예약한다.
+                float delay = SoundManager.Instance != null
+                    ? SoundManager.Instance.GetEffectClipLength(EffectSound.PlayerWin)
+                    : 0f;
+                SoundManager.Instance?.PlayBgmDelayed(BgmName.Menu, delay);
                 GameManager.Instance.EndBattle();
             }
         }

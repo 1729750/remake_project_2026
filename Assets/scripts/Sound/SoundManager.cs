@@ -41,6 +41,15 @@ public class SoundManager : MonoBehaviour
         { EffectSound.TimeSkip, "Effect" },
     };
 
+    // Bgm/{이름}/ 폴더 관례를 안 쓰고 Sound/{카테고리}/ 밑에 이미 있는 클립을 그대로 BGM으로
+    // 재생하고 싶은 항목의 전체 Resources 경로. 여기 없는 BgmName은 기존처럼
+    // Resources/Bgm/{이름}/ 폴더에서 찾는다(GetBgmClip 참고).
+    private static readonly Dictionary<BgmName, string> BgmResourcePathOverride = new Dictionary<BgmName, string>
+    {
+        { BgmName.BattleBGM, "Sound/Battle/BattleBGM" },
+        { BgmName.Menu, "Sound/Misc/menu" },
+    };
+
     [SerializeField] private int initialPoolSize = 8;
     [SerializeField] private AudioSource bgmSource;
 
@@ -51,6 +60,7 @@ public class SoundManager : MonoBehaviour
     private Transform _effectPoolParent;
 
     private Coroutine _volumeRoutine;
+    private Coroutine _delayedBgmRoutine;
 
     void Awake()
     {
@@ -159,6 +169,14 @@ public class SoundManager : MonoBehaviour
             : sound.ToString();
     }
 
+    // 이펙트 사운드 클립의 재생 길이(초). "이 효과음이 끝난 뒤" 다음 동작(예: BGM 전환)을
+    // 예약하고 싶을 때 씀 (PlayBgmDelayed와 함께 사용).
+    public float GetEffectClipLength(EffectSound sound)
+    {
+        AudioClip clip = GetEffectClip(sound);
+        return clip != null ? clip.length : 0f;
+    }
+
     // ---------- BGM (단일 소스) ----------
 
     public void Play(BgmName name)
@@ -166,10 +184,15 @@ public class SoundManager : MonoBehaviour
         AudioClip clip = GetBgmClip(name);
         if (clip == null)
         {
-            Debug.LogWarning($"[SoundManager] BGM 클립을 찾을 수 없습니다: {BgmResourceRoot}/{name}");
+            Debug.LogWarning($"[SoundManager] BGM 클립을 찾을 수 없습니다: {name}");
             return;
         }
 
+        if (_delayedBgmRoutine != null)
+        {
+            StopCoroutine(_delayedBgmRoutine);
+            _delayedBgmRoutine = null;
+        }
         if (_volumeRoutine != null)
         {
             StopCoroutine(_volumeRoutine);
@@ -179,6 +202,35 @@ public class SoundManager : MonoBehaviour
         bgmSource.clip = clip;
         bgmSource.volume = 1f;
         bgmSource.Play();
+    }
+
+    // delaySeconds초 뒤에 Play(name)을 예약한다. "이 효과음이 끝나면 이 BGM을 틀어라"처럼,
+    // 그 사이에는 아무 BGM도 나오지 않아야 하는 경우에 쓴다(StopBgm과 함께 사용).
+    public void PlayBgmDelayed(BgmName name, float delaySeconds)
+    {
+        if (_delayedBgmRoutine != null)
+            StopCoroutine(_delayedBgmRoutine);
+        _delayedBgmRoutine = StartCoroutine(PlayBgmAfterDelay(name, delaySeconds));
+    }
+
+    private IEnumerator PlayBgmAfterDelay(BgmName name, float delaySeconds)
+    {
+        yield return new WaitForSeconds(delaySeconds);
+        _delayedBgmRoutine = null;
+        Play(name);
+    }
+
+    // 지금 재생 중인(혹은 PlayBgmDelayed로 예약된) BGM을 완전히 멈춘다. Pause와 달리 트랙 자체를
+    // 끝내는 용도라, 이후 다시 들으려면 Play(BgmName)을 새로 호출해야 한다.
+    public void StopBgm()
+    {
+        if (_delayedBgmRoutine != null)
+        {
+            StopCoroutine(_delayedBgmRoutine);
+            _delayedBgmRoutine = null;
+        }
+        bgmSource.Stop();
+        bgmSource.clip = null;
     }
 
     // 일시정지
@@ -244,8 +296,16 @@ public class SoundManager : MonoBehaviour
         if (_bgmClipCache.TryGetValue(name, out AudioClip cached))
             return cached;
 
-        AudioClip[] clips = Resources.LoadAll<AudioClip>($"{BgmResourceRoot}/{name}");
-        AudioClip clip = clips.Length > 0 ? clips[0] : null;
+        AudioClip clip;
+        if (BgmResourcePathOverride.TryGetValue(name, out string overridePath))
+        {
+            clip = Resources.Load<AudioClip>(overridePath);
+        }
+        else
+        {
+            AudioClip[] clips = Resources.LoadAll<AudioClip>($"{BgmResourceRoot}/{name}");
+            clip = clips.Length > 0 ? clips[0] : null;
+        }
         _bgmClipCache[name] = clip;
         return clip;
     }
