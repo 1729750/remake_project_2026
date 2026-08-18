@@ -27,6 +27,9 @@ public class GameManager : MonoBehaviour
     private const string EffectPricesResourcePath = "Data/EffectPrices";
     private static Dictionary<EffectType, EffectPriceInfo> _effectPriceCache;
 
+    private const string EffectSummariesResourcePath = "Data/EffectSummaries";
+    private static Dictionary<EffectType, string> _effectSummaryCache;
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -36,6 +39,7 @@ public class GameManager : MonoBehaviour
         _enemyCandidatePool = new List<CharacterData>(enemyCandidates);
 
         BuildEffectPriceCache();
+        BuildEffectSummaryCache();
     }
 
     // Resources/Data/EffectPrices.json을 읽어 EffectType별 가격/magnitude 범위표를 채운다.
@@ -97,6 +101,55 @@ public class GameManager : MonoBehaviour
         public List<EffectPriceJsonEntry> prices;
     }
 
+    // Resources/Data/EffectSummaries.json을 읽어 EffectType별 설명 텍스트를 채운다.
+    // JSON 예시:
+    // {
+    //   "summaries": [
+    //     { "effectType": "Attack", "summary": "즉시 대상에게 피해를 입힌다." }
+    //   ]
+    // }
+    private void BuildEffectSummaryCache()
+    {
+        _effectSummaryCache = new Dictionary<EffectType, string>();
+
+        TextAsset json = Resources.Load<TextAsset>(EffectSummariesResourcePath);
+        if (json != null)
+        {
+            EffectSummaryTable table = JsonUtility.FromJson<EffectSummaryTable>(json.text);
+            if (table?.summaries != null)
+            {
+                foreach (EffectSummaryJsonEntry entry in table.summaries)
+                {
+                    if (Enum.TryParse(entry.effectType, true, out EffectType type))
+                    {
+                        _effectSummaryCache[type] = entry.summary;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[GameManager] EffectSummaries.json에 알 수 없는 EffectType: {entry.effectType}");
+                    }
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[GameManager] Resources/{EffectSummariesResourcePath}.json을 찾지 못했습니다.");
+        }
+    }
+
+    [Serializable]
+    private class EffectSummaryJsonEntry
+    {
+        public string effectType;
+        public string summary;
+    }
+
+    [Serializable]
+    private class EffectSummaryTable
+    {
+        public List<EffectSummaryJsonEntry> summaries;
+    }
+
     void Start()
     {
         _currentState = GameState.StartScreen;
@@ -155,11 +208,15 @@ public class GameManager : MonoBehaviour
         return info;
     }
 
-    // effect 설명 텍스트. 지금은 항상 "test"를 반환하는 임시 버전이고, 추후 effectType별로
-    // 적절한 설명 문자열을 반환하도록 바꿀 예정이다(PopupDisplay가 팝업 텍스트로 사용).
-    public static string GetSummary(EffectType effectType)
+    // effect 설명 텍스트. Resources/Data/EffectSummaries.json에서 읽어온 캐시를 반환한다
+    // (PopupDisplay가 팝업 텍스트로 사용). 보통 Awake에서 이미 채워진 캐시를 그대로 읽지만,
+    // (에디터 툴 등에서) Awake보다 먼저 호출된 경우를 대비해 비어 있으면 그때 채운다.
+    public static string GetEffectSummary(EffectType effectType)
     {
-        return "test";
+        if (_effectSummaryCache == null)
+            Instance.BuildEffectSummaryCache();
+        _effectSummaryCache.TryGetValue(effectType, out string summary);
+        return summary;
     }
 
     // 마지막 후보 슬롯은 _enemyCandidatePool에서 뽑지 않고 GenerateRandomEnemy로 완전히 새로

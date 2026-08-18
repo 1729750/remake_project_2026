@@ -11,7 +11,7 @@ public class PopupDisplay : MonoBehaviour
     private bool _slotsFound;
     private bool _clipChecked;
 
-    // effectTypes 개수만큼만 슬롯을 켜서 아이콘(BattleManager.GetEmoji)/텍스트(GameManager.GetSummary)를
+    // effectTypes 개수만큼만 슬롯을 켜서 아이콘(BattleManager.GetEmoji)/텍스트(GameManager.GetEffectSummary)를
     // 채우고, 남는 슬롯은 끈다. 슬롯보다 개수가 많으면 넘치는 만큼은 무시한다.
     public void SetEffects(IReadOnlyList<EffectType> effectTypes)
     {
@@ -34,7 +34,7 @@ public class PopupDisplay : MonoBehaviour
             bool active = effectTypes != null && i < effectTypes.Count;
             _slots[i].gameObject.SetActive(active);
             if (active)
-                _slots[i].SetEffect(BattleManager.GetEmoji(effectTypes[i]), GameManager.GetSummary(effectTypes[i]));
+                _slots[i].SetEffect(BattleManager.GetEmoji(effectTypes[i]), GameManager.GetEffectSummary(effectTypes[i]));
         }
     }
 

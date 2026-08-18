@@ -8,5 +8,6 @@ public class EnergyHealEffect : Effect
     public override void OnApply(CharacterManager subject)
     {
         subject.EnergyHeal(_magnitude);
+        PlayApplySound();
     }
 }

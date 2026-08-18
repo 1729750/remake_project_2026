@@ -6,8 +6,39 @@ public class SoundManager : MonoBehaviour
 {
     public static SoundManager Instance { get; private set; }
 
-    private const string EffectSoundResourceRoot = "soundEffect";
+    private const string EffectSoundResourceRoot = "Sound";
     private const string BgmResourceRoot = "Bgm";
+
+    // Resources/Sound/{카테고리}/{EffectSound 이름} 구조를 위한 EffectSound → 하위 폴더 매핑.
+    // EffectSound.cs에 새 항목을 추가하면 여기에도 카테고리를 등록해야 한다.
+    private static readonly Dictionary<EffectSound, string> EffectSoundCategory = new Dictionary<EffectSound, string>
+    {
+        { EffectSound.Attack, "Attack" },
+        { EffectSound.UpcomingAttack, "Attack" },
+        { EffectSound.DamageWeak, "Attack" },
+        { EffectSound.Damage, "Attack" },
+        { EffectSound.DamageBig, "Attack" },
+        { EffectSound.DamageGuarded, "Attack" },
+        { EffectSound.DamageShielded, "Attack" },
+
+        { EffectSound.BattleStart, "Battle" },
+        { EffectSound.TurnEnd1, "Battle" },
+        { EffectSound.TurnEnd2, "Battle" },
+        { EffectSound.PlayerWin, "Battle" },
+
+        { EffectSound.Select, "Card" },
+        { EffectSound.Unselect, "Card" },
+        { EffectSound.MoveSelect1, "Card" },
+        { EffectSound.MoveSelect2, "Card" },
+        { EffectSound.UseCard, "Card" },
+        { EffectSound.PlayCard, "Card" },
+
+        { EffectSound.Buff, "Effect" },
+        { EffectSound.Debuff, "Effect" },
+        { EffectSound.Burn, "Effect" },
+        { EffectSound.ShieldGet, "Effect" },
+        { EffectSound.TimeSkip, "Effect" },
+    };
 
     [SerializeField] private int initialPoolSize = 8;
     [SerializeField] private AudioSource bgmSource;
@@ -56,7 +87,7 @@ public class SoundManager : MonoBehaviour
         AudioClip clip = GetEffectClip(sound);
         if (clip == null)
         {
-            Debug.LogWarning($"[SoundManager] 사운드 이펙트 클립을 찾을 수 없습니다: {EffectSoundResourceRoot}/{sound}");
+            Debug.LogWarning($"[SoundManager] 사운드 이펙트 클립을 찾을 수 없습니다: {EffectSoundResourceRoot}/{GetEffectSoundPath(sound)}");
             return;
         }
 
@@ -99,9 +130,16 @@ public class SoundManager : MonoBehaviour
         if (_effectClipCache.TryGetValue(sound, out AudioClip cached))
             return cached;
 
-        AudioClip clip = Resources.Load<AudioClip>($"{EffectSoundResourceRoot}/{sound}");
+        AudioClip clip = Resources.Load<AudioClip>($"{EffectSoundResourceRoot}/{GetEffectSoundPath(sound)}");
         _effectClipCache[sound] = clip;
         return clip;
+    }
+
+    private static string GetEffectSoundPath(EffectSound sound)
+    {
+        return EffectSoundCategory.TryGetValue(sound, out string category)
+            ? $"{category}/{sound}"
+            : sound.ToString();
     }
 
     // ---------- BGM (단일 소스) ----------

@@ -18,6 +18,11 @@ public class BattleManager:MonoBehaviour
     private float _startElapsed;
     private static Dictionary<EffectType, Sprite> _emojiCache;
 
+    // BattleStarting 카운트다운 중 1초마다, 그리고 실제 턴이 끝날 때마다 TurnEnd1/TurnEnd2를
+    // 번갈아 재생하기 위한 상태. 전투가 끝나면(NotifyDefeat) 다음 전투를 위해 리셋된다.
+    private int _startTickCount;
+    private bool _nextTurnEndIsFirst = true;
+
     public BattleState CurrentState { get; private set; }
 
     private void Awake()
@@ -50,6 +55,7 @@ public class BattleManager:MonoBehaviour
 
         _turnManager.Reset();
         _startElapsed = 0f;
+        _startTickCount = 0;
         _turnTimerOverlay?.SetFill(0f);
         SetState(BattleState.BattleStarting);
     }
@@ -71,6 +77,14 @@ public class BattleManager:MonoBehaviour
         if (CurrentState == BattleState.BattleStarting)
         {
             _startElapsed += deltaTime;
+
+            int wholeSecondsElapsed = Mathf.FloorToInt(Mathf.Min(_startElapsed, startDelay));
+            while (_startTickCount < wholeSecondsElapsed)
+            {
+                _startTickCount++;
+                PlayAlternatingTurnEnd();
+            }
+
             if (_startElapsed >= startDelay)
             {
                 _turnTimerOverlay?.SetFill(_startElapsed / startDelay);
@@ -90,6 +104,7 @@ public class BattleManager:MonoBehaviour
 
     private void OnBattleStarted()
     {
+        SoundManager.Instance?.Play(EffectSound.BattleStart);
         _turnManager.StartTurn();
     }
 
@@ -106,6 +121,7 @@ public class BattleManager:MonoBehaviour
     {
         SetState(BattleState.TurnEnd);
         Debug.Log($"Turn {_turnManager.GetCurrentTurn()} Ended");
+        PlayAlternatingTurnEnd();
         playerCharacterManager.OnTurnEnd();
         enemyCharacterManager.OnTurnEnd();
         if (CurrentState != BattleState.BattleFinish)
@@ -114,17 +130,26 @@ public class BattleManager:MonoBehaviour
         }
     }
 
+    // BattleStarting 카운트다운의 1초 틱과 실제 턴 종료가 같은 토글을 공유해 TurnEnd1/2를 번갈아 재생한다.
+    private void PlayAlternatingTurnEnd()
+    {
+        SoundManager.Instance?.Play(_nextTurnEndIsFirst ? EffectSound.TurnEnd1 : EffectSound.TurnEnd2);
+        _nextTurnEndIsFirst = !_nextTurnEndIsFirst;
+    }
+
     public void NotifyDefeat(CharacterManager loser)
     {
         if (CurrentState != BattleState.BattleFinish)
         {
             SetState(BattleState.BattleFinish);
+            _nextTurnEndIsFirst = true;
             if (loser == playerCharacterManager)
             {
                 Application.Quit();
             }
             else
             {
+                SoundManager.Instance?.Play(EffectSound.PlayerWin);
                 GameManager.Instance.EndBattle();
             }
         }

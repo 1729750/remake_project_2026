@@ -107,6 +107,34 @@ public class CharacterManager: MonoBehaviour
         EnergyHeal(healEnergyAmount);
         UpdateEffectList();
         _handManager.FillHand();
+        PlayUpcomingAttackSoundIfNeeded();
+    }
+
+    // 상대 큐에 이번 턴 종료 시 발동될(cooldownLeft가 1 이하인) Attack 효과 카드가 있으면 경고음을 재생한다.
+    // 전투가 이미 끝난 상태(BattleFinish)라면 재생하지 않는다 — OnTurnStart는 보통 그 전에 걸러지지만,
+    // BattleManager.Instance나 CurrentState를 통해 한 번 더 방어적으로 확인한다.
+    private void PlayUpcomingAttackSoundIfNeeded()
+    {
+        if (!playerControlled) return;
+        if (SoundManager.Instance == null || BattleManager.Instance == null) return;
+        if (BattleManager.Instance.CurrentState == BattleState.BattleFinish) return;
+
+        CharacterManager opponent = BattleManager.Instance.GetOpponent(this);
+        if (opponent == null) return;
+
+        foreach (CardInstance queued in opponent.GetQueue())
+        {
+            if (queued == null || queued.GetCooldownLeft() > 1) continue;
+
+            foreach (CardEffect cardEffect in queued.GetEffects())
+            {
+                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
+                {
+                    SoundManager.Instance.Play(EffectSound.UpcomingAttack);
+                    return;
+                }
+            }
+        }
     }
 
     public void OnTurnEnd()
@@ -298,7 +326,36 @@ public class CharacterManager: MonoBehaviour
     public void Attacked(int damage)
     {
         if (_isGuard) damage /= 2;
+        PlayDamageSound(damage);
         TakeDamage(damage);
+    }
+
+    // isGuard면 Weak/Damage/Big 대신 DamageGuarded를 재생한다. 방어도가 흡수한 만큼(현재 _defense와
+    // damage 중 작은 값)이 1 이상이면 위 사운드에 더해 DamageShielded도 재생한다.
+    private void PlayDamageSound(int damage)
+    {
+        if (SoundManager.Instance == null) return;
+
+        if (_isGuard)
+        {
+            SoundManager.Instance.Play(EffectSound.DamageGuarded);
+        }
+        else if (damage <= 10)
+        {
+            SoundManager.Instance.Play(EffectSound.DamageWeak);
+        }
+        else if (damage <= 30)
+        {
+            SoundManager.Instance.Play(EffectSound.Damage);
+        }
+        else
+        {
+            SoundManager.Instance.Play(EffectSound.DamageBig);
+        }
+
+        int shieldedAmount = Mathf.Clamp(Mathf.Min(damage, _defense), 0, damage);
+        if (shieldedAmount >= 1)
+            SoundManager.Instance.Play(EffectSound.DamageShielded);
     }
 
     public void TakeDamage(int amount)

@@ -151,6 +151,11 @@ public class CardInstance
     {
         _cooldownLeft = GetCooldown();
         Debug.Log($"[{characterManager.gameObject.name}] Activated card: {_definition.name}");
+
+        SoundManager.Instance?.Play(EffectSound.PlayCard);
+        if (_effects.Exists(e => e.GetEffect().GetEffectType() == EffectType.Attack))
+            SoundManager.Instance?.Play(EffectSound.Attack);
+
         foreach (CardEffect cardEffect in _effects)
         {
            cardEffect.Reset();

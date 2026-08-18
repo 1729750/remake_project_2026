@@ -96,18 +96,38 @@ public class HandManager
         UnselectCard();
     }
 
+    // 카드를 선택하면(선택 대상이 바뀌는 경우 포함) Select, 선택된 카드를 다시 눌러 해제하면 Unselect.
+    // MoveSelect1/2는 여기서 재생하지 않는다 — RewardManager/DeckDisplay의 WASD 커서 이동 전용.
     public void SelectCard(int index)
     {
+        int previous = _selectedIndex;
         if (_selectedIndex == index) _selectedIndex = -1;
         else _selectedIndex = index;
+
+        if (_selectedIndex != -1)
+            SoundManager.Instance?.Play(EffectSound.Select);
+        else if (previous != -1)
+            SoundManager.Instance?.Play(EffectSound.Unselect);
+
         RefreshSelection();
     }
 
     public void UnselectCard()
     {
+        bool wasSelected = _selectedIndex != -1;
+        ClearSelection();
+        if (wasSelected)
+            SoundManager.Instance?.Play(EffectSound.Unselect);
+    }
+
+    // UseCard()가 확정 직후 손패에서 카드를 비울 때 쓰는, 소리 없는 선택 해제.
+    // (UseCard 사운드와 겹쳐 Unselect까지 같이 울리는 것을 막는다.)
+    private void ClearSelection()
+    {
         _selectedIndex = -1;
         RefreshSelection();
     }
+
     public CardInstance[] GetHand() => _hand;
     public CardInstance GetSelectedCard() => (_selectedIndex >= 0 && _selectedIndex < HandSize) ? _hand[_selectedIndex] : null;
 
@@ -121,10 +141,11 @@ public class HandManager
         GameObject cardObject = _cardObjects[_selectedIndex];
         if (_characterManager.QueueCard(card, cardObject))
         {
+            SoundManager.Instance?.Play(EffectSound.UseCard);
             card.SetSelected(false);
             _cardObjects[_selectedIndex] = null;
             _hand[_selectedIndex] = null;
-            UnselectCard();
+            ClearSelection();
             return true;
         }
 
