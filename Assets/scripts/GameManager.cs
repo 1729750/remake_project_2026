@@ -297,12 +297,20 @@ public class GameManager : MonoBehaviour
 
     public void SetGameState(GameState newState)
     {
+        GameState previousState = _currentState;
         _currentState = newState;
-        LoadAppropriateManager();
+
+        // battleManager/mapManager/rewardManager의 activate/deactivate(및 그 사이 전환 연출)는
+        // TransitionManager가 전담한다. 씬에 없다면(아직 배치 전이거나 테스트 환경) 기존처럼
+        // 연출 없는 즉시 전환으로 대체한다.
+        if (TransitionManager.Instance != null)
+            TransitionManager.Instance.HandleStateChange(previousState, newState);
+        else
+            LoadAppropriateManager();
     }
 
-    // manager들의 enable/disable은 오직 이 지점을 통해서만 이뤄진다.
-    // 현재 gameState를 담당하는 manager만 enable하고 나머지는 전부 disable한다.
+    // TransitionManager가 없을 때의 대체 경로. 현재 gameState를 담당하는 manager만 enable하고
+    // 나머지는 전부 disable한다(연출 없음).
     private void LoadAppropriateManager()
     {
 

@@ -12,6 +12,7 @@ public class CardVisual : MonoBehaviour
     private TextMeshPro _costText;
     private TextMeshPro _cooltimeText;
     private GameObject _selectHighlight;
+    private GameObject _isUnplayable;
     private GameObject _front;
     private GameObject _back;
     private Coroutine _moveCoroutine;
@@ -37,6 +38,8 @@ public class CardVisual : MonoBehaviour
         _cooltimeText       = transform.Find("Front/cooltime/cooltimeText").GetComponent<TextMeshPro>();
         _selectHighlight    = transform.Find("Front/SelectHighlight").gameObject;
         _selectHighlight.SetActive(false);
+        _isUnplayable       = transform.Find("Front/IsUnplayable").gameObject;
+        _isUnplayable.SetActive(false);
         _popupDisplay       = transform.Find("PopUpDisplay").GetComponent<PopupDisplay>();
 
         // 카드 프리팹이 effect 아래에 고정 개수의 EffectDisplay 슬롯을 미리 자식으로 가지고 있다.
@@ -73,6 +76,10 @@ public class CardVisual : MonoBehaviour
 
         RefreshPopupVisibility();
     }
+
+    // 현재 코스트로는 낼 수 없는 카드임을 나타내는 오버레이. 기본은 꺼져 있고,
+    // CardInstance.RefreshDisplay가 매 턴 시작/종료마다 preview cost를 다시 계산해 갱신한다.
+    public void SetUnplayable(bool unplayable) => _isUnplayable.SetActive(unplayable);
 
     public void SetCostText(string text) => _costText.text = text;
 

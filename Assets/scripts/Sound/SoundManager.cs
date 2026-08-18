@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -77,6 +78,22 @@ public class SoundManager : MonoBehaviour
         for (int i = 0; i < initialPoolSize; i++)
         {
             _effectPool.Push(CreatePooledSource());
+        }
+
+        PreloadEffectClips();
+    }
+
+    // 이펙트 사운드 클립들은 preloadAudioData가 꺼져 있어(용량 절약을 위해 Resources 폴더 전체를
+    // 한 번에 임포트할 때 기본값 그대로 둔 것으로 보인다) 실제 오디오 데이터가 Resources.Load
+    // 시점이 아니라 "그 클립을 처음 Play한 시점"에야 로드된다 — 그래서 이동/선택처럼 자주 쓰이는
+    // 효과음일수록 첫 재생에서 커서를 움직인 것과 소리가 나는 시점 사이에 눈에 띄는 지연이 생긴다.
+    // 여기서 미리 한 번씩 로드해 그 지연을 게임 시작 시점으로 옮겨둔다.
+    private void PreloadEffectClips()
+    {
+        foreach (EffectSound sound in Enum.GetValues(typeof(EffectSound)))
+        {
+            AudioClip clip = GetEffectClip(sound);
+            clip?.LoadAudioData();
         }
     }
 

@@ -143,6 +143,8 @@ public class BattleManager:MonoBehaviour
         {
             SetState(BattleState.BattleFinish);
             _nextTurnEndIsFirst = true;
+            playerCharacterManager.ClearHandAndQueue();
+            enemyCharacterManager.ClearHandAndQueue();
             if (loser == playerCharacterManager)
             {
                 Application.Quit();

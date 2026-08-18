@@ -108,6 +108,9 @@ public class CharacterManager: MonoBehaviour
         UpdateEffectList();
         _handManager.FillHand();
         PlayUpcomingAttackSoundIfNeeded();
+        // 이번 턴 시작 로직이 전부 끝난 뒤(코스트 회복 등 반영 완료 시점) preview cost/cooldown을
+        // 다시 계산해, 지금 코스트로 낼 수 없는 손패 카드에 Unplayable 오버레이를 켠다.
+        _handManager.RefreshHandDisplay();
     }
 
     // 상대 큐에 이번 턴 종료 시 발동될(cooldownLeft가 1 이하인) Attack 효과 카드가 있으면 경고음을 재생한다.
@@ -260,6 +263,14 @@ public class CharacterManager: MonoBehaviour
         int cardCost = hand[idx].GetCost();
         string cardName = hand[idx].GetDefinition().name;
         Debug.Log($"[{gameObject.name}] Selected card: {cardName} (cost: {cardCost}, cost left: {_cost})");
+    }
+
+    // 전투 종료 시(BattleManager.NotifyDefeat) 손패/큐를 덱으로 되돌리지 않고 그대로 비운다
+    // (다음 전투는 CharacterInit이 덱 자체를 새로 만들기 때문에 되돌릴 필요가 없다).
+    public void ClearHandAndQueue()
+    {
+        _handManager?.ClearHand();
+        _queueManager?.ClearQueue();
     }
 
     public int getmaxHealth() => _maxHealth;

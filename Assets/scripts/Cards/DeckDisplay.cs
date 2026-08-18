@@ -29,6 +29,8 @@ public class DeckDisplay : MonoBehaviour
     private int _visibleRows;
     private int _topRow;
     private int _selectedIndex;
+    // WASD(Left/Right/Up/Down)로 선택을 옮길 때 MoveSelect1/2를 번갈아 재생하기 위한 토글.
+    private bool _moveSelectToggle;
 
     private void Awake()
     {
@@ -158,6 +160,7 @@ public class DeckDisplay : MonoBehaviour
         if (newIndex / Columns != _selectedIndex / Columns) return;
 
         SetSelectedIndex(newIndex);
+        PlayMoveSelectSound();
     }
 
     public void MoveSelectionVertical(int delta)
@@ -171,6 +174,7 @@ public class DeckDisplay : MonoBehaviour
         if (newRow == row) return;
 
         SetSelectedIndex(Mathf.Min(newRow * Columns + col, _cardInstances.Count - 1));
+        PlayMoveSelectSound();
 
         _topRow = Mathf.Clamp(_topRow, newRow - _visibleRows + 1, newRow);
         LayoutCards();
@@ -181,6 +185,12 @@ public class DeckDisplay : MonoBehaviour
         _cardInstances[_selectedIndex].SetSelected(false);
         _selectedIndex = index;
         _cardInstances[_selectedIndex].SetSelected(true);
+    }
+
+    private void PlayMoveSelectSound()
+    {
+        SoundManager.Instance?.Play(_moveSelectToggle ? EffectSound.MoveSelect1 : EffectSound.MoveSelect2);
+        _moveSelectToggle = !_moveSelectToggle;
     }
 
     private void LayoutCards()

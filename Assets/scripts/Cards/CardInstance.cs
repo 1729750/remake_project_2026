@@ -223,6 +223,7 @@ public class CardInstance
         _visual.SetCostText(preview.GetCost().ToString());
         _visual.SetCooldownText(_cooldownLeft.ToString());
         _visual.RefreshEffectDisplays(preview._effects);
+        _visual.SetUnplayable(preview.GetCost() > subject.GetCost());
     }
 
     // OnUse/OnUsingOther/OnApplyingOther/OnAppliedOther를 actualUse=false로 순회할 때 쓰는 복제본.

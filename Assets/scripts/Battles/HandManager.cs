@@ -96,6 +96,21 @@ public class HandManager
         UnselectCard();
     }
 
+    // 전투가 끝났을 때 손패를 덱으로 되돌리지 않고 그대로 비운다(다음 전투는 CharacterInit이 덱을 새로 만든다).
+    public void ClearHand()
+    {
+        for (int i = 0; i < HandSize; i++)
+        {
+            _hand[i] = null;
+            if (_cardObjects[i] != null)
+            {
+                Object.Destroy(_cardObjects[i]);
+                _cardObjects[i] = null;
+            }
+        }
+        ClearSelection();
+    }
+
     // 카드를 선택하면(선택 대상이 바뀌는 경우 포함) Select, 선택된 카드를 다시 눌러 해제하면 Unselect.
     // MoveSelect1/2는 여기서 재생하지 않는다 — RewardManager/DeckDisplay의 WASD 커서 이동 전용.
     public void SelectCard(int index)
