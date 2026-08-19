@@ -5,6 +5,19 @@ using UnityEngine.InputSystem;
 
 public class MainMenuManager : MonoBehaviour
 {
+    [System.Serializable]
+    public class MenuItem
+    {
+        [Header("이 메뉴에 포함된 Image들")]
+        public Image[] targetImages;
+
+        [Header("각 Image의 기본 Sprite")]
+        public Sprite[] normalSprites;
+
+        [Header("각 Image의 Hover Sprite")]
+        public Sprite[] hoverSprites;
+    }
+
     [Header("Scene")]
     [SerializeField] private string startSceneName;
     [SerializeField] private string battleSceneName;
@@ -12,20 +25,10 @@ public class MainMenuManager : MonoBehaviour
     [Header("Panels")]
     [SerializeField] private GameObject settingsPanel;
 
-    [Header("Menu Images")]
+    [Header("Menu Items")]
     [Tooltip("0 시작 / 1 대전모드 / 2 설정 / 3 종료하기")]
-    [SerializeField] private Image[] menuImages;
+    [SerializeField] private MenuItem[] menuItems;
 
-    [Header("Normal Sprites")]
-    [SerializeField] private Sprite[] normalSprites;
-
-    [Header("Hover Sprites")]
-    [SerializeField] private Sprite[] hoverSprites;
-
-    // 0 = 시작
-    // 1 = 대전모드
-    // 2 = 설정
-    // 3 = 종료하기
     private int currentIndex = 0;
 
     private void Start()
@@ -33,9 +36,7 @@ public class MainMenuManager : MonoBehaviour
         if (settingsPanel != null)
             settingsPanel.SetActive(false);
 
-        // 처음에는 시작 버튼 선택
         currentIndex = 0;
-
         UpdateSelection();
     }
 
@@ -44,12 +45,8 @@ public class MainMenuManager : MonoBehaviour
         if (Keyboard.current == null)
             return;
 
-        // =========================
-        // 설정창이 열려 있는 경우
-        // =========================
         if (settingsPanel != null && settingsPanel.activeSelf)
         {
-            // ESC로 설정창 닫기
             if (Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 CloseSettingsPanel();
@@ -58,126 +55,104 @@ public class MainMenuManager : MonoBehaviour
             return;
         }
 
-        // =========================
-        // A = 왼쪽 이동
-        // =========================
         if (Keyboard.current.aKey.wasPressedThisFrame)
         {
             MoveLeft();
         }
 
-        // =========================
-        // D = 오른쪽 이동
-        // =========================
         if (Keyboard.current.dKey.wasPressedThisFrame)
         {
             MoveRight();
         }
 
-        // =========================
-        // Enter = 현재 메뉴 실행
-        // =========================
         if (Keyboard.current.enterKey.wasPressedThisFrame)
         {
             SelectCurrentMenu();
         }
     }
 
-    // =========================
-    // 왼쪽 이동
-    // =========================
     private void MoveLeft()
     {
         currentIndex--;
 
-        // 시작에서 A 누르면 종료하기로
         if (currentIndex < 0)
-        {
-            currentIndex = menuImages.Length - 1;
-        }
+            currentIndex = menuItems.Length - 1;
 
         UpdateSelection();
     }
 
-    // =========================
-    // 오른쪽 이동
-    // =========================
     private void MoveRight()
     {
         currentIndex++;
 
-        // 종료하기에서 D 누르면 시작으로
-        if (currentIndex >= menuImages.Length)
-        {
+        if (currentIndex >= menuItems.Length)
             currentIndex = 0;
-        }
 
         UpdateSelection();
     }
 
-    // =========================
-    // 선택된 버튼 Hover 처리
-    // =========================
     private void UpdateSelection()
     {
-        for (int i = 0; i < menuImages.Length; i++)
+        for (int i = 0; i < menuItems.Length; i++)
         {
-            if (menuImages[i] == null)
+            bool isSelected = (i == currentIndex);
+            ApplyMenuSprites(menuItems[i], isSelected);
+        }
+    }
+
+    private void ApplyMenuSprites(MenuItem item, bool isSelected)
+    {
+        if (item == null || item.targetImages == null)
+            return;
+
+        for (int j = 0; j < item.targetImages.Length; j++)
+        {
+            if (item.targetImages[j] == null)
                 continue;
 
-            // 현재 선택된 버튼
-            if (i == currentIndex)
+            if (isSelected)
             {
-                if (i < hoverSprites.Length &&
-                    hoverSprites[i] != null)
+                if (item.hoverSprites != null &&
+                    j < item.hoverSprites.Length &&
+                    item.hoverSprites[j] != null)
                 {
-                    menuImages[i].sprite = hoverSprites[i];
+                    item.targetImages[j].sprite = item.hoverSprites[j];
                 }
             }
-            // 선택되지 않은 버튼
             else
             {
-                if (i < normalSprites.Length &&
-                    normalSprites[i] != null)
+                if (item.normalSprites != null &&
+                    j < item.normalSprites.Length &&
+                    item.normalSprites[j] != null)
                 {
-                    menuImages[i].sprite = normalSprites[i];
+                    item.targetImages[j].sprite = item.normalSprites[j];
                 }
             }
         }
     }
 
-    // =========================
-    // Enter 눌렀을 때 실행
-    // =========================
     private void SelectCurrentMenu()
     {
         switch (currentIndex)
         {
-            // 시작
             case 0:
                 OnClickStart();
                 break;
 
-            // 대전모드
             case 1:
                 OnClickBattle();
                 break;
 
-            // 설정
             case 2:
                 OnClickSettings();
                 break;
 
-            // 종료하기
             case 3:
                 OnClickOut();
                 break;
         }
     }
 
-    // =========================
-    // 0. 시작
-    // =========================
     public void OnClickStart()
     {
         if (!string.IsNullOrEmpty(startSceneName))
@@ -190,9 +165,6 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    // =========================
-    // 1. 대전모드
-    // =========================
     public void OnClickBattle()
     {
         if (!string.IsNullOrEmpty(battleSceneName))
@@ -205,34 +177,24 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    // =========================
-    // 2. 설정
-    // =========================
     public void OnClickSettings()
     {
         if (settingsPanel != null)
-        {
             settingsPanel.SetActive(true);
-        }
     }
 
     public void CloseSettingsPanel()
     {
         if (settingsPanel != null)
-        {
             settingsPanel.SetActive(false);
-        }
 
         UpdateSelection();
     }
 
-    // =========================
-    // 3. 종료하기
-    // =========================
     public void OnClickOut()
     {
 #if UNITY_EDITOR
-        Debug.Log("게임 종료");
+        UnityEditor.EditorApplication.isPlaying = false;
 #else
         Application.Quit();
 #endif
