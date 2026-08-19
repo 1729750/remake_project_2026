@@ -1,0 +1,24 @@
+{
+  "summaries": [
+    { "effectType": "Attack", "summary": "대상에게 N만큼 피해." },
+    { "effectType": "Defend", "summary": "방어도를 N만큼 획득." },
+    { "effectType": "Weak", "summary": "N턴간 공격 피해량을 20% 감소." },
+    { "effectType": "Vulnerable", "summary": "N번 받는 공격 피해가 20% 증가." },
+    { "effectType": "Strength", "summary": "자신의 공격 카드 피해량을 N만큼 증가." },
+    { "effectType": "Harden", "summary": "자신이 방어도 획득량을 N만큼 증가." },
+    { "effectType": "Guard", "summary": "Error" },
+    { "effectType": "PoseBreak", "summary": "N턴간 받는 공격 피해가 2배로 증가." },
+    { "effectType": "EnergyHeal", "summary": "코스트를 N 회복." },
+    { "effectType": "AddDump", "summary": "대상의 덱에 아무 효과도 없는 카드(1 코스트, N 쿨다운)을 한 장 추가." },
+    { "effectType": "Burning", "summary": "매 턴 종료 시 N의 10분의 1만큼 피해. 매 턴 1씩 감소. 가드 중일 시 표기량의 3분의 1으로 감소" },
+    { "effectType": "CostToCooldown", "summary": "N번 카드를 사용할 때마다 그 카드의 코스트를 소모하지 않는 대신 쿨다운으로 전환." },
+    { "effectType": "CooldownToCost", "summary": "N번 카드를 사용할 때마다 그 카드의 쿨다운 없이 코스트만 지불하도록 전환." },
+    { "effectType": "DivideCooldown", "summary": "N번 카드 사용 시 이 카드와 큐에 있는 카드들의 남은 쿨다운을 평균값으로 변환" },
+    { "effectType": "TimeSkip", "summary": "큐에서 남은 쿨다운이 가장 긴 카드의 쿨다운을 수치만큼 즉시 N만큼 감소" },
+    { "effectType": "Quicker", "summary": "N턴간 큐의 쿨다운 감소 속도 2배." },
+    { "effectType": "Preserve", "summary": "이 카드는 사용 이외의 방법으로 손패에서 제거할 수 없음." },
+    { "effectType": "Disposable", "summary": "이 카드는 사용 후 덱으로 돌아가지 않고 사라짐." },
+    { "effectType": "DefenseToCooldown", "summary": "카드 사용 시 자신의 방어도를 소모해 이 카드의 쿨다운을 감소." },
+    { "effectType": "EnergyDrain", "summary": "N턴 간 대상의 코스트 자연 회복량을 1 감소." }
+  ]
+}

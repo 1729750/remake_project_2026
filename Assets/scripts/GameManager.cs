@@ -13,6 +13,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private RewardManager rewardManager;
     [SerializeField] private InputManager inputManager;
     [SerializeField] private MapManager mapManager;
+    [SerializeField] private GameEndManager gameEndManager;
     [SerializeField] private CharacterData firstEnemyData;
     // 적 후보 풀(인스펙터 원본). Awake에서 _enemyCandidatePool로 복제되고, 이후로는 이 배열 자체를
     // 직접 건드리지 않는다.
@@ -27,6 +28,9 @@ public class GameManager : MonoBehaviour
     private const string EffectPricesResourcePath = "Data/EffectPrices";
     private static Dictionary<EffectType, EffectPriceInfo> _effectPriceCache;
 
+    private const string EffectSummariesResourcePath = "Data/EffectSummaries";
+    private static Dictionary<EffectType, string> _effectSummaryCache;
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -36,6 +40,7 @@ public class GameManager : MonoBehaviour
         _enemyCandidatePool = new List<CharacterData>(enemyCandidates);
 
         BuildEffectPriceCache();
+        BuildEffectSummaryCache();
     }
 
     // Resources/Data/EffectPrices.json을 읽어 EffectType별 가격/magnitude 범위표를 채운다.
@@ -97,6 +102,55 @@ public class GameManager : MonoBehaviour
         public List<EffectPriceJsonEntry> prices;
     }
 
+    // Resources/Data/EffectSummaries.json을 읽어 EffectType별 설명 텍스트를 채운다.
+    // JSON 예시:
+    // {
+    //   "summaries": [
+    //     { "effectType": "Attack", "summary": "즉시 대상에게 피해를 입힌다." }
+    //   ]
+    // }
+    private void BuildEffectSummaryCache()
+    {
+        _effectSummaryCache = new Dictionary<EffectType, string>();
+
+        TextAsset json = Resources.Load<TextAsset>(EffectSummariesResourcePath);
+        if (json != null)
+        {
+            EffectSummaryTable table = JsonUtility.FromJson<EffectSummaryTable>(json.text);
+            if (table?.summaries != null)
+            {
+                foreach (EffectSummaryJsonEntry entry in table.summaries)
+                {
+                    if (Enum.TryParse(entry.effectType, true, out EffectType type))
+                    {
+                        _effectSummaryCache[type] = entry.summary;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[GameManager] EffectSummaries.json에 알 수 없는 EffectType: {entry.effectType}");
+                    }
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[GameManager] Resources/{EffectSummariesResourcePath}.json을 찾지 못했습니다.");
+        }
+    }
+
+    [Serializable]
+    private class EffectSummaryJsonEntry
+    {
+        public string effectType;
+        public string summary;
+    }
+
+    [Serializable]
+    private class EffectSummaryTable
+    {
+        public List<EffectSummaryJsonEntry> summaries;
+    }
+
     void Start()
     {
         _currentState = GameState.StartScreen;
@@ -117,7 +171,34 @@ public class GameManager : MonoBehaviour
     {
         SetGameState(GameState.BattleEnd);
         inputManager.Unload();
+        mapManager.AddTrophyForLastBattle();
         rewardManager.ShowRewardDisplay();
+    }
+
+    // BattleManager.NotifyDefeat가 플레이어 패배를 감지하면 호출한다. 지금은 상태 전환과
+    // 결과 화면 표시만 하지만, 이후 게임오버 연출(카메라 효과/딜레이 등)이 추가될 수 있으므로
+    // 그 자리를 마련해두기 위한 버퍼 함수다 — 호출부(BattleManager)는 바뀌지 않아도 된다.
+    public void GameOver()
+    {
+        SetGameState(GameState.GameOver);
+        inputManager.Unload();
+        gameEndManager.ShowResult();
+    }
+
+    // 게임오버 화면의 "타이틀로" 버튼.
+    public void GoToTitle()
+    {
+        SetGameState(GameState.StartScreen);
+    }
+
+    // 새 런을 시작하기 전 공통으로 거쳐야 하는 초기화. 게임오버 화면의 "게임 시작" 버튼과,
+    // 이후 타이틀 화면에서 게임을 처음 시작할 때 둘 다 이 함수를 그대로 탄다.
+    public void GameStart()
+    {
+        battleManager.Init();
+        mapManager.ResetTrophies();
+        PlayerManager.Instance.Init();
+        TransitionManager.Instance?.Init();
     }
 
     // RewardManager가 카드 획득을 확정할 때 부르는, PlayerManager 덱을 직접 건드리는 지점.
@@ -155,6 +236,17 @@ public class GameManager : MonoBehaviour
         return info;
     }
 
+    // effect 설명 텍스트. Resources/Data/EffectSummaries.json에서 읽어온 캐시를 반환한다
+    // (PopupDisplay가 팝업 텍스트로 사용). 보통 Awake에서 이미 채워진 캐시를 그대로 읽지만,
+    // (에디터 툴 등에서) Awake보다 먼저 호출된 경우를 대비해 비어 있으면 그때 채운다.
+    public static string GetEffectSummary(EffectType effectType)
+    {
+        if (_effectSummaryCache == null)
+            Instance.BuildEffectSummaryCache();
+        _effectSummaryCache.TryGetValue(effectType, out string summary);
+        return summary;
+    }
+
     // 마지막 후보 슬롯은 _enemyCandidatePool에서 뽑지 않고 GenerateRandomEnemy로 완전히 새로
     // 생성한다. 나머지 (EnemySelectionCount - 1)개만 풀에서 뽑아 소모한다.
     private const int EnemySelectionCount = 3;
@@ -166,6 +258,7 @@ public class GameManager : MonoBehaviour
         {
             ["Left"]   = () => mapManager.MoveSelection(-1),
             ["Right"]  = () => mapManager.MoveSelection(1),
+            ["Up"]     = mapManager.LoadDeckDisplayInput,
             ["Select"] = mapManager.ConfirmSelection,
         });
 
@@ -232,17 +325,26 @@ public class GameManager : MonoBehaviour
 
     public void SetGameState(GameState newState)
     {
+        GameState previousState = _currentState;
         _currentState = newState;
-        LoadAppropriateManager();
+
+        // battleManager/mapManager/rewardManager의 activate/deactivate(및 그 사이 전환 연출)는
+        // TransitionManager가 전담한다. 씬에 없다면(아직 배치 전이거나 테스트 환경) 기존처럼
+        // 연출 없는 즉시 전환으로 대체한다.
+        if (TransitionManager.Instance != null)
+            TransitionManager.Instance.HandleStateChange(previousState, newState);
+        else
+            LoadAppropriateManager();
     }
 
-    // manager들의 enable/disable은 오직 이 지점을 통해서만 이뤄진다.
-    // 현재 gameState를 담당하는 manager만 enable하고 나머지는 전부 disable한다.
+    // TransitionManager가 없을 때의 대체 경로. 현재 gameState를 담당하는 manager만 enable하고
+    // 나머지는 전부 disable한다(연출 없음).
     private void LoadAppropriateManager()
     {
 
         bool battleActive = false;
         bool mapActive = false;
+        bool gameEndActive = false;
         switch (_currentState)
         {
             case GameState.StartScreen:
@@ -256,12 +358,17 @@ public class GameManager : MonoBehaviour
             case GameState.SelectEnemy:
                 mapActive = true;
                 break;
+            case GameState.GameOver:
+                battleActive = true;
+                gameEndActive = true;
+                break;
             default:
                 break;
         }
 
         battleManager.gameObject.SetActive(battleActive);
         mapManager.gameObject.SetActive(mapActive);
+        gameEndManager.gameObject.SetActive(gameEndActive);
 
         // rewardPanel은 다른 오브젝트 위에 얹히는 패널이라 battleActive/mapActive와 상호배타적이지 않다.
         rewardManager.gameObject.SetActive(_currentState == GameState.BattleEnd);
@@ -285,6 +392,7 @@ public enum GameState{
     Battle,
     BattleEnd,
     SelectEnemy,
+    GameOver,
 }
 
 // EffectPrices.json 한 항목이 담는 정보: 강화 예산 계수(price)와 magnitude를 고를 범위(min~max, unit 간격).

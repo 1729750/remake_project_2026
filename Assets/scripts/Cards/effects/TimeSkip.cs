@@ -21,5 +21,6 @@ public class TimeSkip : Effect
         }
 
         target?.ChangeCooldownLeft(-_magnitude);
+        PlayApplySound();
     }
 }
