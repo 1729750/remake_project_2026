@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MainMenuManager : MonoBehaviour
 {
@@ -10,17 +11,102 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private GameObject battlePanel;
     [SerializeField] private GameObject settingsPanel;
 
+    [Header("Menu Selection")]
+    [SerializeField] private Image[] menuImages;
+
+    [SerializeField] private Sprite[] normalSprites;
+    [SerializeField] private Sprite[] hoverSprites;
+
+    private int currentIndex = 0;
+
     private void Start()
     {
-        // 게임 시작 시 패널 비활성화
         if (battlePanel != null)
             battlePanel.SetActive(false);
 
         if (settingsPanel != null)
             settingsPanel.SetActive(false);
+
+        UpdateSelection();
     }
 
-    // 1. Start 버튼
+    private void Update()
+    {
+        // A : 왼쪽 이동
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            currentIndex--;
+
+            if (currentIndex < 0)
+                currentIndex = menuImages.Length - 1;
+
+            UpdateSelection();
+        }
+
+        // D : 오른쪽 이동
+        if (Input.GetKeyDown(KeyCode.D))
+        {
+            currentIndex++;
+
+            if (currentIndex >= menuImages.Length)
+                currentIndex = 0;
+
+            UpdateSelection();
+        }
+
+        // 선택
+        if (Input.GetKeyDown(KeyCode.Return) ||
+            Input.GetKeyDown(KeyCode.Space))
+        {
+            SelectCurrentMenu();
+        }
+    }
+
+    private void UpdateSelection()
+    {
+        for (int i = 0; i < menuImages.Length; i++)
+        {
+            if (menuImages[i] == null)
+                continue;
+
+            // 현재 선택된 메뉴
+            if (i == currentIndex)
+            {
+                if (i < hoverSprites.Length)
+                    menuImages[i].sprite = hoverSprites[i];
+            }
+            // 선택되지 않은 메뉴
+            else
+            {
+                if (i < normalSprites.Length)
+                    menuImages[i].sprite = normalSprites[i];
+            }
+        }
+    }
+
+    private void SelectCurrentMenu()
+    {
+        switch (currentIndex)
+        {
+            case 0:
+                OnClickStart();
+                break;
+
+            case 1:
+                OnClickBattle();
+                break;
+
+            case 2:
+                OnClickSettings();
+                break;
+
+            case 3:
+                OnClickOut();
+                break;
+        }
+    }
+
+    // Start
     public void OnClickStart()
     {
         if (!string.IsNullOrEmpty(startSceneName))
@@ -33,35 +119,33 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    // 2. 대전하기 버튼
+    // Battle
     public void OnClickBattle()
     {
         if (battlePanel != null)
             battlePanel.SetActive(true);
     }
 
-    // 3. 설정 버튼
+    // Settings
     public void OnClickSettings()
     {
         if (settingsPanel != null)
             settingsPanel.SetActive(true);
     }
 
-    // 대전하기 패널 닫기
     public void CloseBattlePanel()
     {
         if (battlePanel != null)
             battlePanel.SetActive(false);
     }
 
-    // 설정 패널 닫기
     public void CloseSettingsPanel()
     {
         if (settingsPanel != null)
             settingsPanel.SetActive(false);
     }
 
-    // 4. Out 버튼
+    // Out
     public void OnClickOut()
     {
 #if UNITY_EDITOR
