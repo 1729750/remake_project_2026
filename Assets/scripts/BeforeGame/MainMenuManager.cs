@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class MainMenuManager : MonoBehaviour
 {
@@ -16,11 +17,9 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private Image[] menuImages;
 
     [Header("Normal Sprites")]
-    [Tooltip("각 버튼의 기본 이미지")]
     [SerializeField] private Sprite[] normalSprites;
 
     [Header("Hover Sprites")]
-    [Tooltip("각 버튼의 Hover 이미지")]
     [SerializeField] private Sprite[] hoverSprites;
 
     // 0 = 시작
@@ -42,11 +41,16 @@ public class MainMenuManager : MonoBehaviour
 
     private void Update()
     {
-        // 설정창이 열려 있으면 메인 메뉴 조작 X
+        if (Keyboard.current == null)
+            return;
+
+        // =========================
+        // 설정창이 열려 있는 경우
+        // =========================
         if (settingsPanel != null && settingsPanel.activeSelf)
         {
             // ESC로 설정창 닫기
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 CloseSettingsPanel();
             }
@@ -54,31 +58,39 @@ public class MainMenuManager : MonoBehaviour
             return;
         }
 
-        // A = 왼쪽
-        if (Input.GetKeyDown(KeyCode.A))
+        // =========================
+        // A = 왼쪽 이동
+        // =========================
+        if (Keyboard.current.aKey.wasPressedThisFrame)
         {
             MoveLeft();
         }
 
-        // D = 오른쪽
-        if (Input.GetKeyDown(KeyCode.D))
+        // =========================
+        // D = 오른쪽 이동
+        // =========================
+        if (Keyboard.current.dKey.wasPressedThisFrame)
         {
             MoveRight();
         }
 
-        // Enter 또는 Space = 선택
-        if (Input.GetKeyDown(KeyCode.Return) ||
-            Input.GetKeyDown(KeyCode.Space))
+        // =========================
+        // Enter = 현재 메뉴 실행
+        // =========================
+        if (Keyboard.current.enterKey.wasPressedThisFrame)
         {
             SelectCurrentMenu();
         }
     }
 
+    // =========================
+    // 왼쪽 이동
+    // =========================
     private void MoveLeft()
     {
         currentIndex--;
 
-        // 시작에서 A를 누르면 종료하기로 이동
+        // 시작에서 A 누르면 종료하기로
         if (currentIndex < 0)
         {
             currentIndex = menuImages.Length - 1;
@@ -87,11 +99,14 @@ public class MainMenuManager : MonoBehaviour
         UpdateSelection();
     }
 
+    // =========================
+    // 오른쪽 이동
+    // =========================
     private void MoveRight()
     {
         currentIndex++;
 
-        // 종료하기에서 D를 누르면 시작으로 이동
+        // 종료하기에서 D 누르면 시작으로
         if (currentIndex >= menuImages.Length)
         {
             currentIndex = 0;
@@ -100,6 +115,9 @@ public class MainMenuManager : MonoBehaviour
         UpdateSelection();
     }
 
+    // =========================
+    // 선택된 버튼 Hover 처리
+    // =========================
     private void UpdateSelection()
     {
         for (int i = 0; i < menuImages.Length; i++)
@@ -110,7 +128,8 @@ public class MainMenuManager : MonoBehaviour
             // 현재 선택된 버튼
             if (i == currentIndex)
             {
-                if (i < hoverSprites.Length && hoverSprites[i] != null)
+                if (i < hoverSprites.Length &&
+                    hoverSprites[i] != null)
                 {
                     menuImages[i].sprite = hoverSprites[i];
                 }
@@ -118,7 +137,8 @@ public class MainMenuManager : MonoBehaviour
             // 선택되지 않은 버튼
             else
             {
-                if (i < normalSprites.Length && normalSprites[i] != null)
+                if (i < normalSprites.Length &&
+                    normalSprites[i] != null)
                 {
                     menuImages[i].sprite = normalSprites[i];
                 }
@@ -126,6 +146,9 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
+    // =========================
+    // Enter 눌렀을 때 실행
+    // =========================
     private void SelectCurrentMenu()
     {
         switch (currentIndex)
@@ -152,9 +175,9 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    // ==============================
-    // 시작
-    // ==============================
+    // =========================
+    // 0. 시작
+    // =========================
     public void OnClickStart()
     {
         if (!string.IsNullOrEmpty(startSceneName))
@@ -167,9 +190,9 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    // ==============================
-    // 대전모드
-    // ==============================
+    // =========================
+    // 1. 대전모드
+    // =========================
     public void OnClickBattle()
     {
         if (!string.IsNullOrEmpty(battleSceneName))
@@ -182,9 +205,9 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    // ==============================
-    // 설정
-    // ==============================
+    // =========================
+    // 2. 설정
+    // =========================
     public void OnClickSettings()
     {
         if (settingsPanel != null)
@@ -200,13 +223,12 @@ public class MainMenuManager : MonoBehaviour
             settingsPanel.SetActive(false);
         }
 
-        // 설정창 닫은 후 현재 선택 표시 다시 갱신
         UpdateSelection();
     }
 
-    // ==============================
-    // 종료하기
-    // ==============================
+    // =========================
+    // 3. 종료하기
+    // =========================
     public void OnClickOut()
     {
 #if UNITY_EDITOR
