@@ -31,19 +31,26 @@ public class BattleManager:MonoBehaviour
         Instance = this;
     }
 
+    // GameManager.Start(최초 1회)와 GameManager.GameStart(매 런 재시작마다) 둘 다에서 호출된다.
+    // 재호출 시 이전 TurnTimerOverlay가 남아있으면 먼저 파괴한다 — 그렇지 않으면 재시작할 때마다
+    // 오버레이 오브젝트가 하나씩 쌓인다.
     public void Init()
     {
-        playerCharacterManager.Init(); 
+        playerCharacterManager.Init();
         enemyCharacterManager.Init();
+
+        if (_turnTimerOverlay != null)
+            Destroy(_turnTimerOverlay.gameObject);
+
         var overlayGO = new GameObject("TurnTimerOverlay");
         overlayGO.transform.SetParent(turnText.transform.parent);
         overlayGO.transform.localPosition = Vector3.zero;
         overlayGO.transform.localScale = Vector3.one;
         overlayGO.AddComponent<MeshFilter>();
         overlayGO.AddComponent<MeshRenderer>();
-        var turnTimerOverlay = overlayGO.AddComponent<TurnTimerOverlay>();
-        _turnManager = new TurnManager(turnDuration, turnTimerOverlay, turnText);
-        
+        _turnTimerOverlay = overlayGO.AddComponent<TurnTimerOverlay>();
+        _turnManager = new TurnManager(turnDuration, _turnTimerOverlay, turnText);
+
         _turnManager.OnTurnStarted += OnTurnStarted;
         _turnManager.OnTurnEnded += OnTurnEnded;
     }
@@ -151,7 +158,7 @@ public class BattleManager:MonoBehaviour
             SoundManager.Instance?.StopBgm();
             if (loser == playerCharacterManager)
             {
-                Application.Quit();
+                GameManager.Instance.GameOver();
             }
             else
             {

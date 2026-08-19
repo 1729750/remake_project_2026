@@ -13,6 +13,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private RewardManager rewardManager;
     [SerializeField] private InputManager inputManager;
     [SerializeField] private MapManager mapManager;
+    [SerializeField] private GameEndManager gameEndManager;
     [SerializeField] private CharacterData firstEnemyData;
     // 적 후보 풀(인스펙터 원본). Awake에서 _enemyCandidatePool로 복제되고, 이후로는 이 배열 자체를
     // 직접 건드리지 않는다.
@@ -170,7 +171,34 @@ public class GameManager : MonoBehaviour
     {
         SetGameState(GameState.BattleEnd);
         inputManager.Unload();
+        mapManager.AddTrophyForLastBattle();
         rewardManager.ShowRewardDisplay();
+    }
+
+    // BattleManager.NotifyDefeat가 플레이어 패배를 감지하면 호출한다. 지금은 상태 전환과
+    // 결과 화면 표시만 하지만, 이후 게임오버 연출(카메라 효과/딜레이 등)이 추가될 수 있으므로
+    // 그 자리를 마련해두기 위한 버퍼 함수다 — 호출부(BattleManager)는 바뀌지 않아도 된다.
+    public void GameOver()
+    {
+        SetGameState(GameState.GameOver);
+        inputManager.Unload();
+        gameEndManager.ShowResult();
+    }
+
+    // 게임오버 화면의 "타이틀로" 버튼.
+    public void GoToTitle()
+    {
+        SetGameState(GameState.StartScreen);
+    }
+
+    // 새 런을 시작하기 전 공통으로 거쳐야 하는 초기화. 게임오버 화면의 "게임 시작" 버튼과,
+    // 이후 타이틀 화면에서 게임을 처음 시작할 때 둘 다 이 함수를 그대로 탄다.
+    public void GameStart()
+    {
+        battleManager.Init();
+        mapManager.ResetTrophies();
+        PlayerManager.Instance.Init();
+        TransitionManager.Instance?.Init();
     }
 
     // RewardManager가 카드 획득을 확정할 때 부르는, PlayerManager 덱을 직접 건드리는 지점.
@@ -316,6 +344,7 @@ public class GameManager : MonoBehaviour
 
         bool battleActive = false;
         bool mapActive = false;
+        bool gameEndActive = false;
         switch (_currentState)
         {
             case GameState.StartScreen:
@@ -329,12 +358,17 @@ public class GameManager : MonoBehaviour
             case GameState.SelectEnemy:
                 mapActive = true;
                 break;
+            case GameState.GameOver:
+                battleActive = true;
+                gameEndActive = true;
+                break;
             default:
                 break;
         }
 
         battleManager.gameObject.SetActive(battleActive);
         mapManager.gameObject.SetActive(mapActive);
+        gameEndManager.gameObject.SetActive(gameEndActive);
 
         // rewardPanel은 다른 오브젝트 위에 얹히는 패널이라 battleActive/mapActive와 상호배타적이지 않다.
         rewardManager.gameObject.SetActive(_currentState == GameState.BattleEnd);
@@ -358,6 +392,7 @@ public enum GameState{
     Battle,
     BattleEnd,
     SelectEnemy,
+    GameOver,
 }
 
 // EffectPrices.json 한 항목이 담는 정보: 강화 예산 계수(price)와 magnitude를 고를 범위(min~max, unit 간격).

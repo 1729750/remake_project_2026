@@ -106,6 +106,10 @@ public class CharacterManager: MonoBehaviour
         if (_cost >= 10) healEnergyAmount--;
         EnergyHeal(healEnergyAmount);
         UpdateEffectList();
+        // healEnergy/effect 처리가 끝난 직후, 지난 턴에 코스트/큐가 부족해 select된 채로 남아있던
+        // 카드가 있으면 강제로 재시도한다 — 여전히 안 되면 HandManager.UseCard가 자연히 실패하고
+        // select 상태만 남는다.
+        _handManager.UseCard();
         _handManager.FillHand();
         PlayUpcomingAttackSoundIfNeeded();
         // 이번 턴 시작 로직이 전부 끝난 뒤(코스트 회복 등 반영 완료 시점) preview cost/cooldown을
@@ -145,37 +149,17 @@ public class CharacterManager: MonoBehaviour
         _queueManager.TickQueueCards(this);
         for (int i = _effects.Count - 1; i >= 0; i--)
             _effects[i].OnTurnEnded(this);
-        // 플레이어는 SelectCard에서 선택 즉시 UseSelectedCard가 이미 호출되므로 여기선 AI만 처리한다.
+        // 플레이어는 select된 카드가 있어도 여기서 건드리지 않는다 — 다음 OnTurnStart의
+        // 재시도로 넘긴다. AI는 여기서 바로 고르고 곧장 사용을 시도한다(실패하면 select된
+        // 채로 남아 다음 OnTurnStart 재시도를 탄다).
         if (!playerControlled)
         {
             SelectRandomCard();
-            UseSelectedCard();
+            _handManager.UseCard();
         }
         _specialAction = 0;
         // 매 턴 종료마다 손패 카드들의 비용/효과 표시를 이번 턴에 바뀐 버프 상태에 맞게 다시 계산한다.
         _handManager.RefreshHandDisplay();
-    }
-
-    // 현재 선택된 카드를 실제로 사용한다: preview cost가 현재 코스트 이내면 ResolveUse(actualUse
-    // true)로 확정하고 손패에서 큐로 넘긴다. 감당 못 하면 선택 상태만 남고 아무 일도 없다.
-    // playerControlled면 SelectCard가 선택 즉시 호출하고, 그 외(AI)에는 OnTurnEnd가
-    // SelectRandomCard 직후 호출한다. FillHand는 이 메서드가 건드리지 않는다 — 여전히
-    // OnTurnStart에서만 일어난다.
-    private void UseSelectedCard()
-    {
-        var selected = _handManager.GetSelectedCard();
-        if (selected == null) return;
-
-        CardInstance preview = selected.Clone();
-        preview.ResolveUse(this, _queueManager.GetQueue(), false);
-        if (_cost < preview.GetCost()) return;
-
-        selected.ResolveUse(this, _queueManager.GetQueue(), true);
-        if (_handManager.UseCard())
-        {
-            _cost -= selected.GetCost();
-        }
-        UpdateCostDisplay();
     }
 
     // ReDraw: 손패 전부를 덱에 되돌리고 셔플 후 다시 채운다
@@ -254,9 +238,19 @@ public class CharacterManager: MonoBehaviour
         if (index < 0 || index >= hand.Length || hand[index] == null) return;
         _specialAction = 0;
         SetDefenseIndicatorActive(false);
-        _handManager.SelectCard(index);
-        Debug.Log($"[{gameObject.name}] Selected card: {hand[index].GetDefinition().name}");
-        UseSelectedCard();
+
+        string cardName = hand[index].GetDefinition().name;
+        if (_handManager.UseCardImmediately(index))
+        {
+            // 지금 바로 낼 수 있었으면(코스트/큐 여유 있음) select를 거치지 않고 곧장 사용된다.
+            Debug.Log($"[{gameObject.name}] Used card: {cardName}");
+        }
+        else
+        {
+            // 지금은 낼 수 없으면(QueueCard가 실패) select만 해두고, 다음 OnTurnStart 재시도로 넘긴다.
+            _handManager.SelectCard(index);
+            Debug.Log($"[{gameObject.name}] Selected card: {cardName}");
+        }
     }
 
     public void SelectRandomCard()
@@ -432,9 +426,23 @@ public class CharacterManager: MonoBehaviour
         return;
     }
 
+    // 카드 하나를 실제로 큐에 편입시키는 유일한 통로. 코스트를 감당할 수 없으면(preview 기준)
+    // 곧장 실패하고, 감당 가능하면 실제 적용(ResolveUse actualUse=true) 후 큐에 자리가 있는지
+    // 시도한다 — 큐가 꽉 차 있으면 QueueManager.AddCard가 false를 돌려주고, 그러면 이 카드는
+    // 손패에 그대로 남는다(호출부인 HandManager가 처리). 성공한 경우에만 코스트를 차감한다.
     public bool QueueCard(CardInstance card, GameObject cardObject)
     {
-        return _queueManager.AddCard(card, cardObject);
+        CardInstance preview = card.Clone();
+        preview.ResolveUse(this, _queueManager.GetQueue(), false);
+        if (_cost < preview.GetCost()) return false;
+
+        card.ResolveUse(this, _queueManager.GetQueue(), true);
+        card.Use();
+        if (!_queueManager.AddCard(card, cardObject)) return false;
+
+        _cost -= card.GetCost();
+        UpdateCostDisplay();
+        return true;
     }
 
     public CardInstance[] GetQueue() => _queueManager.GetQueue();

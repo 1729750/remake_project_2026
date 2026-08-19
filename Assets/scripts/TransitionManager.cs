@@ -5,7 +5,7 @@ using UnityEngine;
 // (RewardPanel)/MapManager는 서로의 활성화·연출을 직접 건드리지 않고, GameManager.SetGameState가
 // 상태를 바꿀 때마다 HandleStateChange를 호출해 여기로 위임한다.
 //
-// 다루는 연출은 세 가지뿐이다:
+// 다루는 연출은 다섯 가지다:
 // 1) ... → BattleEnd: rewardManager(RewardPanel)가 화면 위에서 아래(원래 자리)로 내려온다.
 //    battleManager는 계속 켜진 채로 뒤에 그대로 비친다.
 // 2) BattleEnd → SelectEnemy: battleManager와 rewardManager가 동시에 아래로 내려가 화면 밖으로
@@ -15,6 +15,10 @@ using UnityEngine;
 // 3) SelectEnemy → Battle: 2번의 반대 방향. mapManager가 위로 올라가 화면 밖으로 사라지고,
 //    그와 동시에 battleManager가 아래에서 위로 올라와 자리를 채운다 — 카메라가 다시 아래로
 //    내려가는 듯한 착시.
+// 4) ... → GameOver: PlayRewardDropIn과 같은 패턴으로 gameEndManager가 위에서 내려온다.
+//    battleManager는 전투 도중 패배로 진입하므로 계속 켜진 채 뒤에 비친다.
+// 5) GameOver → (StartScreen/SelectEnemy 등): 화면 암전. 실제 페이드 구현은 아직 없고
+//    PlayBlackout에 자리만 마련해뒀다(지금은 즉시 SnapToState).
 // 그 외의 전환은 연출 없이 즉시 SetActive로 전환한다.
 public class TransitionManager : MonoBehaviour
 {
@@ -23,17 +27,21 @@ public class TransitionManager : MonoBehaviour
     [SerializeField] private BattleManager battleManager;
     [SerializeField] private RewardManager rewardManager;
     [SerializeField] private MapManager mapManager;
+    [SerializeField] private GameEndManager gameEndManager;
     [SerializeField] private float rewardDropDuration = 0.5f;
     [SerializeField] private float mapRevealDuration = 0.6f;
     [SerializeField] private float battleRevealDuration = 0.6f;
+    [SerializeField] private float gameEndDropDuration = 0.5f;
 
     private Transform _battleTransform;
     private Transform _rewardTransform;
     private Transform _mapTransform;
+    private Transform _gameEndTransform;
 
     private Vector3 _battleRestPosition;
     private Vector3 _rewardRestPosition;
     private Vector3 _mapRestPosition;
+    private Vector3 _gameEndRestPosition;
 
     // 한 화면 높이(월드 단위). 이만큼 위/아래로 옮기면 무엇이든 화면 밖으로 완전히 벗어난다.
     private float _travelDistance;
@@ -45,22 +53,40 @@ public class TransitionManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
 
-        if (battleManager == null || rewardManager == null || mapManager == null)
+        if (battleManager == null || rewardManager == null || mapManager == null || gameEndManager == null)
         {
-            Debug.LogWarning("[TransitionManager] battleManager/rewardManager/mapManager 중 비어있는 참조가 있습니다.");
+            Debug.LogWarning("[TransitionManager] battleManager/rewardManager/mapManager/gameEndManager 중 비어있는 참조가 있습니다.");
             return;
         }
 
         _battleTransform = battleManager.transform;
         _rewardTransform = rewardManager.transform;
         _mapTransform = mapManager.transform;
+        _gameEndTransform = gameEndManager.transform;
 
         _battleRestPosition = _battleTransform.position;
         _rewardRestPosition = _rewardTransform.position;
         _mapRestPosition = _mapTransform.position;
+        _gameEndRestPosition = _gameEndTransform.position;
 
         Camera cam = Camera.main;
         _travelDistance = cam != null && cam.orthographic ? cam.orthographicSize * 2f : 10f;
+    }
+
+    // GameManager.GameStart가 새 런을 시작할 때 호출한다. 진행 중이던 연출을 멈추고, 모든 매니저를
+    // 각자의 rest position으로 되돌려(현재 GameState 기준으로 켜고 끄기까지 포함) 다음 상태 전환이
+    // 항상 정상적인 자리에서 시작하도록 보장한다.
+    public void Init()
+    {
+        if (_battleTransform == null) return;
+
+        if (_routine != null)
+        {
+            StopCoroutine(_routine);
+            _routine = null;
+        }
+
+        SnapToState(GameManager.Instance.GetGameState());
     }
 
     // GameManager.SetGameState(previous → next)가 바뀔 때마다 호출된다.
@@ -86,6 +112,14 @@ public class TransitionManager : MonoBehaviour
         {
             _routine = StartCoroutine(PlayBattleReveal());
         }
+        else if (next == GameState.GameOver)
+        {
+            _routine = StartCoroutine(PlayGameEndDropIn());
+        }
+        else if (previous == GameState.GameOver)
+        {
+            _routine = StartCoroutine(PlayBlackout(next));
+        }
         else
         {
             SnapToState(next);
@@ -93,20 +127,23 @@ public class TransitionManager : MonoBehaviour
     }
 
     // 별도 연출이 없는 전환(예: SelectEnemy → Battle)의 즉시 처리. 애니메이션 없이 켜고 끄며,
-    // 셋 다 각자의 rest position으로 되돌려 다음 연출이 항상 같은 자리에서 시작하게 한다.
+    // 넷 다 각자의 rest position으로 되돌려 다음 연출이 항상 같은 자리에서 시작하게 한다.
     private void SnapToState(GameState state)
     {
-        bool battleActive = state == GameState.Battle || state == GameState.BattleEnd;
+        bool battleActive = state == GameState.Battle || state == GameState.BattleEnd || state == GameState.GameOver;
         bool mapActive = state == GameState.SelectEnemy;
         bool rewardActive = state == GameState.BattleEnd;
+        bool gameEndActive = state == GameState.GameOver;
 
         _battleTransform.position = _battleRestPosition;
         _mapTransform.position = _mapRestPosition;
         _rewardTransform.position = _rewardRestPosition;
+        _gameEndTransform.position = _gameEndRestPosition;
 
         battleManager.gameObject.SetActive(battleActive);
         mapManager.gameObject.SetActive(mapActive);
         rewardManager.gameObject.SetActive(rewardActive);
+        gameEndManager.gameObject.SetActive(gameEndActive);
     }
 
     private IEnumerator PlayRewardDropIn()
@@ -178,6 +215,27 @@ public class TransitionManager : MonoBehaviour
         _mapTransform.position = _mapRestPosition;
         _battleTransform.position = _battleRestPosition;
 
+        _routine = null;
+    }
+
+    // PlayRewardDropIn과 같은 패턴: gameEndManager가 화면 위에서 rest position으로 내려온다.
+    // battleManager는 GameOver 진입 시점(전투 도중)에 이미 켜져 있으므로 그대로 뒤에 비친다.
+    private IEnumerator PlayGameEndDropIn()
+    {
+        Vector3 start = _gameEndRestPosition + Vector3.up * _travelDistance;
+        _gameEndTransform.position = start;
+        gameEndManager.gameObject.SetActive(true);
+
+        yield return MoveOverTime(_gameEndTransform, start, _gameEndRestPosition, gameEndDropDuration);
+        _routine = null;
+    }
+
+    // 타이틀 복귀/게임 재시작(=GameOver를 벗어나는 모든 전환)에 쓸 암전 연출.
+    // TODO: 실제 페이드 아웃 → 대기 → 페이드 인 구현. 지금은 연출 없이 즉시 상태만 맞춘다.
+    private IEnumerator PlayBlackout(GameState next)
+    {
+        SnapToState(next);
+        yield return null;
         _routine = null;
     }
 

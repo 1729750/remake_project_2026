@@ -146,21 +146,27 @@ public class HandManager
     public CardInstance[] GetHand() => _hand;
     public CardInstance GetSelectedCard() => (_selectedIndex >= 0 && _selectedIndex < HandSize) ? _hand[_selectedIndex] : null;
 
-    public bool UseCard()
+    // 현재 select된 카드를 사용한다. 선택된 게 없으면(index -1) 아래에서 그냥 실패한다.
+    public bool UseCard() => UseCardImmediately(_selectedIndex);
+
+    // select 여부와 무관하게 index의 카드를 곧장 사용(손패에서 큐로 편입)한다. 사용 가능한지
+    // (코스트/큐 여유)는 CharacterManager.QueueCard가 직접 확인하고 실패하면 false를 돌려준다 —
+    // 여기서는 그 결과를 그대로 따를 뿐 별도로 미리 확인하지 않는다.
+    public bool UseCardImmediately(int index)
     {
-        if (_selectedIndex < 0 || _selectedIndex >= HandSize || _hand[_selectedIndex] == null)
+        if (index < 0 || index >= HandSize || _hand[index] == null)
             return false;
 
-        var card = _hand[_selectedIndex];
-        card.Use();
-        GameObject cardObject = _cardObjects[_selectedIndex];
+        var card = _hand[index];
+        GameObject cardObject = _cardObjects[index];
         if (_characterManager.QueueCard(card, cardObject))
         {
             SoundManager.Instance?.Play(EffectSound.UseCard);
             card.SetSelected(false);
-            _cardObjects[_selectedIndex] = null;
-            _hand[_selectedIndex] = null;
-            ClearSelection();
+            _cardObjects[index] = null;
+            _hand[index] = null;
+            if (_selectedIndex == index)
+                ClearSelection();
             return true;
         }
 

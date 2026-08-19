@@ -14,6 +14,9 @@ public class MapManager : MonoBehaviour
     // 상대 deck을 여기에 다시 채워 넣는 방식으로 재활용한다(인스턴스를 새로 만들지 않는다).
     [SerializeField] private DeckDisplay opponentDeckDisplay;
 
+    // 전투 승리 트로피들이 나열되는 컨테이너(mapManager의 child로 미리 배치된 Trophies에 붙어 있다).
+    [SerializeField] private TrophiesManager trophiesManager;
+
     private CharacterData[] _candidates;
     private int _selectedIndex;
 
@@ -28,6 +31,23 @@ public class MapManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         _enemyVisuals = GetComponentsInChildren<MapVisual>(true);
+        ResetTrophies();
+    }
+
+    // mapManager가 (재)활성화될 때마다 기본 화면으로 되돌린다: trophies를 켜고 deckDisplay는 끈다.
+    private void OnEnable()
+    {
+        SetDeckViewActive(false);
+    }
+
+    // opponentDeckDisplay와 trophies는 항상 상호배타적으로 켜진다 — 커서가 deck 쪽에 가 있을 때만
+    // deckDisplay가 활성화되고, 그 외에는 trophies가 활성화된다.
+    private void SetDeckViewActive(bool deckActive)
+    {
+        if (opponentDeckDisplay != null)
+            opponentDeckDisplay.gameObject.SetActive(deckActive);
+        if (trophiesManager != null)
+            trophiesManager.gameObject.SetActive(!deckActive);
     }
 
     public void ShowEnemySelection(CharacterData[] candidates)
@@ -57,8 +77,6 @@ public class MapManager : MonoBehaviour
     {
         for (int i = 0; i < _enemyVisuals.Length; i++)
             _enemyVisuals[i]?.SetSelected(i == _selectedIndex);
-
-        RefreshOpponentDeckDisplay();
     }
 
     // 현재 선택된 후보의 deck을 opponentDeckDisplay에 다시 채워 넣는다.
@@ -78,6 +96,12 @@ public class MapManager : MonoBehaviour
     {
         if (opponentDeckDisplay == null) return;
 
+        SetDeckViewActive(true);
+        // opponentDeckDisplay를 활성화한 직후에 채운다 — 비활성 상태에서 SetDeck을 호출하면
+        // 그 안에서 새로 instantiate되는 카드들의 Awake가 아직 실행되지 않은 채로 SetCardDefinition
+        // 등이 곧장 불려서 초기화가 깨진다.
+        RefreshOpponentDeckDisplay();
+
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]  = () => opponentDeckDisplay.MoveSelectionHorizontal(-1),
@@ -89,6 +113,7 @@ public class MapManager : MonoBehaviour
                 {
                     PlayerInputManager.Instance.Unload();
                     opponentDeckDisplay.Deselect();
+                    SetDeckViewActive(false);
                 }
                 else
                 {
@@ -113,6 +138,27 @@ public class MapManager : MonoBehaviour
 
     public int GetCurrentRound() => _currentRound;
     public IReadOnlyList<CharacterData> GetBattleHistory() => _battleHistory;
+
+    // 전투 승리 직후(GameManager.EndBattle) 호출된다. 방금 확정했던(=방금 이긴) 상대의
+    // CharacterData(ConfirmSelection이 _battleHistory에 넣어둔 마지막 항목)를 트로피로 추가한다.
+    public void AddTrophyForLastBattle()
+    {
+        if (_battleHistory.Count == 0 || trophiesManager == null) return;
+        trophiesManager.AddTrophy(_battleHistory[_battleHistory.Count - 1]);
+    }
+
+    // 지금까지(이번 런에서) 승리 트로피로 쌓인 CharacterData들. GameEndManager가 게임오버 화면에
+    // 격파한 적 전체를 다시 전시할 때 가져다 쓴다.
+    public IReadOnlyList<CharacterData> GetTrophyData()
+    {
+        return trophiesManager != null ? trophiesManager.GetTrophyData() : Array.Empty<CharacterData>();
+    }
+
+    // 트로피 행을 비운다. 매 게임(새 런) 시작 시 리셋되어야 한다.
+    public void ResetTrophies()
+    {
+        trophiesManager?.ResetTrophies();
+    }
 
     // 이후 후보 전시 UI에서 비주얼 요소로 사용할 파싱 함수들.
     // 현재 CharacterData는 maxHealth와 deck만 갖고 있으므로 그 안에서 뽑아낼 수 있는 값만 제공한다.
