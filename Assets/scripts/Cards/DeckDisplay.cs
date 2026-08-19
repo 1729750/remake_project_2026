@@ -29,6 +29,8 @@ public class DeckDisplay : MonoBehaviour
     private int _visibleRows;
     private int _topRow;
     private int _selectedIndex;
+    // WASD(Left/Right/Up/Down)로 선택을 옮길 때 MoveSelect1/2를 번갈아 재생하기 위한 토글.
+    private bool _moveSelectToggle;
 
     private void Awake()
     {
@@ -46,10 +48,14 @@ public class DeckDisplay : MonoBehaviour
     // SetSize로 크기를 명시적으로 받은 적이 없으면 자신의 RectTransform 크기를 그대로 컨테이너
     // 크기로 쓴다. DeckDisplay를 재활용(같은 인스턴스에 매번 다른 덱을 보여주는 용도)할 때, 매번
     // SetSize를 호출하지 않아도 프리팹/인스펙터에 잡아둔 RectTransform 크기가 기본값이 되게 한다.
+    // rect.size는 이 RectTransform의 로컬(비스케일) 좌표계 값이라 lossyScale을 곱해 월드 단위로
+    // 바꿔준다 — 카드 쪽 기준값(GetBackgroundSize, SpriteRenderer.bounds)이 월드 단위라서 맞춰야 한다.
     private void EnsureContainerSize()
     {
         if (_sizeExplicitlySet || _rectTransform == null) return;
-        _containerSize = _rectTransform.rect.size;
+        Vector2 localSize = _rectTransform.rect.size;
+        Vector3 lossyScale = _rectTransform.lossyScale;
+        _containerSize = new Vector2(localSize.x * lossyScale.x, localSize.y * lossyScale.y);
     }
 
     // cardSize: cardPrefab 원본 크기 대비 배율(1이 원본 크기). 이 값으로 카드의 실제 표시 크기를
@@ -158,6 +164,7 @@ public class DeckDisplay : MonoBehaviour
         if (newIndex / Columns != _selectedIndex / Columns) return;
 
         SetSelectedIndex(newIndex);
+        PlayMoveSelectSound();
     }
 
     public void MoveSelectionVertical(int delta)
@@ -171,6 +178,7 @@ public class DeckDisplay : MonoBehaviour
         if (newRow == row) return;
 
         SetSelectedIndex(Mathf.Min(newRow * Columns + col, _cardInstances.Count - 1));
+        PlayMoveSelectSound();
 
         _topRow = Mathf.Clamp(_topRow, newRow - _visibleRows + 1, newRow);
         LayoutCards();
@@ -181,6 +189,12 @@ public class DeckDisplay : MonoBehaviour
         _cardInstances[_selectedIndex].SetSelected(false);
         _selectedIndex = index;
         _cardInstances[_selectedIndex].SetSelected(true);
+    }
+
+    private void PlayMoveSelectSound()
+    {
+        SoundManager.Instance?.Play(_moveSelectToggle ? EffectSound.MoveSelect1 : EffectSound.MoveSelect2);
+        _moveSelectToggle = !_moveSelectToggle;
     }
 
     private void LayoutCards()

@@ -48,6 +48,16 @@ public class RewardManager : MonoBehaviour
     private RewardDisplay[] _enhanceDisplays;
     private int _enhanceSelectedIndex;
 
+    // 아래 3개 화면(보상 종류/카드 획득/강화 후보) 전부 WASD(Left/Right)로 선택을 옮길 때
+    // MoveSelect1/2를 번갈아 재생한다 — 동시에 여러 화면이 열리지 않으므로 토글을 공유한다.
+    private bool _moveSelectToggle;
+
+    private void PlayMoveSelectSound()
+    {
+        SoundManager.Instance?.Play(_moveSelectToggle ? EffectSound.MoveSelect1 : EffectSound.MoveSelect2);
+        _moveSelectToggle = !_moveSelectToggle;
+    }
+
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -99,8 +109,11 @@ public class RewardManager : MonoBehaviour
         if (_rewardDisplays == null || _rewardDisplays.Length == 0) return;
 
         int count = _rewardDisplays.Length;
+        int previous = _rewardDisplaySelectedIndex;
         _rewardDisplaySelectedIndex = ((_rewardDisplaySelectedIndex + delta) % count + count) % count;
         RefreshRewardDisplaySelection();
+        if (_rewardDisplaySelectedIndex != previous)
+            PlayMoveSelectSound();
     }
 
     // 왼쪽부터 순서대로 카드 획득/삭제/강화에 대응한다.
@@ -351,8 +364,11 @@ public class RewardManager : MonoBehaviour
         if (_enhanceDisplays == null || _enhanceDisplays.Length == 0) return;
 
         int count = _enhanceDisplays.Length;
+        int previous = _enhanceSelectedIndex;
         _enhanceSelectedIndex = ((_enhanceSelectedIndex + delta) % count + count) % count;
         RefreshEnhanceSelection();
+        if (_enhanceSelectedIndex != previous)
+            PlayMoveSelectSound();
     }
 
     // 강화 후보 선택을 확정하고, 표시해뒀던 RewardDisplay 3개를 정리한다.
@@ -420,8 +436,11 @@ public class RewardManager : MonoBehaviour
         if (_rewardCardInstances == null || _rewardCardInstances.Length == 0) return;
 
         int count = _rewardCardInstances.Length;
+        int previous = _rewardCardSelectedIndex;
         _rewardCardSelectedIndex = ((_rewardCardSelectedIndex + delta) % count + count) % count;
         RefreshRewardCardSelection();
+        if (_rewardCardSelectedIndex != previous)
+            PlayMoveSelectSound();
     }
 
     private CardDefinition ConfirmRewardCard()

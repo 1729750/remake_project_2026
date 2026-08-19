@@ -120,12 +120,42 @@ public class Effect
             if (existing.GetEffectType() == _effectType)
             {
                 existing.AddMagnitude(_magnitude);
+                PlayApplySound();
                 return;
             }
         }
         subject.AddEffect(this);
+        PlayApplySound();
         Debug.Log($"[{subject.gameObject.name}] Gained effect: {_effectType} :{_magnitude}");
     }
     public virtual void OnApplyingOther(CharacterManager subject, CardEffect effect, bool actualUse) { }
     public virtual void OnAppliedOther(CharacterManager subject, CardEffect effect, bool actualUse) { }
+
+    // 이 Effect가 실제로 획득/발동될 때 SoundManager로 재생할 EffectSound.
+    // 기본은 TargetPolarity(Positive→Buff, 그 외→Debuff)를 따르되, 고유한 사운드가 있는 타입은
+    // 예외로 지정한다(Burning→Burn, Defend→ShieldGet, TimeSkip/Quicker→TimeSkip).
+    // Attack은 카드가 재생될 때(CardInstance.Play)와 피격 시(CharacterManager.Attacked)의 전용
+    // 사운드로 따로 처리하므로 여기서는 재생하지 않는다 — OnApply를 완전히 오버라이드하는
+    // AttackEffect는 이 메서드를 호출하지 않는다.
+    protected void PlayApplySound()
+    {
+        EffectSound sound;
+        switch (_effectType)
+        {
+            case EffectType.Burning:
+                sound = EffectSound.Burn;
+                break;
+            case EffectType.Defend:
+                sound = EffectSound.ShieldGet;
+                break;
+            case EffectType.TimeSkip:
+            case EffectType.Quicker:
+                sound = EffectSound.TimeSkip;
+                break;
+            default:
+                sound = TargetPolarity == EffectTargetPolarity.Positive ? EffectSound.Buff : EffectSound.Debuff;
+                break;
+        }
+        SoundManager.Instance?.Play(sound);
+    }
 }

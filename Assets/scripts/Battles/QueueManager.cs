@@ -71,6 +71,16 @@ public class QueueManager
         }
     }
 
+    // 전투가 끝났을 때 큐를 소유자의 덱으로 되돌리지 않고 그대로 비운다.
+    public void ClearQueue()
+    {
+        for (int i = 0; i < QueueSize; i++)
+        {
+            _queue[i] = null;
+            DestroyCardVisual(i);
+        }
+    }
+
     public CardInstance[] GetQueue() => _queue;
     public Transform GetSlot(int index) => (_slots != null && index >= 0 && index < _slots.Length) ? _slots[index] : null;
 

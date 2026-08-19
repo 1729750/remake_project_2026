@@ -30,6 +30,7 @@ public class QuickerEffect: Effect
     public override void OnApply(CharacterManager subject)
     {
         subject.ChangeTickSpeed(1);
+        PlayApplySound();
     }
     public override void OnApplyingOther(CharacterManager subject, CardEffect effect, bool actualUse) { }
     public override void OnAppliedOther(CharacterManager subject, CardEffect effect, bool actualUse) { }

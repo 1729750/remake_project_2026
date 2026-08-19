@@ -96,35 +96,77 @@ public class HandManager
         UnselectCard();
     }
 
+    // 전투가 끝났을 때 손패를 덱으로 되돌리지 않고 그대로 비운다(다음 전투는 CharacterInit이 덱을 새로 만든다).
+    public void ClearHand()
+    {
+        for (int i = 0; i < HandSize; i++)
+        {
+            _hand[i] = null;
+            if (_cardObjects[i] != null)
+            {
+                Object.Destroy(_cardObjects[i]);
+                _cardObjects[i] = null;
+            }
+        }
+        ClearSelection();
+    }
+
+    // 카드를 선택하면(선택 대상이 바뀌는 경우 포함) Select, 선택된 카드를 다시 눌러 해제하면 Unselect.
+    // MoveSelect1/2는 여기서 재생하지 않는다 — RewardManager/DeckDisplay의 WASD 커서 이동 전용.
     public void SelectCard(int index)
     {
+        int previous = _selectedIndex;
         if (_selectedIndex == index) _selectedIndex = -1;
         else _selectedIndex = index;
+
+        if (_selectedIndex != -1)
+            SoundManager.Instance?.Play(EffectSound.Select);
+        else if (previous != -1)
+            SoundManager.Instance?.Play(EffectSound.Unselect);
+
         RefreshSelection();
     }
 
     public void UnselectCard()
     {
+        bool wasSelected = _selectedIndex != -1;
+        ClearSelection();
+        if (wasSelected)
+            SoundManager.Instance?.Play(EffectSound.Unselect);
+    }
+
+    // UseCard()가 확정 직후 손패에서 카드를 비울 때 쓰는, 소리 없는 선택 해제.
+    // (UseCard 사운드와 겹쳐 Unselect까지 같이 울리는 것을 막는다.)
+    private void ClearSelection()
+    {
         _selectedIndex = -1;
         RefreshSelection();
     }
+
     public CardInstance[] GetHand() => _hand;
     public CardInstance GetSelectedCard() => (_selectedIndex >= 0 && _selectedIndex < HandSize) ? _hand[_selectedIndex] : null;
 
-    public bool UseCard()
+    // 현재 select된 카드를 사용한다. 선택된 게 없으면(index -1) 아래에서 그냥 실패한다.
+    public bool UseCard() => UseCardImmediately(_selectedIndex);
+
+    // select 여부와 무관하게 index의 카드를 곧장 사용(손패에서 큐로 편입)한다. 사용 가능한지
+    // (코스트/큐 여유)는 CharacterManager.QueueCard가 직접 확인하고 실패하면 false를 돌려준다 —
+    // 여기서는 그 결과를 그대로 따를 뿐 별도로 미리 확인하지 않는다.
+    public bool UseCardImmediately(int index)
     {
-        if (_selectedIndex < 0 || _selectedIndex >= HandSize || _hand[_selectedIndex] == null)
+        if (index < 0 || index >= HandSize || _hand[index] == null)
             return false;
 
-        var card = _hand[_selectedIndex];
-        card.Use();
-        GameObject cardObject = _cardObjects[_selectedIndex];
+        var card = _hand[index];
+        GameObject cardObject = _cardObjects[index];
         if (_characterManager.QueueCard(card, cardObject))
         {
+            SoundManager.Instance?.Play(EffectSound.UseCard);
             card.SetSelected(false);
-            _cardObjects[_selectedIndex] = null;
-            _hand[_selectedIndex] = null;
-            UnselectCard();
+            _cardObjects[index] = null;
+            _hand[index] = null;
+            if (_selectedIndex == index)
+                ClearSelection();
             return true;
         }
 
