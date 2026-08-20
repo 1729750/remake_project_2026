@@ -1,8 +1,9 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 // EnemyDisplay 프리팹 루트에 부착. MapManager가 넘겨주는 CharacterData를 기반으로
-// Attack/Defense sprite 너비와 MainEffect/SubEffect(효과 아이콘 2슬롯)를 갱신한다.
+// Attack/Defense sprite 너비, HP 텍스트, MainEffect/SubEffect(효과 아이콘 2슬롯)를 갱신한다.
 public class MapVisual : MonoBehaviour
 {
     // score(해당 이펙트가 있는 카드 수 x 그 이펙트의 magnitude 합)를 Attack/Defense sprite
@@ -15,6 +16,7 @@ public class MapVisual : MonoBehaviour
 
     private SpriteRenderer _attack;
     private SpriteRenderer _defense;
+    private TextMeshPro _hpText;
     private EffectDisplay _mainEffect;
     private EffectDisplay _subEffect;
     private GameObject _highlight;
@@ -26,6 +28,7 @@ public class MapVisual : MonoBehaviour
     {
         _attack = transform.Find("Attack").GetComponent<SpriteRenderer>();
         _defense = transform.Find("Defense").GetComponent<SpriteRenderer>();
+        _hpText = transform.Find("HP/HPText").GetComponent<TextMeshPro>();
         _mainEffect = transform.Find("MainEffect").GetComponent<EffectDisplay>();
         _subEffect = transform.Find("SubEffect").GetComponent<EffectDisplay>();
         _highlight = transform.Find("HighLight").gameObject;
@@ -49,6 +52,9 @@ public class MapVisual : MonoBehaviour
 
         _attack.size = new Vector2(attackWidth, _attack.size.y);
         _defense.size = new Vector2(defenseWidth, _defense.size.y);
+
+        if (_hpText != null)
+            _hpText.text = MapManager.Instance.GetHealth(data).ToString();
 
         RefreshEffectDisplays(MapManager.Instance.GetMostFrequentEffectType(data));
     }

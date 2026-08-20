@@ -263,7 +263,7 @@ SpriteRenderer:
   m_SortingLayer: 1
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -1171175124282165417, guid: e85b61ad0735a1f43bb5525e8e335e15, type: 3}
+  m_Sprite: {fileID: 5793440994140646242, guid: b669a470d7cd7d845b47df764f98bb0e, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1111,6 +1111,18 @@ PrefabInstance:
       value: PopUpComponent1
       objectReference: {fileID: 0}
     - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -1173,6 +1185,18 @@ PrefabInstance:
       value: PopUpComponent2
       objectReference: {fileID: 0}
     - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -1233,6 +1257,18 @@ PrefabInstance:
     - target: {fileID: 2836450954090337283, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
       propertyPath: m_Name
       value: PopUpComponent3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.15
       objectReference: {fileID: 0}
     - target: {fileID: 3505375662516667731, guid: c10456d99d112ab419058ab3ea581e96, type: 3}
       propertyPath: m_LocalPosition.x

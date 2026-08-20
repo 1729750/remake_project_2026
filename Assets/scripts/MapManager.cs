@@ -160,6 +160,15 @@ public class MapManager : MonoBehaviour
         trophiesManager?.ResetTrophies();
     }
 
+    // 매 게임(새 런) 시작 시 호출된다: 트로피 행과 이번 런 동안 쌓인 전투 기록(battleHistory/
+    // currentRound)을 전부 초기화한다. GameManager.GameStart가 이 함수를 호출한다.
+    public void Init()
+    {
+        ResetTrophies();
+        _battleHistory.Clear();
+        _currentRound = 0;
+    }
+
     // 이후 후보 전시 UI에서 비주얼 요소로 사용할 파싱 함수들.
     // 현재 CharacterData는 maxHealth와 deck만 갖고 있으므로 그 안에서 뽑아낼 수 있는 값만 제공한다.
     public int GetHealth(CharacterData data)

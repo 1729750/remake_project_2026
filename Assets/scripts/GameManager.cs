@@ -156,7 +156,6 @@ public class GameManager : MonoBehaviour
         _currentState = GameState.StartScreen;
         battleManager.Init();
         EndBattle();
-        //ShowEnemySelection();
     }
 
     public void StartBattle(CharacterData enemyData)
@@ -196,7 +195,7 @@ public class GameManager : MonoBehaviour
     public void GameStart()
     {
         battleManager.Init();
-        mapManager.ResetTrophies();
+        mapManager.Init();
         PlayerManager.Instance.Init();
         TransitionManager.Instance?.Init();
     }
