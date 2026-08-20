@@ -8,21 +8,6 @@ TextureImporter:
   - first:
       213: -2350511426798750624
     second: battleModeButton0_1
-  - first:
-      213: -4370779243500641085
-    second: battleModeButton0_2
-  - first:
-      213: 4401093618833639804
-    second: battleModeButton0_3
-  - first:
-      213: 8991424302830202011
-    second: battleModeButton0_4
-  - first:
-      213: -6708242340971049283
-    second: battleModeButton0_5
-  - first:
-      213: 3289424801352822032
-    second: battleModeButton0_6
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -123,8 +108,8 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 82
-        height: 93
+        width: 197
+        height: 111
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -143,10 +128,10 @@ TextureImporter:
       name: battleModeButton0_1
       rect:
         serializedVersion: 2
-        x: 87
-        y: 35
-        width: 62
-        height: 56
+        x: 206
+        y: 7
+        width: 197
+        height: 102
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -157,116 +142,6 @@ TextureImporter:
       bones: []
       spriteID: 064f9259f4e416fd0800000000000000
       internalID: -2350511426798750624
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: battleModeButton0_2
-      rect:
-        serializedVersion: 2
-        x: 103
-        y: 0
-        width: 73
-        height: 37
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3c46e777f6fd753c0800000000000000
-      internalID: -4370779243500641085
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: battleModeButton0_3
-      rect:
-        serializedVersion: 2
-        x: 138
-        y: 25
-        width: 34
-        height: 68
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: c7941dd0453d31d30800000000000000
-      internalID: 4401093618833639804
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: battleModeButton0_4
-      rect:
-        serializedVersion: 2
-        x: 206
-        y: 7
-        width: 88
-        height: 84
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b9c220bc3c4f7cc70800000000000000
-      internalID: 8991424302830202011
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: battleModeButton0_5
-      rect:
-        serializedVersion: 2
-        x: 306
-        y: 36
-        width: 75
-        height: 55
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: dbe8f27f12987e2a0800000000000000
-      internalID: -6708242340971049283
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: battleModeButton0_6
-      rect:
-        serializedVersion: 2
-        x: 298
-        y: 7
-        width: 87
-        height: 17
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 01daeffbd6266ad20800000000000000
-      internalID: 3289424801352822032
       vertices: []
       indices: 
       edges: []
@@ -287,11 +162,6 @@ TextureImporter:
     nameFileIdTable:
       battleModeButton0_0: 3050660794072924549
       battleModeButton0_1: -2350511426798750624
-      battleModeButton0_2: -4370779243500641085
-      battleModeButton0_3: 4401093618833639804
-      battleModeButton0_4: 8991424302830202011
-      battleModeButton0_5: -6708242340971049283
-      battleModeButton0_6: 3289424801352822032
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
