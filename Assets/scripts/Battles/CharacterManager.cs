@@ -333,6 +333,7 @@ public class CharacterManager: MonoBehaviour
     {
         if (hpBar == null) return;
         float ratio = (float)_health / _maxHealth;
+        if (ratio < 0f) ratio = 0f;
         float offset = shrinkRight ? (ratio - 1f) * 0.5f : (1f - ratio) * 0.5f;
         hpBar.localScale = new Vector3(ratio, 1f, 1f);
         hpBar.localPosition = new Vector3(offset, 0f, 0f);

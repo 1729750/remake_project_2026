@@ -47,6 +47,11 @@ public class TransitionManager : MonoBehaviour
     private float _travelDistance;
 
     private Coroutine _routine;
+    // _routine이 현재 진행 중이라면, 그 애니메이션이 끝났을 때 도달했어야 할 GameState.
+    // 애니메이션 도중 새 전환이 끼어들어 _routine을 StopCoroutine으로 끊으면, 코루틴 끝에서
+    // 하려던 enable/disable(SetActive)이 실행되지 못하고 그대로 유실된다. 그래서 끊기 직전에
+    // 이 값으로 SnapToState를 한 번 호출해, 유실될 뻔한 enable/disable을 먼저 확정 반영한다.
+    private GameState _pendingState;
 
     private void Awake()
     {
@@ -86,7 +91,9 @@ public class TransitionManager : MonoBehaviour
             _routine = null;
         }
 
-        SnapToState(GameManager.Instance.GetGameState());
+        GameState state = GameManager.Instance.GetGameState();
+        SnapToState(state);
+        _pendingState = state;
     }
 
     // GameManager.SetGameState(previous → next)가 바뀔 때마다 호출된다.
@@ -98,7 +105,12 @@ public class TransitionManager : MonoBehaviour
         {
             StopCoroutine(_routine);
             _routine = null;
+            // 방금 끊은 애니메이션이 자연스럽게 끝났다면 반영했을 enable/disable을 먼저 즉시
+            // 확정한다 — 이 다음에 이어지는 next용 enable/disable에 덮어씌워지기 전에 처리해야 한다.
+            SnapToState(_pendingState);
         }
+
+        _pendingState = next;
 
         if (next == GameState.BattleEnd)
         {

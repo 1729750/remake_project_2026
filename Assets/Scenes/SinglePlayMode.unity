@@ -2632,7 +2632,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: -99
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 7cf93588058ab7e44954a28be725428f, type: 3}
+  m_Sprite: {fileID: 21300000, guid: bf93689ad62d3c34f90a7b98e2e49a43, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -3238,7 +3238,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1 &1199511218
 GameObject:
@@ -3956,7 +3959,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1 &1306245644
 GameObject:
@@ -4463,8 +4469,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.1973, y: 3.6501}
-  m_SizeDelta: {x: 17.5255, y: 2.5077}
+  m_AnchoredPosition: {x: 0.0462, y: 3.0008}
+  m_SizeDelta: {x: 16.8067, y: 2.6469}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1375985783
 MonoBehaviour:
@@ -4479,6 +4485,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrophiesManager
   trophySpacing: 1.5
+  trophyStartScale: 1.2
+  trophyEndScale: 1
+  trophyAnimationDuration: 1
 --- !u!4 &1376033240 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8063017431280850933, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
@@ -4630,7 +4639,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1 &1410044621
 GameObject:
@@ -4772,7 +4784,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1474451737
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5077,6 +5089,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrophiesManager
   trophySpacing: 1.5
+  trophyStartScale: 1.2
+  trophyEndScale: 1
+  trophyAnimationDuration: 1
 --- !u!1 &1662892087
 GameObject:
   m_ObjectHideFlags: 0

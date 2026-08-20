@@ -15,7 +15,7 @@ public class TrophiesManager : MonoBehaviour
     // 크기가 점점 줄어드는 모양이 마치 위에서 아래로 내려앉는 것처럼 보인다. 둘 다 여기 변수로
     // 둬서 나중에 수정하기 쉽게 한다.
     [SerializeField] private float trophyStartScale = 1.2f;
-    [SerializeField] private float trophyEndScale = 1f;
+    [SerializeField] private float trophyEndScale = 0.5f;
     [SerializeField] private float trophyAnimationDuration = 1f;
 
     private RectTransform _rect;
@@ -42,10 +42,25 @@ public class TrophiesManager : MonoBehaviour
         _rect = GetComponent<RectTransform>();
     }
 
+    // 비활성 상태에서 큐에만 쌓아뒀던 트로피가 있으면, 활성화되는 시점에 처리를 시작한다.
+    private void OnEnable()
+    {
+        TryStartProcessing();
+    }
+
+    // 오브젝트가 비활성화되면 Unity가 진행 중이던 코루틴을 알아서 죽여버린다(재개되지 않는다).
+    // _animationRoutine을 비워둬야 다음 OnEnable/AddTrophy에서 다시 시작할 수 있다.
+    private void OnDisable()
+    {
+        _animationRoutine = null;
+    }
+
     public IReadOnlyList<CharacterData> GetTrophyData() => _trophyData;
 
     // data를 트로피로 추가할 예약을 건다. duration을 생략(음수)하면 trophyAnimationDuration을 쓴다.
-    // 이미 다른 트로피가 애니메이션 중이면 이번 건 큐에 쌓였다가 그 다음에 처리된다.
+    // 이미 다른 트로피가 애니메이션 중이면 이번 건 큐에 쌓였다가 그 다음에 처리된다. 지금 이
+    // 오브젝트가 비활성 상태라면(예: 아직 SelectEnemy로 전환되지 않은 mapManager) 큐에만 쌓아두고
+    // 실제 처리는 OnEnable로 미룬다 — 비활성 오브젝트에서 StartCoroutine을 호출하면 예외가 난다.
     public void AddTrophy(CharacterData data, float duration = -1f)
     {
         if (data == null) return;
@@ -56,8 +71,15 @@ public class TrophiesManager : MonoBehaviour
             Duration = duration >= 0f ? duration : trophyAnimationDuration,
         });
 
-        if (_animationRoutine == null)
-            _animationRoutine = StartCoroutine(ProcessQueue());
+        TryStartProcessing();
+    }
+
+    private void TryStartProcessing()
+    {
+        if (_animationRoutine != null || _pendingTrophies.Count == 0) return;
+        if (!gameObject.activeInHierarchy) return;
+
+        _animationRoutine = StartCoroutine(ProcessQueue());
     }
 
     // 큐가 빌 때까지 하나씩 순서대로 스폰+애니메이션을 처리한다.
