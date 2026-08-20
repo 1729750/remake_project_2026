@@ -35,7 +35,6 @@ public class GameManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
 
         _enemyCandidatePool = new List<CharacterData>(enemyCandidates);
 
