@@ -10,7 +10,6 @@ public class CharacterManager: MonoBehaviour
     // SelectCard의 특수 행동 인덱스 (카드 선택과 상호배타 — 턴 종료 시 하나만 실행된다)
     public const int RedrawAction = -2;
     public const int DefenseAction = -1;
-
     private int _maxHealth = 100;
     private int _specialAction; // 0 = 없음, RedrawAction/DefenseAction
     private List<CardInstance> _deck;
@@ -213,7 +212,7 @@ public class CharacterManager: MonoBehaviour
         _defenseIndicatorCoroutine = null;
     }
 
-    private void SelectCard(int index)
+    public void SelectCard(int index)
     {
         if (BattleManager.Instance == null || BattleManager.Instance.CurrentState != BattleState.Turn) return;
         if (index == RedrawAction || index == DefenseAction)

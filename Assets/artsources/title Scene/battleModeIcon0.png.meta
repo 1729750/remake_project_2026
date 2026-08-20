@@ -1,22 +1,10 @@
 fileFormatVersion: 2
-guid: 8644f998da0cbec4eb541a604e21a96e
+guid: 61e74237bba0d544586e11f4da4f0e05
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 5500164908942509387
-    second: startButton0_0
-  - first:
-      213: -6503500961081402483
-    second: startButton0_1
-  - first:
-      213: -7471319919945442660
-    second: startButton0_2
-  - first:
-      213: -8064079040055515232
-    second: startButton0_3
-  - first:
-      213: 4837879396823672868
-    second: startButton0_4
+      213: -8620758744342398443
+    second: battleModeIcon0_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -60,7 +48,7 @@ TextureImporter:
   compressionQuality: 50
   spriteMode: 1
   spriteExtrude: 1
-  spriteMeshType: 0
+  spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
@@ -112,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: startButton0_0
+      name: battleModeIcon0_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 18
-        width: 67
-        height: 74
+        x: 196
+        y: 168
+        width: 696
+        height: 682
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -127,96 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b454693f7d2845c40800000000000000
-      internalID: 5500164908942509387
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: startButton0_1
-      rect:
-        serializedVersion: 2
-        x: 66
-        y: 0
-        width: 19
-        height: 94
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: d8bd45a355ceeb5a0800000000000000
-      internalID: -6503500961081402483
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: startButton0_2
-      rect:
-        serializedVersion: 2
-        x: 90
-        y: 38
-        width: 63
-        height: 55
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: c9a1a581e1a805890800000000000000
-      internalID: -7471319919945442660
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: startButton0_3
-      rect:
-        serializedVersion: 2
-        x: 103
-        y: 0
-        width: 69
-        height: 39
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 0a761d0a6d2a61090800000000000000
-      internalID: -8064079040055515232
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: startButton0_4
-      rect:
-        serializedVersion: 2
-        x: 153
-        y: 39
-        width: 31
-        height: 55
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 4282bd1eda9932340800000000000000
-      internalID: 4837879396823672868
+      spriteID: 51af025c899ec5880800000000000000
+      internalID: -8620758744342398443
       vertices: []
       indices: 
       edges: []
@@ -235,11 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      startButton0_0: 5500164908942509387
-      startButton0_1: -6503500961081402483
-      startButton0_2: -7471319919945442660
-      startButton0_3: -8064079040055515232
-      startButton0_4: 4837879396823672868
+      battleModeIcon0_0: -8620758744342398443
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
