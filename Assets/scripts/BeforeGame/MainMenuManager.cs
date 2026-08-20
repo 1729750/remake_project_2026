@@ -1,7 +1,8 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.InputSystem;
 
 public class MainMenuManager : MonoBehaviour
 {
@@ -31,6 +32,14 @@ public class MainMenuManager : MonoBehaviour
 
     private int currentIndex = 0;
 
+
+    // ============================================
+    // [추가 - Input System]
+    // PlayerInputManager에 MainMenu 입력을 등록했는지 확인
+    // ============================================
+    private bool inputLoaded = false;
+
+
     private void Start()
     {
         if (settingsPanel != null)
@@ -38,38 +47,108 @@ public class MainMenuManager : MonoBehaviour
 
         currentIndex = 0;
         UpdateSelection();
-    }
 
-    private void Update()
-    {
-        if (Keyboard.current == null)
-            return;
 
-        if (settingsPanel != null && settingsPanel.activeSelf)
+        // ============================================
+        // [추가 - Input System]
+        // 기존 InputManager의 Load 기능을 사용한다.
+        //
+        // PlayerAction / Select
+        // Left   -> MoveLeft
+        // Right  -> MoveRight
+        // Select -> SelectCurrentMenu
+        // ============================================
+
+        if (PlayerInputManager.Instance == null)
         {
-            if (Keyboard.current.escapeKey.wasPressedThisFrame)
+            Debug.LogError(
+                "[MainMenuManager] PlayerInputManager가 존재하지 않습니다."
+            );
+
+            return;
+        }
+
+        Dictionary<string, Action> bindings =
+            new Dictionary<string, Action>
             {
-                CloseSettingsPanel();
-            }
+                { "Left", OnInputLeft },
+                { "Right", OnInputRight },
+                { "Select", OnInputSelect }
+            };
 
-            return;
-        }
+        PlayerInputManager.Instance.Load("Select", bindings);
 
-        if (Keyboard.current.aKey.wasPressedThisFrame)
+        inputLoaded = true;
+    }
+
+
+    // ============================================
+    // [추가 - Input System]
+    // MainMenu가 사라질 때 등록했던 입력 Context 제거
+    // ============================================
+
+    private void OnDestroy()
+    {
+        if (inputLoaded &&
+            PlayerInputManager.Instance != null)
         {
-            MoveLeft();
-        }
+            PlayerInputManager.Instance.Unload();
 
-        if (Keyboard.current.dKey.wasPressedThisFrame)
-        {
-            MoveRight();
-        }
-
-        if (Keyboard.current.enterKey.wasPressedThisFrame)
-        {
-            SelectCurrentMenu();
+            inputLoaded = false;
         }
     }
+
+
+    // ============================================
+    // [추가 - Input System]
+    // Select / Left 입력
+    // ============================================
+
+    private void OnInputLeft()
+    {
+        // 설정창이 켜져 있으면
+        // 메인 메뉴 자체는 움직이지 않도록 방어
+        if (settingsPanel != null &&
+            settingsPanel.activeSelf)
+            return;
+
+        MoveLeft();
+    }
+
+
+    // ============================================
+    // [추가 - Input System]
+    // Select / Right 입력
+    // ============================================
+
+    private void OnInputRight()
+    {
+        if (settingsPanel != null &&
+            settingsPanel.activeSelf)
+            return;
+
+        MoveRight();
+    }
+
+
+    // ============================================
+    // [추가 - Input System]
+    // Select / Select 입력
+    // ============================================
+
+    private void OnInputSelect()
+    {
+        if (settingsPanel != null &&
+            settingsPanel.activeSelf)
+            return;
+
+        SelectCurrentMenu();
+    }
+
+
+    // ============================================
+    // 아래부터 기존 메뉴 로직 그대로
+    // ============================================
 
     private void MoveLeft()
     {
@@ -81,6 +160,7 @@ public class MainMenuManager : MonoBehaviour
         UpdateSelection();
     }
 
+
     private void MoveRight()
     {
         currentIndex++;
@@ -91,6 +171,7 @@ public class MainMenuManager : MonoBehaviour
         UpdateSelection();
     }
 
+
     private void UpdateSelection()
     {
         for (int i = 0; i < menuItems.Length; i++)
@@ -99,6 +180,7 @@ public class MainMenuManager : MonoBehaviour
             ApplyMenuSprites(menuItems[i], isSelected);
         }
     }
+
 
     private void ApplyMenuSprites(MenuItem item, bool isSelected)
     {
@@ -116,7 +198,8 @@ public class MainMenuManager : MonoBehaviour
                     j < item.hoverSprites.Length &&
                     item.hoverSprites[j] != null)
                 {
-                    item.targetImages[j].sprite = item.hoverSprites[j];
+                    item.targetImages[j].sprite =
+                        item.hoverSprites[j];
                 }
             }
             else
@@ -125,11 +208,13 @@ public class MainMenuManager : MonoBehaviour
                     j < item.normalSprites.Length &&
                     item.normalSprites[j] != null)
                 {
-                    item.targetImages[j].sprite = item.normalSprites[j];
+                    item.targetImages[j].sprite =
+                        item.normalSprites[j];
                 }
             }
         }
     }
+
 
     private void SelectCurrentMenu()
     {
@@ -153,6 +238,7 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
+
     public void OnClickStart()
     {
         if (!string.IsNullOrEmpty(startSceneName))
@@ -161,9 +247,12 @@ public class MainMenuManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Start Scene 이름을 입력해주세요.");
+            Debug.LogWarning(
+                "Start Scene 이름을 입력해주세요."
+            );
         }
     }
+
 
     public void OnClickBattle()
     {
@@ -173,15 +262,19 @@ public class MainMenuManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Battle Scene 이름을 입력해주세요.");
+            Debug.LogWarning(
+                "Battle Scene 이름을 입력해주세요."
+            );
         }
     }
+
 
     public void OnClickSettings()
     {
         if (settingsPanel != null)
             settingsPanel.SetActive(true);
     }
+
 
     public void CloseSettingsPanel()
     {
@@ -190,6 +283,7 @@ public class MainMenuManager : MonoBehaviour
 
         UpdateSelection();
     }
+
 
     public void OnClickOut()
     {
