@@ -151,6 +151,11 @@ public class CardInstance
     {
         _cooldownLeft = GetCooldown();
         Debug.Log($"[{characterManager.gameObject.name}] Activated card: {_definition.name}");
+
+        SoundManager.Instance?.Play(EffectSound.PlayCard);
+        if (_effects.Exists(e => e.GetEffect().GetEffectType() == EffectType.Attack))
+            SoundManager.Instance?.Play(EffectSound.Attack);
+
         foreach (CardEffect cardEffect in _effects)
         {
            cardEffect.Reset();
@@ -218,6 +223,7 @@ public class CardInstance
         _visual.SetCostText(preview.GetCost().ToString());
         _visual.SetCooldownText(_cooldownLeft.ToString());
         _visual.RefreshEffectDisplays(preview._effects);
+        _visual.SetUnplayable(preview.GetCost() > subject.GetCost());
     }
 
     // OnUse/OnUsingOther/OnApplyingOther/OnAppliedOther를 actualUse=false로 순회할 때 쓰는 복제본.

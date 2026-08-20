@@ -8,5 +8,6 @@ public class DefendEffect : Effect
     public override void OnApply(CharacterManager subject)
     {
         subject.AddDefense(_magnitude);
+        PlayApplySound();
     }
 }

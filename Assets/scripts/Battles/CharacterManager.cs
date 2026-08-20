@@ -10,7 +10,6 @@ public class CharacterManager: MonoBehaviour
     // SelectCard의 특수 행동 인덱스 (카드 선택과 상호배타 — 턴 종료 시 하나만 실행된다)
     public const int RedrawAction = -2;
     public const int DefenseAction = -1;
-
     private int _maxHealth = 100;
     private int _specialAction; // 0 = 없음, RedrawAction/DefenseAction
     private List<CardInstance> _deck;
@@ -106,7 +105,42 @@ public class CharacterManager: MonoBehaviour
         if (_cost >= 10) healEnergyAmount--;
         EnergyHeal(healEnergyAmount);
         UpdateEffectList();
+        // healEnergy/effect 처리가 끝난 직후, 지난 턴에 코스트/큐가 부족해 select된 채로 남아있던
+        // 카드가 있으면 강제로 재시도한다 — 여전히 안 되면 HandManager.UseCard가 자연히 실패하고
+        // select 상태만 남는다.
+        _handManager.UseCard();
         _handManager.FillHand();
+        PlayUpcomingAttackSoundIfNeeded();
+        // 이번 턴 시작 로직이 전부 끝난 뒤(코스트 회복 등 반영 완료 시점) preview cost/cooldown을
+        // 다시 계산해, 지금 코스트로 낼 수 없는 손패 카드에 Unplayable 오버레이를 켠다.
+        _handManager.RefreshHandDisplay();
+    }
+
+    // 상대 큐에 이번 턴 종료 시 발동될(cooldownLeft가 1 이하인) Attack 효과 카드가 있으면 경고음을 재생한다.
+    // 전투가 이미 끝난 상태(BattleFinish)라면 재생하지 않는다 — OnTurnStart는 보통 그 전에 걸러지지만,
+    // BattleManager.Instance나 CurrentState를 통해 한 번 더 방어적으로 확인한다.
+    private void PlayUpcomingAttackSoundIfNeeded()
+    {
+        if (!playerControlled) return;
+        if (SoundManager.Instance == null || BattleManager.Instance == null) return;
+        if (BattleManager.Instance.CurrentState == BattleState.BattleFinish) return;
+
+        CharacterManager opponent = BattleManager.Instance.GetOpponent(this);
+        if (opponent == null) return;
+
+        foreach (CardInstance queued in opponent.GetQueue())
+        {
+            if (queued == null || queued.GetCooldownLeft() > 1) continue;
+
+            foreach (CardEffect cardEffect in queued.GetEffects())
+            {
+                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
+                {
+                    SoundManager.Instance.Play(EffectSound.UpcomingAttack);
+                    return;
+                }
+            }
+        }
     }
 
     public void OnTurnEnd()
@@ -114,24 +148,13 @@ public class CharacterManager: MonoBehaviour
         _queueManager.TickQueueCards(this);
         for (int i = _effects.Count - 1; i >= 0; i--)
             _effects[i].OnTurnEnded(this);
+        // 플레이어는 select된 카드가 있어도 여기서 건드리지 않는다 — 다음 OnTurnStart의
+        // 재시도로 넘긴다. AI는 여기서 바로 고르고 곧장 사용을 시도한다(실패하면 select된
+        // 채로 남아 다음 OnTurnStart 재시도를 탄다).
         if (!playerControlled)
-            SelectRandomCard();
         {
-            var selected = _handManager.GetSelectedCard();
-            if (selected != null)
-            {
-                CardInstance preview = selected.Clone();
-                preview.ResolveUse(this, _queueManager.GetQueue(), false);
-                if (_cost >= preview.GetCost())
-                {
-                    selected.ResolveUse(this, _queueManager.GetQueue(), true);
-                    if(_handManager.UseCard())
-                    {
-                        _cost -= selected.GetCost();
-                    }
-                    UpdateCostDisplay();
-                }
-            }
+            SelectRandomCard();
+            _handManager.UseCard();
         }
         _specialAction = 0;
         // 매 턴 종료마다 손패 카드들의 비용/효과 표시를 이번 턴에 바뀐 버프 상태에 맞게 다시 계산한다.
@@ -189,7 +212,7 @@ public class CharacterManager: MonoBehaviour
         _defenseIndicatorCoroutine = null;
     }
 
-    private void SelectCard(int index)
+    public void SelectCard(int index)
     {
         if (BattleManager.Instance == null || BattleManager.Instance.CurrentState != BattleState.Turn) return;
         if (index == RedrawAction || index == DefenseAction)
@@ -214,8 +237,19 @@ public class CharacterManager: MonoBehaviour
         if (index < 0 || index >= hand.Length || hand[index] == null) return;
         _specialAction = 0;
         SetDefenseIndicatorActive(false);
-        _handManager.SelectCard(index);
-        Debug.Log($"[{gameObject.name}] Selected card: {hand[index].GetDefinition().name}");
+
+        string cardName = hand[index].GetDefinition().name;
+        if (_handManager.UseCardImmediately(index))
+        {
+            // 지금 바로 낼 수 있었으면(코스트/큐 여유 있음) select를 거치지 않고 곧장 사용된다.
+            Debug.Log($"[{gameObject.name}] Used card: {cardName}");
+        }
+        else
+        {
+            // 지금은 낼 수 없으면(QueueCard가 실패) select만 해두고, 다음 OnTurnStart 재시도로 넘긴다.
+            _handManager.SelectCard(index);
+            Debug.Log($"[{gameObject.name}] Selected card: {cardName}");
+        }
     }
 
     public void SelectRandomCard()
@@ -234,6 +268,14 @@ public class CharacterManager: MonoBehaviour
         Debug.Log($"[{gameObject.name}] Selected card: {cardName} (cost: {cardCost}, cost left: {_cost})");
     }
 
+    // 전투 종료 시(BattleManager.NotifyDefeat) 손패/큐를 덱으로 되돌리지 않고 그대로 비운다
+    // (다음 전투는 CharacterInit이 덱 자체를 새로 만들기 때문에 되돌릴 필요가 없다).
+    public void ClearHandAndQueue()
+    {
+        _handManager?.ClearHand();
+        _queueManager?.ClearQueue();
+    }
+
     public int getmaxHealth() => _maxHealth;
     public int GetHealth() => _health;
     public int GetDefense() => _defense;
@@ -242,24 +284,19 @@ public class CharacterManager: MonoBehaviour
     public Effect[] GetEffectPrioritize() => _effects.OrderByDescending(e => e.GetEffectPriority()).ToArray();
 
     public void Init()
-    { 
+    {
         _effects = new List<Effect>();
         _deck = new List<CardInstance>();
 
         _queueManager = new QueueManager(queueRoots);
         _handManager = new HandManager(this, handsRoot, isHandVisualized);
 
-        if (defenseIndicator != null && defenseIndicatorRestPosition != null && defenseIndicatorRestPosition.Length > 0 && defenseIndicatorRestPosition[0] != null)
-        {
-            defenseIndicator.transform.position = defenseIndicatorRestPosition[0].position;
-            defenseIndicator.SetActive(false);
-        }
-
         Clear();
-
-
     }
 
+    // CharacterInit(전투 시작마다 호출되어 같은 CharacterManager를 재사용)에서도 불리므로,
+    // 데이터(_effects/_health/_defense/_cost)뿐 아니라 그걸 반영하는 시각 요소(HP바, 방어도 표시,
+    // effectList 아이콘, defenseIndicator)까지 전부 이전 전투의 흔적 없이 리셋해야 한다.
     public void Clear()
     {
         _effects.Clear();
@@ -269,12 +306,33 @@ public class CharacterManager: MonoBehaviour
         _cost = 0;
         UpdateHPBar();
         UpdateDefenseDisplay();
+        UpdateEffectList();
+        ResetDefenseIndicator();
+    }
+
+    // defenseIndicator를 비활성 상태로, rest position[0]으로 되돌린다. 진행 중이던 이동 코루틴이
+    // 있으면 중단한다(순간 리셋이라 Lerp로 움직일 필요가 없다).
+    private void ResetDefenseIndicator()
+    {
+        if (defenseIndicator == null || defenseIndicatorRestPosition == null
+            || defenseIndicatorRestPosition.Length == 0 || defenseIndicatorRestPosition[0] == null)
+            return;
+
+        if (_defenseIndicatorCoroutine != null)
+        {
+            StopCoroutine(_defenseIndicatorCoroutine);
+            _defenseIndicatorCoroutine = null;
+        }
+
+        defenseIndicator.transform.position = defenseIndicatorRestPosition[0].position;
+        defenseIndicator.SetActive(false);
     }
 
     private void UpdateHPBar()
     {
         if (hpBar == null) return;
         float ratio = (float)_health / _maxHealth;
+        if (ratio < 0f) ratio = 0f;
         float offset = shrinkRight ? (ratio - 1f) * 0.5f : (1f - ratio) * 0.5f;
         hpBar.localScale = new Vector3(ratio, 1f, 1f);
         hpBar.localPosition = new Vector3(offset, 0f, 0f);
@@ -283,7 +341,36 @@ public class CharacterManager: MonoBehaviour
     public void Attacked(int damage)
     {
         if (_isGuard) damage /= 2;
+        PlayDamageSound(damage);
         TakeDamage(damage);
+    }
+
+    // isGuard면 Weak/Damage/Big 대신 DamageGuarded를 재생한다. 방어도가 흡수한 만큼(현재 _defense와
+    // damage 중 작은 값)이 1 이상이면 위 사운드에 더해 DamageShielded도 재생한다.
+    private void PlayDamageSound(int damage)
+    {
+        if (SoundManager.Instance == null) return;
+
+        if (_isGuard)
+        {
+            SoundManager.Instance.Play(EffectSound.DamageGuarded);
+        }
+        else if (damage <= 10)
+        {
+            SoundManager.Instance.Play(EffectSound.DamageWeak);
+        }
+        else if (damage <= 30)
+        {
+            SoundManager.Instance.Play(EffectSound.Damage);
+        }
+        else
+        {
+            SoundManager.Instance.Play(EffectSound.DamageBig);
+        }
+
+        int shieldedAmount = Mathf.Clamp(Mathf.Min(damage, _defense), 0, damage);
+        if (shieldedAmount >= 1)
+            SoundManager.Instance.Play(EffectSound.DamageShielded);
     }
 
     public void TakeDamage(int amount)
@@ -339,9 +426,23 @@ public class CharacterManager: MonoBehaviour
         return;
     }
 
+    // 카드 하나를 실제로 큐에 편입시키는 유일한 통로. 코스트를 감당할 수 없으면(preview 기준)
+    // 곧장 실패하고, 감당 가능하면 실제 적용(ResolveUse actualUse=true) 후 큐에 자리가 있는지
+    // 시도한다 — 큐가 꽉 차 있으면 QueueManager.AddCard가 false를 돌려주고, 그러면 이 카드는
+    // 손패에 그대로 남는다(호출부인 HandManager가 처리). 성공한 경우에만 코스트를 차감한다.
     public bool QueueCard(CardInstance card, GameObject cardObject)
     {
-        return _queueManager.AddCard(card, cardObject);
+        CardInstance preview = card.Clone();
+        preview.ResolveUse(this, _queueManager.GetQueue(), false);
+        if (_cost < preview.GetCost()) return false;
+
+        card.ResolveUse(this, _queueManager.GetQueue(), true);
+        card.Use();
+        if (!_queueManager.AddCard(card, cardObject)) return false;
+
+        _cost -= card.GetCost();
+        UpdateCostDisplay();
+        return true;
     }
 
     public CardInstance[] GetQueue() => _queueManager.GetQueue();

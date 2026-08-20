@@ -18,7 +18,7 @@ public class AddDumpEffect:Effect
         CardDefinition dumpDefinition = CardDefinition.Create(this._magnitude, 1, Array.Empty<CardEffect>(), null,null);
         dump = new CardInstance(dumpDefinition, subject);
         subject.ReturnToDeck(dump);
-    
+        PlayApplySound();
     }
 
 }

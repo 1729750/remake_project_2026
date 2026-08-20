@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -12,6 +13,9 @@ public class RewardDisplay : MonoBehaviour
     private TMP_Text _costText;
     private GameObject _cooltimeRoot;
     private TMP_Text _cooltimeText;
+    private PopupDisplay _popupDisplay;
+    private bool _selected;
+    private List<EffectType> _pendingPopupEffects;
 
     private void Awake()
     {
@@ -26,6 +30,8 @@ public class RewardDisplay : MonoBehaviour
         _cooltimeRoot = transform.Find("cooltime").gameObject;
         _cooltimeText = transform.Find("cooltime/cooltimeText").GetComponent<TMP_Text>();
         SetCostCooldownActive(false);
+
+        _popupDisplay = transform.Find("PopUpDisplay").GetComponent<PopupDisplay>();
     }
 
     // RewardDisplay를 빈 상태로 되돌린다: RewardText/RewardSprite를 비우고, SetUpgrade가 띄웠던
@@ -37,6 +43,8 @@ public class RewardDisplay : MonoBehaviour
         _rewardText.text = "";
         _rewardSprite.sprite = null;
         ClearEffect();
+        _pendingPopupEffects = null;
+        RefreshPopupVisibility();
     }
 
     public void Init(string rewardText, Sprite rewardSprite)
@@ -73,6 +81,9 @@ public class RewardDisplay : MonoBehaviour
         SetCostCooldownActive(true);
         _costText.text = FormatDelta(upgrade.costDelta);
         _cooltimeText.text = FormatDelta(upgrade.cooldownDelta);
+
+        _pendingPopupEffects = new List<EffectType> { cardEffect.GetEffect().GetEffectType() };
+        RefreshPopupVisibility();
     }
 
     private static string FormatDelta(int delta) => delta > 0 ? $"+{delta}" : delta.ToString();
@@ -90,5 +101,17 @@ public class RewardDisplay : MonoBehaviour
         SetCostCooldownActive(false);
     }
 
-    public void SetSelected(bool selected) => _highlight.SetActive(selected);
+    public void SetSelected(bool selected)
+    {
+        _highlight.SetActive(selected);
+        _selected = selected;
+        RefreshPopupVisibility();
+    }
+
+    // select된 동안에만, 그리고 enhance(SetUpgrade)로 채워진 경우에만 팝업을 보여준다.
+    // Init(카드 획득/삭제)는 _pendingPopupEffects를 채우지 않으므로 select되어도 아무것도 안 뜬다.
+    private void RefreshPopupVisibility()
+    {
+        _popupDisplay.SetEffects(_selected ? _pendingPopupEffects : null);
+    }
 }
