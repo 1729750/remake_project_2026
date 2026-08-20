@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.InputSystem; // [추가 - Left/Right 홀드 입력]
 
 public class SettingUIPanel : MonoBehaviour
 {
@@ -24,8 +25,7 @@ public class SettingUIPanel : MonoBehaviour
 
 
     // =========================================================
-    // [변경 - Background Music ControlButton Hover 이미지]
-    // Bar 자체가 아니라 움직이는 ControlButton의 이미지를 변경한다.
+    // Background Music ControlButton Hover 이미지
     // =========================================================
 
     [SerializeField]
@@ -52,8 +52,7 @@ public class SettingUIPanel : MonoBehaviour
 
 
     // =========================================================
-    // [변경 - Effect Sound ControlButton Hover 이미지]
-    // Bar 자체가 아니라 움직이는 ControlButton의 이미지를 변경한다.
+    // Effect Sound ControlButton Hover 이미지
     // =========================================================
 
     [SerializeField]
@@ -67,6 +66,22 @@ public class SettingUIPanel : MonoBehaviour
 
 
     // =========================================================
+    // [추가 - Left / Right 홀드용 InputAction]
+    //
+    // 기존 InputManager는 건드리지 않는다.
+    // 홀드 여부만 SettingUIPanel에서 직접 확인한다.
+    // =========================================================
+
+    [Header("Hold Input")]
+
+    [SerializeField]
+    private InputActionReference leftActionReference;
+
+    [SerializeField]
+    private InputActionReference rightActionReference;
+
+
+    // =========================================================
     // 현재 선택된 항목
     //
     // 0 = BackgroundMusic
@@ -74,6 +89,38 @@ public class SettingUIPanel : MonoBehaviour
     // =========================================================
 
     private int currentIndex = 0;
+
+
+    // =========================================================
+    // ControlButton Hover Scale
+    // =========================================================
+
+    private Vector3 backgroundMusicControlButtonBaseScale;
+    private Vector3 effectSoundControlButtonBaseScale;
+
+    private const float HoverScale = 1.2f;
+
+
+    // =========================================================
+    // [추가 - Left / Right 홀드 설정]
+    // =========================================================
+
+    // 0.7초 이상 누르면 연속 입력 시작
+    private const float HoldStartTime = 0.7f;
+
+    // 그 이후 0.5초마다 1씩 변경
+    // = 초당 5
+    private const float HoldRepeatInterval = 0.2f;
+
+    private float leftHoldTime = 0f;
+    private float rightHoldTime = 0f;
+
+    private float leftRepeatTime = 0f;
+    private float rightRepeatTime = 0f;
+
+    private bool leftHoldStarted = false;
+    private bool rightHoldStarted = false;
+
 
     private bool inputLoaded = false;
 
@@ -85,10 +132,7 @@ public class SettingUIPanel : MonoBehaviour
 
 
         // =====================================================
-        // [추가 - ControlButton Image 자동 연결]
-        //
-        // Inspector에서 Image를 따로 넣지 않았더라도
-        // ControlButton 오브젝트에 Image 컴포넌트가 있으면 자동으로 가져온다.
+        // ControlButton Image 자동 연결
         // =====================================================
 
         if (backgroundMusicControlButtonImage == null &&
@@ -105,23 +149,43 @@ public class SettingUIPanel : MonoBehaviour
             effectSoundControlButtonImage =
                 effectSoundBarControlButton.GetComponent<Image>();
         }
+
+
+        // =====================================================
+        // Hover 전 원래 Scale 저장
+        // =====================================================
+
+        if (backgroundMusicBarControlButton != null)
+        {
+            backgroundMusicControlButtonBaseScale =
+                backgroundMusicBarControlButton.localScale;
+        }
+
+
+        if (effectSoundBarControlButton != null)
+        {
+            effectSoundControlButtonBaseScale =
+                effectSoundBarControlButton.localScale;
+        }
     }
 
 
     private void OnEnable()
     {
-        // 설정창을 열었을 때 첫 선택은 BackgroundMusic
+        // 설정창을 열면 BackgroundMusic부터 선택
         currentIndex = 0;
 
 
-        // 현재 SoundManager의 음량에 맞춰
-        // ControlButton 위치 갱신
+        // 현재 SoundManager 음량에 맞춰 버튼 위치 갱신
         RefreshVolumeBars();
 
 
-        // [변경 - ControlButton Hover]
-        // index 0이므로 처음에는 BackgroundMusic 버튼이 Hover
+        // BackgroundMusic 버튼 Hover
         UpdateCurrentSelection();
+
+
+        // 홀드 상태 초기화
+        ResetHoldInput();
 
 
         // Setting 전용 입력 등록
@@ -132,13 +196,151 @@ public class SettingUIPanel : MonoBehaviour
     private void OnDisable()
     {
         // Setting 입력 제거
-        // 아래에 있던 MainMenu 입력이 다시 활성화됨
+        // 아래 Stack의 MainMenu 입력이 다시 활성화됨
         UnloadInput();
+
+
+        // 홀드 상태 초기화
+        ResetHoldInput();
+    }
+
+
+    // =========================================================
+    // [추가 - Left / Right 홀드 처리]
+    //
+    // 처음 누름:
+    // Left  -> 즉시 -1
+    // Right -> 즉시 +1
+    //
+    // 계속 누름:
+    // 0.7초 도달 -> 한 번 더 ±1
+    // 이후 0.5초마다 ±1
+    // = 초당 2
+    // =========================================================
+
+    private void Update()
+    {
+        if (!inputLoaded)
+            return;
+
+
+        bool leftPressed =
+            leftActionReference != null &&
+            leftActionReference.action != null &&
+            leftActionReference.action.IsPressed();
+
+
+        bool rightPressed =
+            rightActionReference != null &&
+            rightActionReference.action != null &&
+            rightActionReference.action.IsPressed();
+
+
+        // =====================================================
+        // Left 홀드
+        // =====================================================
+
+        if (leftPressed && !rightPressed)
+        {
+            leftHoldTime += Time.unscaledDeltaTime;
+
+
+            // 0.7초가 되는 순간 바로 -1
+            if (!leftHoldStarted &&
+                leftHoldTime >= HoldStartTime)
+            {
+                leftHoldStarted = true;
+                leftRepeatTime = 0f;
+
+                ChangeCurrentVolume(-1);
+            }
+
+
+            // 이후 0.5초마다 -1
+            if (leftHoldStarted)
+            {
+                leftRepeatTime += Time.unscaledDeltaTime;
+
+
+                if (leftRepeatTime >= HoldRepeatInterval)
+                {
+                    leftRepeatTime -= HoldRepeatInterval;
+
+                    ChangeCurrentVolume(-1);
+                }
+            }
+        }
+        else
+        {
+            leftHoldTime = 0f;
+            leftRepeatTime = 0f;
+            leftHoldStarted = false;
+        }
+
+
+        // =====================================================
+        // Right 홀드
+        // =====================================================
+
+        if (rightPressed && !leftPressed)
+        {
+            rightHoldTime += Time.unscaledDeltaTime;
+
+
+            // 0.7초가 되는 순간 바로 +1
+            if (!rightHoldStarted &&
+                rightHoldTime >= HoldStartTime)
+            {
+                rightHoldStarted = true;
+                rightRepeatTime = 0f;
+
+                ChangeCurrentVolume(1);
+            }
+
+
+            // 이후 0.5초마다 +1
+            if (rightHoldStarted)
+            {
+                rightRepeatTime += Time.unscaledDeltaTime;
+
+
+                if (rightRepeatTime >= HoldRepeatInterval)
+                {
+                    rightRepeatTime -= HoldRepeatInterval;
+
+                    ChangeCurrentVolume(1);
+                }
+            }
+        }
+        else
+        {
+            rightHoldTime = 0f;
+            rightRepeatTime = 0f;
+            rightHoldStarted = false;
+        }
+    }
+
+
+    // =========================================================
+    // [추가 - 홀드 상태 초기화]
+    // =========================================================
+
+    private void ResetHoldInput()
+    {
+        leftHoldTime = 0f;
+        rightHoldTime = 0f;
+
+        leftRepeatTime = 0f;
+        rightRepeatTime = 0f;
+
+        leftHoldStarted = false;
+        rightHoldStarted = false;
     }
 
 
     // =========================================================
     // Input 등록
+    // 기존 InputManager 구조 그대로 사용
     // =========================================================
 
     private void LoadInput()
@@ -197,8 +399,6 @@ public class SettingUIPanel : MonoBehaviour
     // =========================================================
     // Select / Up
     //
-    // 위 항목으로 이동
-    //
     // 0 = BackgroundMusic
     // 1 = SoundEffect
     // =========================================================
@@ -218,8 +418,6 @@ public class SettingUIPanel : MonoBehaviour
 
     // =========================================================
     // Select / Down
-    //
-    // 아래 항목으로 이동
     // =========================================================
 
     private void OnInputDown()
@@ -238,7 +436,7 @@ public class SettingUIPanel : MonoBehaviour
     // =========================================================
     // Select / Left
     //
-    // 현재 선택된 음량 -1
+    // 처음 누른 순간 즉시 -1
     // =========================================================
 
     private void OnInputLeft()
@@ -250,7 +448,7 @@ public class SettingUIPanel : MonoBehaviour
     // =========================================================
     // Select / Right
     //
-    // 현재 선택된 음량 +1
+    // 처음 누른 순간 즉시 +1
     // =========================================================
 
     private void OnInputRight()
@@ -269,10 +467,10 @@ public class SettingUIPanel : MonoBehaviour
             return;
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // index 0
         // Background Music
-        // -----------------------------------------------------
+        // =====================================================
 
         if (currentIndex == 0)
         {
@@ -301,10 +499,10 @@ public class SettingUIPanel : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // index 1
         // Effect Sound
-        // -----------------------------------------------------
+        // =====================================================
 
         else if (currentIndex == 1)
         {
@@ -341,7 +539,7 @@ public class SettingUIPanel : MonoBehaviour
     // 15 -> Bar 가운데
     // 30 -> Bar 제일 오른쪽
     //
-    // Bar를 30등분해서 ControlButton을 이동시킨다.
+    // ControlButton은 해당 Bar의 자식이어야 한다.
     // =========================================================
 
     private void UpdateBarPosition(
@@ -353,7 +551,11 @@ public class SettingUIPanel : MonoBehaviour
             return;
 
 
-        volume = Mathf.Clamp(volume, 0, 30);
+        volume = Mathf.Clamp(
+            volume,
+            0,
+            30
+        );
 
 
         // 0 ~ 30
@@ -363,30 +565,37 @@ public class SettingUIPanel : MonoBehaviour
             volume / 30f;
 
 
-        // Bar의 실제 왼쪽 위치
-        float left =
-            -bar.rect.width * bar.pivot.x;
+        // =====================================================
+        // ControlButton의 Anchor 자체를
+        // Bar 왼쪽 0 ~ 오른쪽 1 사이로 이동
+        //
+        // 이 방식이 UI RectTransform에서 가장 안정적이다.
+        // =====================================================
+
+        Vector2 anchorMin =
+            controlButton.anchorMin;
+
+        Vector2 anchorMax =
+            controlButton.anchorMax;
 
 
-        // Bar의 실제 오른쪽 위치
-        float right =
-            bar.rect.width * (1f - bar.pivot.x);
+        anchorMin.x = normalized;
+        anchorMax.x = normalized;
 
 
-        // 현재 음량에 해당하는 위치
-        float targetX =
-            Mathf.Lerp(
-                left,
-                right,
-                normalized
-            );
+        controlButton.anchorMin =
+            anchorMin;
+
+        controlButton.anchorMax =
+            anchorMax;
 
 
+        // Anchor 위치에 버튼 중심을 맞춘다.
         Vector2 position =
             controlButton.anchoredPosition;
 
 
-        position.x = targetX;
+        position.x = 0f;
 
 
         controlButton.anchoredPosition =
@@ -421,65 +630,107 @@ public class SettingUIPanel : MonoBehaviour
 
 
     // =========================================================
-    // [변경 - ControlButton Hover]
+    // 현재 선택된 ControlButton 상태
     //
-    // currentIndex == 0
-    // BackgroundMusic ControlButton = Hover
-    // Effect ControlButton          = Normal
+    // 선택됨:
+    // Hover Sprite
+    // X / Y Scale = 기존의 1.2배
     //
-    // currentIndex == 1
-    // BackgroundMusic ControlButton = Normal
-    // Effect ControlButton          = Hover
+    // 선택 안 됨:
+    // Normal Sprite
+    // 원래 Scale
     // =========================================================
 
     private void UpdateCurrentSelection()
     {
-        // -----------------------------------------------------
+        // =====================================================
         // BackgroundMusic ControlButton
-        // -----------------------------------------------------
+        // =====================================================
 
-        if (backgroundMusicControlButtonImage != null)
+        if (currentIndex == 0)
         {
-            if (currentIndex == 0)
+            // Hover Sprite
+            if (backgroundMusicControlButtonImage != null &&
+                backgroundMusicControlButtonHoverSprite != null)
             {
-                if (backgroundMusicControlButtonHoverSprite != null)
-                {
-                    backgroundMusicControlButtonImage.sprite =
-                        backgroundMusicControlButtonHoverSprite;
-                }
+                backgroundMusicControlButtonImage.sprite =
+                    backgroundMusicControlButtonHoverSprite;
             }
-            else
+
+
+            // X / Y만 1.2배
+            if (backgroundMusicBarControlButton != null)
             {
-                if (backgroundMusicControlButtonNormalSprite != null)
-                {
-                    backgroundMusicControlButtonImage.sprite =
-                        backgroundMusicControlButtonNormalSprite;
-                }
+                backgroundMusicBarControlButton.localScale =
+                    new Vector3(
+                        backgroundMusicControlButtonBaseScale.x * HoverScale,
+                        backgroundMusicControlButtonBaseScale.y * HoverScale,
+                        backgroundMusicControlButtonBaseScale.z
+                    );
+            }
+        }
+        else
+        {
+            // Normal Sprite
+            if (backgroundMusicControlButtonImage != null &&
+                backgroundMusicControlButtonNormalSprite != null)
+            {
+                backgroundMusicControlButtonImage.sprite =
+                    backgroundMusicControlButtonNormalSprite;
+            }
+
+
+            // 원래 Scale
+            if (backgroundMusicBarControlButton != null)
+            {
+                backgroundMusicBarControlButton.localScale =
+                    backgroundMusicControlButtonBaseScale;
             }
         }
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // EffectSound ControlButton
-        // -----------------------------------------------------
+        // =====================================================
 
-        if (effectSoundControlButtonImage != null)
+        if (currentIndex == 1)
         {
-            if (currentIndex == 1)
+            // Hover Sprite
+            if (effectSoundControlButtonImage != null &&
+                effectSoundControlButtonHoverSprite != null)
             {
-                if (effectSoundControlButtonHoverSprite != null)
-                {
-                    effectSoundControlButtonImage.sprite =
-                        effectSoundControlButtonHoverSprite;
-                }
+                effectSoundControlButtonImage.sprite =
+                    effectSoundControlButtonHoverSprite;
             }
-            else
+
+
+            // X / Y만 1.2배
+            if (effectSoundBarControlButton != null)
             {
-                if (effectSoundControlButtonNormalSprite != null)
-                {
-                    effectSoundControlButtonImage.sprite =
-                        effectSoundControlButtonNormalSprite;
-                }
+                effectSoundBarControlButton.localScale =
+                    new Vector3(
+                        effectSoundControlButtonBaseScale.x * HoverScale,
+                        effectSoundControlButtonBaseScale.y * HoverScale,
+                        effectSoundControlButtonBaseScale.z
+                    );
+            }
+        }
+        else
+        {
+            // Normal Sprite
+            if (effectSoundControlButtonImage != null &&
+                effectSoundControlButtonNormalSprite != null)
+            {
+                effectSoundControlButtonImage.sprite =
+                    effectSoundControlButtonNormalSprite;
+            }
+
+
+            // 원래 Scale
+            if (effectSoundBarControlButton != null)
+            {
+                effectSoundBarControlButton.localScale =
+                    effectSoundControlButtonBaseScale;
             }
         }
     }
@@ -489,7 +740,8 @@ public class SettingUIPanel : MonoBehaviour
     // 마우스 - BackgroundMusic Bar 클릭 / 드래그
     // =========================================================
 
-    public void OnBackgroundBarPointer(BaseEventData data)
+    public void OnBackgroundBarPointer(
+        BaseEventData data)
     {
         PointerEventData pointerData =
             data as PointerEventData;
@@ -511,7 +763,8 @@ public class SettingUIPanel : MonoBehaviour
     // 마우스 - EffectSound Bar 클릭 / 드래그
     // =========================================================
 
-    public void OnEffectBarPointer(BaseEventData data)
+    public void OnEffectBarPointer(
+        BaseEventData data)
     {
         PointerEventData pointerData =
             data as PointerEventData;
@@ -560,11 +813,10 @@ public class SettingUIPanel : MonoBehaviour
 
 
         float left =
-            -bar.rect.width * bar.pivot.x;
-
+            bar.rect.xMin;
 
         float right =
-            bar.rect.width * (1f - bar.pivot.x);
+            bar.rect.xMax;
 
 
         float normalized =
@@ -575,8 +827,7 @@ public class SettingUIPanel : MonoBehaviour
             );
 
 
-        // 마우스 위치를
-        // 가장 가까운 0~30 정수 위치로 변환
+        // 가장 가까운 0~30 정수 위치
         int volume =
             Mathf.RoundToInt(
                 normalized * 30f
@@ -591,14 +842,14 @@ public class SettingUIPanel : MonoBehaviour
             );
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // Background Music
-        // -----------------------------------------------------
+        // =====================================================
 
         if (isBgm)
         {
-            // 마우스로 BGM Bar를 선택했으므로
-            // currentIndex도 0으로 변경
+            // BGM을 클릭했으므로
+            // 선택 index도 0
             currentIndex = 0;
 
 
@@ -615,14 +866,14 @@ public class SettingUIPanel : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // Effect Sound
-        // -----------------------------------------------------
+        // =====================================================
 
         else
         {
-            // 마우스로 Effect Bar를 선택했으므로
-            // currentIndex도 1로 변경
+            // Effect를 클릭했으므로
+            // 선택 index도 1
             currentIndex = 1;
 
 
@@ -639,8 +890,7 @@ public class SettingUIPanel : MonoBehaviour
         }
 
 
-        // 마우스로 선택한 ControlButton도
-        // Hover Sprite로 변경
+        // 마우스로 선택한 버튼 Hover
         UpdateCurrentSelection();
     }
 
