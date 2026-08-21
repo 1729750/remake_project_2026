@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private InputManager inputManager;
     [SerializeField] private MapManager mapManager;
     [SerializeField] private GameEndManager gameEndManager;
+    [SerializeField] private FadeIn fadeIn;
     [SerializeField] private CharacterData firstEnemyData;
     // 적 후보 풀(인스펙터 원본). Awake에서 _enemyCandidatePool로 복제되고, 이후로는 이 배열 자체를
     // 직접 건드리지 않는다.
@@ -150,11 +151,15 @@ public class GameManager : MonoBehaviour
         public List<EffectSummaryJsonEntry> summaries;
     }
 
+    // TODO: MultiPlayMode 씬도 이 GameManager를 그대로 갖고 있어 여기서도 SingleMode 초기화가
+    // 돌아간다. 싱글/멀티 구분은 아직 넣지 않았다(추후 추가 예정) — NetworkMatchBridge 쪽
+    // 상태와 충돌하지 않는지 그 전까지는 주의해서 확인할 것.
     void Start()
     {
         _currentState = GameState.StartScreen;
-        battleManager.Init();
-        EndBattle();
+        GameStart();
+        fadeIn?.Play();
+        ShowEnemySelection();
     }
 
     public void StartBattle(CharacterData enemyData)
@@ -183,14 +188,9 @@ public class GameManager : MonoBehaviour
         gameEndManager.ShowResult();
     }
 
-    // 게임오버 화면의 "타이틀로" 버튼.
-    public void GoToTitle()
-    {
-        SetGameState(GameState.StartScreen);
-    }
-
-    // 새 런을 시작하기 전 공통으로 거쳐야 하는 초기화. 게임오버 화면의 "게임 시작" 버튼과,
-    // 이후 타이틀 화면에서 게임을 처음 시작할 때 둘 다 이 함수를 그대로 탄다.
+    // 새 런을 시작하기 전 공통으로 거쳐야 하는, 씬에 현재 존재하는 SingleMode 매니저 전체 초기화.
+    // Start()(씬이 처음 로드될 때)와, 이후 타이틀/게임오버 화면에서 새 런을 시작할 때 둘 다
+    // 이 함수를 그대로 탄다.
     public void GameStart()
     {
         battleManager.Init();
@@ -357,7 +357,6 @@ public class GameManager : MonoBehaviour
                 mapActive = true;
                 break;
             case GameState.GameOver:
-                battleActive = true;
                 gameEndActive = true;
                 break;
             default:

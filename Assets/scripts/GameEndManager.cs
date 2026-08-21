@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // GameState.GameOver 화면. ButtonManager를 component로 들고 있다가(GetButton(0)=Restart,
 // GetButton(1)=Exit) 각 버튼이 실행할 함수를 SetAction으로 직접 박아 넣는다 — switch-case 없이
@@ -11,6 +12,7 @@ public class GameEndManager : MonoBehaviour
 {
     [SerializeField] private TrophiesManager trophiesManager;
     [SerializeField] private ButtonManager buttonManager;
+    [SerializeField] private string beforeGameSceneName = "BeforeGame";
 
     private void Awake()
     {
@@ -49,19 +51,18 @@ public class GameEndManager : MonoBehaviour
         });
     }
 
-    // "게임 시작"(재시작) 버튼. 타이틀 화면에서 게임을 처음 시작할 때도 같은 GameManager.GameStart를
-    // 거치므로, 이후 타이틀 쪽 시작 버튼도 이 호출을 그대로 재사용하면 된다.
+    // "게임 시작"(재시작) 버튼. GameManager를 비롯한 씬 오브젝트들을 상태로 되돌리는 대신, 현재
+    // 씬을 통째로 다시 로드해서 완전히 새로 시작한다.
     private void OnClickRestart()
     {
         PlayerInputManager.Instance.Unload();
-        GameManager.Instance.GameStart();
-        GameManager.Instance.ShowEnemySelection();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
-    // "타이틀로" 버튼.
+    // "타이틀로" 버튼. BeforeGame 씬으로 돌아간다.
     private void OnClickExit()
     {
         PlayerInputManager.Instance.Unload();
-        GameManager.Instance.GoToTitle();
+        SceneManager.LoadScene(beforeGameSceneName);
     }
 }
