@@ -1,0 +1,830 @@
+fileFormatVersion: 2
+guid: 5c7f7bdb41c579b419d45aa82fd788b6
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -2061538378274563631
+    second: card_art_rough_transparent_v2_0
+  - first:
+      213: 610138269871510191
+    second: card_art_rough_transparent_v2_1
+  - first:
+      213: -8847321688106187182
+    second: card_art_rough_transparent_v2_2
+  - first:
+      213: 774580552557866608
+    second: card_art_rough_transparent_v2_3
+  - first:
+      213: 5788608100585874119
+    second: card_art_rough_transparent_v2_4
+  - first:
+      213: 1165493408345020642
+    second: card_art_rough_transparent_v2_5
+  - first:
+      213: 7887758050866625008
+    second: card_art_rough_transparent_v2_6
+  - first:
+      213: 7562155893724560010
+    second: card_art_rough_transparent_v2_7
+  - first:
+      213: 8733156521228253679
+    second: card_art_rough_transparent_v2_8
+  - first:
+      213: 2705579261537777825
+    second: card_art_rough_transparent_v2_9
+  - first:
+      213: -4370921467039419905
+    second: card_art_rough_transparent_v2_10
+  - first:
+      213: 711609528603875742
+    second: card_art_rough_transparent_v2_11
+  - first:
+      213: -8070536051446764120
+    second: card_art_rough_transparent_v2_12
+  - first:
+      213: 1948243459115388740
+    second: card_art_rough_transparent_v2_13
+  - first:
+      213: 8672899603542564208
+    second: card_art_rough_transparent_v2_14
+  - first:
+      213: -4125150463124897729
+    second: card_art_rough_transparent_v2_15
+  - first:
+      213: -2410519639734834788
+    second: card_art_rough_transparent_v2_16
+  - first:
+      213: 5445496065445543042
+    second: card_art_rough_transparent_v2_17
+  - first:
+      213: 8089461648880441291
+    second: card_art_rough_transparent_v2_18
+  - first:
+      213: -4984109093754881449
+    second: card_art_rough_transparent_v2_19
+  - first:
+      213: 3925397053504626616
+    second: card_art_rough_transparent_v2_20
+  - first:
+      213: -1767907495260589677
+    second: card_art_rough_transparent_v2_21
+  - first:
+      213: 3370425445991637649
+    second: card_art_rough_transparent_v2_22
+  - first:
+      213: 4027053665195706825
+    second: card_art_rough_transparent_v2_23
+  - first:
+      213: 2003412268881778692
+    second: card_art_rough_transparent_v2_24
+  - first:
+      213: -6240700896788819117
+    second: card_art_rough_transparent_v2_25
+  - first:
+      213: 3086993672285105667
+    second: card_art_rough_transparent_v2_26
+  - first:
+      213: 3875799766981923439
+    second: card_art_rough_transparent_v2_27
+  - first:
+      213: 82186727882481311
+    second: card_art_rough_transparent_v2_28
+  - first:
+      213: -5219086838717101033
+    second: card_art_rough_transparent_v2_29
+  - first:
+      213: 2419787116247878282
+    second: card_art_rough_transparent_v2_30
+  - first:
+      213: -4211311715105163176
+    second: card_art_rough_transparent_v2_31
+  - first:
+      213: -5780376360078028238
+    second: card_art_rough_transparent_v2_32
+  - first:
+      213: -8635181272710431523
+    second: card_art_rough_transparent_v2_33
+  - first:
+      213: 1245664451486782923
+    second: card_art_rough_transparent_v2_34
+  - first:
+      213: -4281616532913949828
+    second: card_art_rough_transparent_v2_35
+  - first:
+      213: 2259418315974533916
+    second: card_art_rough_transparent_v2_36
+  - first:
+      213: -4895855507412585102
+    second: card_art_rough_transparent_v2_37
+  - first:
+      213: -7100468258236914291
+    second: card_art_rough_transparent_v2_38
+  - first:
+      213: -5935226560635757264
+    second: card_art_rough_transparent_v2_39
+  - first:
+      213: 4797207598443781526
+    second: card_art_rough_transparent_v2_40
+  - first:
+      213: -6934496612571879112
+    second: card_art_rough_transparent_v2_41
+  - first:
+      213: -5273089683997110765
+    second: card_art_rough_transparent_v2_42
+  - first:
+      213: 8661545353145006261
+    second: card_art_rough_transparent_v2_43
+  - first:
+      213: -1451790143824554383
+    second: card_art_rough_transparent_v2_44
+  - first:
+      213: 6732221888466355361
+    second: card_art_rough_transparent_v2_45
+  - first:
+      213: -6077828517129727032
+    second: card_art_rough_transparent_v2_46
+  - first:
+      213: -2159033924127946745
+    second: card_art_rough_transparent_v2_47
+  - first:
+      213: 111723181051868354
+    second: card_art_rough_transparent_v2_48
+  - first:
+      213: -5784560768331960323
+    second: card_art_rough_transparent_v2_49
+  - first:
+      213: -3997309286148877935
+    second: card_art_rough_transparent_v2_50
+  - first:
+      213: -2287146683786638896
+    second: card_art_rough_transparent_v2_51
+  - first:
+      213: 6819325362601162670
+    second: card_art_rough_transparent_v2_52
+  - first:
+      213: -7857316516999697372
+    second: card_art_rough_transparent_v2_53
+  - first:
+      213: 5701979217808203171
+    second: card_art_rough_transparent_v2_54
+  - first:
+      213: -7965824136198191952
+    second: card_art_rough_transparent_v2_55
+  - first:
+      213: -5092172977167534830
+    second: card_art_rough_transparent_v2_56
+  - first:
+      213: -1261138952347968529
+    second: card_art_rough_transparent_v2_57
+  - first:
+      213: -714363017660916731
+    second: card_art_rough_transparent_v2_58
+  - first:
+      213: -2800798899996907066
+    second: card_art_rough_transparent_v2_59
+  - first:
+      213: 804946453813744756
+    second: card_art_rough_transparent_v2_60
+  - first:
+      213: -8081560869719848724
+    second: card_art_rough_transparent_v2_61
+  - first:
+      213: 7738765592809961086
+    second: card_art_rough_transparent_v2_62
+  - first:
+      213: 28703387060872958
+    second: card_art_rough_transparent_v2_63
+  - first:
+      213: 3479870186980218180
+    second: card_art_rough_transparent_v2_64
+  - first:
+      213: -795334100227654269
+    second: card_art_rough_transparent_v2_65
+  - first:
+      213: -1278771378389106729
+    second: card_art_rough_transparent_v2_66
+  - first:
+      213: 7684239332425315340
+    second: card_art_rough_transparent_v2_67
+  - first:
+      213: -2530942225247832524
+    second: card_art_rough_transparent_v2_68
+  - first:
+      213: -3956552367424984433
+    second: card_art_rough_transparent_v2_69
+  - first:
+      213: 6270806145786216945
+    second: card_art_rough_transparent_v2_70
+  - first:
+      213: 8246245865827091605
+    second: card_art_rough_transparent_v2_71
+  - first:
+      213: -2330668618536607142
+    second: card_art_rough_transparent_v2_72
+  - first:
+      213: -5465455774966233633
+    second: card_art_rough_transparent_v2_73
+  - first:
+      213: 6520863096231526500
+    second: card_art_rough_transparent_v2_74
+  - first:
+      213: -4055227052611971284
+    second: card_art_rough_transparent_v2_75
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 300
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_0
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 1645
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1d91c1874c1f363e0800000000000000
+      internalID: -2061538378274563631
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_1
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 1645
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fa210971685a77800800000000000000
+      internalID: 610138269871510191
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_2
+      rect:
+        serializedVersion: 2
+        x: 538
+        y: 1645
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 25642debccff73580800000000000000
+      internalID: -8847321688106187182
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_3
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 1371
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 07e232d98ecdfba00800000000000000
+      internalID: 774580552557866608
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_4
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 1371
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7c2ae5be564455050800000000000000
+      internalID: 5788608100585874119
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_5
+      rect:
+        serializedVersion: 2
+        x: 538
+        y: 1371
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2e8d670741aac2010800000000000000
+      internalID: 1165493408345020642
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_6
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 1097
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0f9f128f722f67d60800000000000000
+      internalID: 7887758050866625008
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_7
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 1097
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a8a349528bc22f860800000000000000
+      internalID: 7562155893724560010
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_8
+      rect:
+        serializedVersion: 2
+        x: 538
+        y: 1097
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe932b7f597623970800000000000000
+      internalID: 8733156521228253679
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_9
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 823
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1a87f9be0062c8520800000000000000
+      internalID: 2705579261537777825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_10
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 823
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ff17cf7751e5753c0800000000000000
+      internalID: -4370921467039419905
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_11
+      rect:
+        serializedVersion: 2
+        x: 538
+        y: 823
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e999733981520e900800000000000000
+      internalID: 711609528603875742
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_12
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 549
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8ad28828832bfff80800000000000000
+      internalID: -8070536051446764120
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_13
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 549
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 44f0d849a1d890b10800000000000000
+      internalID: 1948243459115388740
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_14
+      rect:
+        serializedVersion: 2
+        x: 538
+        y: 549
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 07dd7c90d345c5870800000000000000
+      internalID: 8672899603542564208
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_15
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 275
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f300760828580c6c0800000000000000
+      internalID: -4125150463124897729
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_16
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 275
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c99a08db82d1c8ed0800000000000000
+      internalID: -2410519639734834788
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_17
+      rect:
+        serializedVersion: 2
+        x: 538
+        y: 275
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 28c3baee1d9429b40800000000000000
+      internalID: 5445496065445543042
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_18
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 1
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bc71aa5828a834070800000000000000
+      internalID: 8089461648880441291
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_19
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 1
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 75a32f8af23e4dab0800000000000000
+      internalID: -4984109093754881449
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: card_art_rough_transparent_v2_20
+      rect:
+        serializedVersion: 2
+        x: 538
+        y: 1
+        width: 254
+        height: 250
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8bf128092dfc97630800000000000000
+      internalID: 3925397053504626616
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: b01e893453b8de5499e868bb9f583f9e
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":3.0,"y":7.0},"gridSpriteSize":{"x":254.0,"y":250.0},"gridSpriteOffset":{"x":10.0,"y":20.0},"gridSpritePadding":{"x":10.0,"y":24.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      card_art_rough_transparent_v2_0: -2061538378274563631
+      card_art_rough_transparent_v2_1: 610138269871510191
+      card_art_rough_transparent_v2_10: -4370921467039419905
+      card_art_rough_transparent_v2_11: 711609528603875742
+      card_art_rough_transparent_v2_12: -8070536051446764120
+      card_art_rough_transparent_v2_13: 1948243459115388740
+      card_art_rough_transparent_v2_14: 8672899603542564208
+      card_art_rough_transparent_v2_15: -4125150463124897729
+      card_art_rough_transparent_v2_16: -2410519639734834788
+      card_art_rough_transparent_v2_17: 5445496065445543042
+      card_art_rough_transparent_v2_18: 8089461648880441291
+      card_art_rough_transparent_v2_19: -4984109093754881449
+      card_art_rough_transparent_v2_2: -8847321688106187182
+      card_art_rough_transparent_v2_20: 3925397053504626616
+      card_art_rough_transparent_v2_3: 774580552557866608
+      card_art_rough_transparent_v2_4: 5788608100585874119
+      card_art_rough_transparent_v2_5: 1165493408345020642
+      card_art_rough_transparent_v2_6: 7887758050866625008
+      card_art_rough_transparent_v2_7: 7562155893724560010
+      card_art_rough_transparent_v2_8: 8733156521228253679
+      card_art_rough_transparent_v2_9: 2705579261537777825
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

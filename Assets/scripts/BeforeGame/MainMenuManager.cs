@@ -32,6 +32,10 @@ public class MainMenuManager : MonoBehaviour
 
     private int currentIndex = 0;
 
+    // MapManager.PlayMoveSelectSound와 같은 패턴 — Left/Right로 메뉴를 옮길 때 MoveSelect1/2를
+    // 번갈아 재생하기 위한 토글.
+    private bool _moveSelectToggle;
+
 
     // ============================================
     // [추가 - Input System]
@@ -47,6 +51,8 @@ public class MainMenuManager : MonoBehaviour
 
         currentIndex = 0;
         UpdateSelection();
+
+        SoundManager.Instance?.Play(BgmName.Title);
 
 
         // ============================================
@@ -158,6 +164,7 @@ public class MainMenuManager : MonoBehaviour
             currentIndex = menuItems.Length - 1;
 
         UpdateSelection();
+        PlayMoveSelectSound();
     }
 
 
@@ -169,6 +176,14 @@ public class MainMenuManager : MonoBehaviour
             currentIndex = 0;
 
         UpdateSelection();
+        PlayMoveSelectSound();
+    }
+
+
+    private void PlayMoveSelectSound()
+    {
+        SoundManager.Instance?.Play(_moveSelectToggle ? EffectSound.MoveSelect1 : EffectSound.MoveSelect2);
+        _moveSelectToggle = !_moveSelectToggle;
     }
 
 

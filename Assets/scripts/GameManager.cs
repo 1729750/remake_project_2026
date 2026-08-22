@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private MapManager mapManager;
     [SerializeField] private GameEndManager gameEndManager;
     [SerializeField] private FadeIn fadeIn;
+    [SerializeField] private PlayerDeckPanel playerDeckPanel;
     [SerializeField] private CharacterData firstEnemyData;
     // 적 후보 풀(인스펙터 원본). Awake에서 _enemyCandidatePool로 복제되고, 이후로는 이 배열 자체를
     // 직접 건드리지 않는다.
@@ -25,7 +26,7 @@ public class GameManager : MonoBehaviour
     // 일반 후보 풀과 별개인 보스 후보 목록. BossRound번째 승리 이후의 ShowEnemySelection부터는
     // 이 풀에서 하나만 뽑아 유일한 후보로 보여준다(스케일링 없이 디자이너가 만든 그대로).
     [SerializeField] private CharacterData[] bossCandidates;
-    private const int BossRound = 6;
+    private const int BossRound = 4;
     // 지금 향하는 전투가 보스전인지. ShowEnemySelection에서 정해져 StartBattle 동안 유지되고,
     // BattleManager.NotifyDefeat가 승리 판정을 GameOver(패배)와 같은 화면으로 보낼지 정하는 데 쓰인다.
     public bool IsBossBattle { get; private set; }
@@ -166,6 +167,9 @@ public class GameManager : MonoBehaviour
         _currentState = GameState.StartScreen;
         GameStart();
         fadeIn?.Play();
+        // 승리 후에는 BattleManager.NotifyDefeat가 Menu BGM을 다시 틀어주지만, 씬을 처음
+        // 로드했을 때는 그 트리거가 없어 첫 전투 전까지 계속 무음이었다 — 여기서 시작해준다.
+        SoundManager.Instance?.Play(BgmName.Menu);
         ShowEnemySelection();
     }
 
@@ -273,10 +277,11 @@ public class GameManager : MonoBehaviour
         SetGameState(GameState.SelectEnemy);
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
-            ["Left"]   = () => mapManager.MoveSelection(-1),
-            ["Right"]  = () => mapManager.MoveSelection(1),
-            ["Up"]     = mapManager.LoadDeckDisplayInput,
-            ["Select"] = mapManager.ConfirmSelection,
+            ["Left"]     = () => mapManager.MoveSelection(-1),
+            ["Right"]    = () => mapManager.MoveSelection(1),
+            ["Up"]       = mapManager.LoadDeckDisplayInput,
+            ["Select"]   = mapManager.ConfirmSelection,
+            ["ViewDeck"] = () => playerDeckPanel?.Open(),
         });
 
         if (mapManager.GetCurrentRound() >= BossRound && bossCandidates != null && bossCandidates.Length > 0)

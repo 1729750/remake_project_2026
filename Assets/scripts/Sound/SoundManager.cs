@@ -52,6 +52,7 @@ public class SoundManager : MonoBehaviour
         { BgmName.Menu, "Sound/Misc/menu" },
         { BgmName.GameWinBGM, "Sound/Misc/GameWinBGM" },
         { BgmName.GameLoseBGM, "Sound/Misc/GameLoseBGM" },
+        { BgmName.Title, "Sound/Misc/title" },
     };
 
     [SerializeField] private int initialPoolSize = 8;
