@@ -154,6 +154,8 @@ public class HandManager
     // 여기서는 그 결과를 그대로 따를 뿐 별도로 미리 확인하지 않는다.
     public bool UseCardImmediately(int index)
     {
+        // index가 아예 없거나(선택된 카드 없음) 비어있는 슬롯이면 "시도"가 아니므로 소리 없이 실패한다
+        // (OnTurnStart/OnTurnEnd가 select 여부와 무관하게 매 턴 이 함수를 재시도용으로 호출한다).
         if (index < 0 || index >= HandSize || _hand[index] == null)
             return false;
 
@@ -170,6 +172,7 @@ public class HandManager
             return true;
         }
 
+        SoundManager.Instance?.Play(EffectSound.PlayDenied);
         return false;
     }
 

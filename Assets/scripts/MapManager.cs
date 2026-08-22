@@ -61,9 +61,16 @@ public class MapManager : MonoBehaviour
         _candidates = candidates;
         _selectedIndex = 0;
 
+        // candidates가 슬롯 수(_enemyVisuals.Length)보다 적을 수 있다(예: 보스전은 후보 1명만
+        // 온다) — 남는 슬롯은 이전 라운드 데이터가 그대로 남지 않도록 비활성화한다.
         int count = Mathf.Min(_enemyVisuals.Length, candidates.Length);
-        for (int i = 0; i < count; i++)
-            _enemyVisuals[i].SetCharacter(candidates[i]);
+        for (int i = 0; i < _enemyVisuals.Length; i++)
+        {
+            bool active = i < count;
+            _enemyVisuals[i].gameObject.SetActive(active);
+            if (active)
+                _enemyVisuals[i].SetCharacter(candidates[i]);
+        }
 
         RefreshSelectionHighlight();
     }

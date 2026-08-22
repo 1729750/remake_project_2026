@@ -11,7 +11,6 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private BattleManager battleManager;
     [SerializeField] private RewardManager rewardManager;
-    [SerializeField] private InputManager inputManager;
     [SerializeField] private MapManager mapManager;
     [SerializeField] private GameEndManager gameEndManager;
     [SerializeField] private FadeIn fadeIn;
@@ -22,6 +21,14 @@ public class GameManager : MonoBehaviour
     // 실제로 뽑아가는 풀. ShowEnemySelection이 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여주고,
     // 선택 여부와 무관하게 뽑힌 캐릭터는 여기서 제거되어 다시는 후보로 나오지 않는다.
     private List<CharacterData> _enemyCandidatePool;
+
+    // 일반 후보 풀과 별개인 보스 후보 목록. BossRound번째 승리 이후의 ShowEnemySelection부터는
+    // 이 풀에서 하나만 뽑아 유일한 후보로 보여준다(스케일링 없이 디자이너가 만든 그대로).
+    [SerializeField] private CharacterData[] bossCandidates;
+    private const int BossRound = 6;
+    // 지금 향하는 전투가 보스전인지. ShowEnemySelection에서 정해져 StartBattle 동안 유지되고,
+    // BattleManager.NotifyDefeat가 승리 판정을 GameOver(패배)와 같은 화면으로 보낼지 정하는 데 쓰인다.
+    public bool IsBossBattle { get; private set; }
 
     // MonoBehaviour가 아닌 순수 C# 클래스라 그냥 인스턴스를 들고 있는다.
     private readonly CharacterScaler characterScaler = new CharacterScaler();
@@ -165,7 +172,7 @@ public class GameManager : MonoBehaviour
     public void StartBattle(CharacterData enemyData)
     {
         SetGameState(GameState.Battle);
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         battleManager.StartBattle(PlayerManager.Instance.GetCharacterData(), enemyData);
     }
 
@@ -173,7 +180,7 @@ public class GameManager : MonoBehaviour
     public void EndBattle()
     {
         SetGameState(GameState.BattleEnd);
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         mapManager.AddTrophyForLastBattle();
         rewardManager.ShowRewardDisplay();
     }
@@ -184,7 +191,18 @@ public class GameManager : MonoBehaviour
     public void GameOver()
     {
         SetGameState(GameState.GameOver);
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
+        SoundManager.Instance?.Play(BgmName.GameLoseBGM);
+        gameEndManager.ShowResult();
+    }
+
+    // BattleManager.NotifyDefeat가 보스전 승리를 감지하면 호출한다. GameOver와 화면 전환은
+    // 완전히 동일하고(재시작/타이틀 버튼이 있는 같은 결과 화면), BGM만 다르다.
+    public void GameWin()
+    {
+        SetGameState(GameState.GameOver);
+        PlayerInputManager.Instance.Unload();
+        SoundManager.Instance?.Play(BgmName.GameWinBGM);
         gameEndManager.ShowResult();
     }
 
@@ -193,6 +211,7 @@ public class GameManager : MonoBehaviour
     // 이 함수를 그대로 탄다.
     public void GameStart()
     {
+        IsBossBattle = false;
         battleManager.Init();
         mapManager.Init();
         PlayerManager.Instance.Init();
@@ -252,13 +271,24 @@ public class GameManager : MonoBehaviour
     public void ShowEnemySelection()
     {
         SetGameState(GameState.SelectEnemy);
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => mapManager.MoveSelection(-1),
             ["Right"]  = () => mapManager.MoveSelection(1),
             ["Up"]     = mapManager.LoadDeckDisplayInput,
             ["Select"] = mapManager.ConfirmSelection,
         });
+
+        if (mapManager.GetCurrentRound() >= BossRound && bossCandidates != null && bossCandidates.Length > 0)
+        {
+            IsBossBattle = true;
+            CharacterData bossSource = bossCandidates[UnityEngine.Random.Range(0, bossCandidates.Length)];
+            CharacterData boss = characterScaler.ScaleBoss(bossSource, mapManager.GetCurrentRound());
+            mapManager.ShowEnemySelection(new[] { boss });
+            return;
+        }
+
+        IsBossBattle = false;
 
         CharacterData[] picks = PickRandomDistinct(_enemyCandidatePool, EnemySelectionCount - 1);
         foreach (CharacterData pick in picks)

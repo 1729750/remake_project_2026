@@ -6244,7 +6244,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   battleManager: {fileID: 955717468}
   rewardManager: {fileID: 772567246}
-  inputManager: {fileID: 903970882}
   mapManager: {fileID: 1474451737}
   gameEndManager: {fileID: 1357964252}
   fadeIn: {fileID: 896569714}
@@ -6257,6 +6256,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 103eea38d1d4429dbb97d2f0a7659daf, type: 2}
   - {fileID: 11400000, guid: 6029ab442b794ef7866049d9928ea30a, type: 2}
   - {fileID: 11400000, guid: ac045211727241178adc0367a0bf875e, type: 2}
+  bossCandidates: []
 --- !u!4 &1990682883
 Transform:
   m_ObjectHideFlags: 0

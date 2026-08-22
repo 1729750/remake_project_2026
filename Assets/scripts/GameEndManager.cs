@@ -56,6 +56,10 @@ public class GameEndManager : MonoBehaviour
     private void OnClickRestart()
     {
         PlayerInputManager.Instance.Unload();
+        // SoundManager는 DontDestroyOnLoad라 씬을 다시 로드해도 재생 중이던 Win/LoseBGM이
+        // 저절로 멈추지 않는다 — 다음 전투가 시작되기 전까지(BattleManager.StartBattle의
+        // StopBgm) 새 런의 적 선택 화면까지 새어 나가므로 여기서 직접 끊는다.
+        SoundManager.Instance?.StopBgm();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -63,6 +67,8 @@ public class GameEndManager : MonoBehaviour
     private void OnClickExit()
     {
         PlayerInputManager.Instance.Unload();
+        // 위와 같은 이유로, 타이틀로 돌아갈 때도 Win/LoseBGM이 계속 흐르지 않도록 끊는다.
+        SoundManager.Instance?.StopBgm();
         SceneManager.LoadScene(beforeGameSceneName);
     }
 }

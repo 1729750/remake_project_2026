@@ -179,6 +179,12 @@ public class BattleManager:MonoBehaviour
             {
                 GameManager.Instance.GameOver();
             }
+            else if (GameManager.Instance.IsBossBattle)
+            {
+                // 보스전 승리 = 게임 클리어. 다음 전투로 이어지는 보상 화면(EndBattle) 대신
+                // GameOver와 동일한 결과 화면으로 바로 보낸다(GameWinBGM만 다르다).
+                GameManager.Instance.GameWin();
+            }
             else
             {
                 SoundManager.Instance?.Play(EffectSound.PlayerWin);
