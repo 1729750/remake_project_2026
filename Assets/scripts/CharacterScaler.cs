@@ -76,6 +76,89 @@ public class CharacterScaler
         }
     }
 
+    // 보스 전용 강화. GameManager.ShowEnemySelection이 보스 후보를 뽑을 때 원본 대신 이 메서드가
+    // 돌려준 복사본을 쓴다. 총 (defeatedEnemyCount * 2 + 4)회 강화하고, 그중 절반은 "카드를 하나
+    // 고르고 그 카드가 이미 가진 effect 중 하나를 골라 그 effectType으로 강화"가 확정으로 나온다
+    // (디자이너가 심어둔 보스 카드 각각의 개성이 흐려지지 않게). 나머지 절반은 일반 보상 강화와
+    // 동일하게 완전 무작위 effectType을 굴려 적용 가능한 카드에 얹는다.
+    // 강화 횟수가 일반 강화보다 훨씬 많아 cost/cooldown 증가폭을 그대로 적용하면 카드가 못 쓸
+    // 정도로 무거워지므로, 증가분은 절반만(올림) 적용한다.
+    public CharacterData ScaleBoss(CharacterData boss, int defeatedEnemyCount)
+    {
+        if (boss == null) return null;
+
+        CharacterData copy = boss.Clone();
+        List<CardDefinition> deck = copy.GetDeck()?.GetCards().ToList();
+        if (deck == null || deck.Count == 0) return copy;
+
+        int totalUpgrades = Mathf.Max(0, defeatedEnemyCount * 2 + 4);
+        int guaranteedExistingCount = totalUpgrades / 2;
+
+        for (int i = 0; i < totalUpgrades; i++)
+        {
+            if (i < guaranteedExistingCount)
+                ApplyExistingEffectUpgrade(deck);
+            else
+                ApplyRandomTypeUpgrade(deck);
+        }
+
+        return copy;
+    }
+
+    // 카드를 하나 고르고, 그 카드가 이미 가진 effect(강화 후보에서 제외되는 타입은 뺀다) 중
+    // 하나를 골라 그 effectType으로 강화를 굴려 같은 카드에 적용한다.
+    private void ApplyExistingEffectUpgrade(List<CardDefinition> deck)
+    {
+        List<CardDefinition> candidates = deck
+            .Where(def => def.GetEffects().Any(e => RewardManager.EnhanceableEffectTypes.Contains(e.GetEffect().GetEffectType())))
+            .ToList();
+        if (candidates.Count == 0) return;
+
+        CardDefinition card = candidates[Random.Range(0, candidates.Count)];
+        EffectType[] existingTypes = card.GetEffects()
+            .Select(e => e.GetEffect().GetEffectType())
+            .Where(type => RewardManager.EnhanceableEffectTypes.Contains(type))
+            .Distinct()
+            .ToArray();
+        if (existingTypes.Length == 0) return;
+
+        EffectType chosenType = existingTypes[Random.Range(0, existingTypes.Length)];
+        CardUpgrade upgrade = RewardManager.RollEnhanceOption(chosenType);
+        if (!RewardManager.CanEnhance(card, upgrade)) return;
+
+        ApplyHalvedUpgrade(card, upgrade);
+    }
+
+    // 일반 보상 강화와 동일하게 완전 무작위 effectType으로 강화 옵션을 굴리고, 적용 가능한
+    // (CanEnhance) 카드 중 하나를 골라 적용한다.
+    private void ApplyRandomTypeUpgrade(List<CardDefinition> deck)
+    {
+        CardUpgrade upgrade = RewardManager.RollEnhanceOption();
+        List<CardDefinition> eligible = deck.Where(def => RewardManager.CanEnhance(def, upgrade)).ToList();
+        if (eligible.Count == 0) return;
+
+        CardDefinition card = eligible[Random.Range(0, eligible.Count)];
+        ApplyHalvedUpgrade(card, upgrade);
+    }
+
+    // CardDefinition.ApplyUpgrade와 동일하지만, cost/cooldown 증가분만 절반(올림)으로 줄인 upgrade를
+    // 대신 적용한다. effect(magnitude 강화분)는 원래 upgrade 그대로 유지한다.
+    private static void ApplyHalvedUpgrade(CardDefinition card, CardUpgrade upgrade)
+    {
+        CardUpgrade halved = new CardUpgrade(
+            upgrade.effect,
+            HalveRoundUp(upgrade.costDelta),
+            HalveRoundUp(upgrade.cooldownDelta));
+        card.ApplyUpgrade(halved);
+    }
+
+    // cost/cooldown delta는 항상 "증가폭"이라 절댓값 기준으로 올림한 뒤 부호를 되돌린다.
+    private static int HalveRoundUp(int delta)
+    {
+        int sign = delta < 0 ? -1 : 1;
+        return sign * Mathf.CeilToInt(Mathf.Abs(delta) / 2f);
+    }
+
     private static bool HasCostAffectingEffect(CardDefinition def) =>
         def.GetEffects().Any(e => CostAffectingEffectTypes.Contains(e.GetEffect().GetEffectType()));
 
