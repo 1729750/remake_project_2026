@@ -64,7 +64,20 @@ public class BattleManager:MonoBehaviour
         _startElapsed = 0f;
         _startTickCount = 0;
         _turnTimerOverlay?.SetFill(0f);
+        // startDelay 카운트다운 동안은 bgm 없이 진행하다가, OnBattleStarted에서 BattleBGM을 튼다.
+        SoundManager.Instance?.StopBgm();
+        UpdateStartCountdownText();
         SetState(BattleState.BattleStarting);
+    }
+
+    // BattleStarting 카운트다운 동안 turnText에 남아있던 이전 전투의 턴 수 대신 남은 초를 표시한다.
+    // 3부터 시작해 1초마다 1씩 줄어들다가, startDelay에 도달하면 OnBattleStarted → TurnManager.StartTurn
+    // 이 같은 turnText를 실제 턴 수로 덮어써 이어받는다.
+    private void UpdateStartCountdownText()
+    {
+        if (turnText == null) return;
+        int remaining = Mathf.CeilToInt(Mathf.Max(startDelay - _startElapsed, 0f));
+        turnText.text = $"{remaining}";
     }
 
     // CardCollection 에셋을 런타임 덱으로 풀어낸다. 원본 에셋이 오염되지 않도록
@@ -84,9 +97,12 @@ public class BattleManager:MonoBehaviour
         if (CurrentState == BattleState.BattleStarting)
         {
             _startElapsed += deltaTime;
+            _turnTimerOverlay?.SetFill(Mathf.Clamp01(_startElapsed / startDelay));
 
-            int wholeSecondsElapsed = Mathf.FloorToInt(Mathf.Min(_startElapsed, startDelay));
-            while (_startTickCount < wholeSecondsElapsed)
+            // 시작하자마자(0초 시점) 한 번, 그리고 그 뒤로 매 1초마다 한 번씩 — startDelay가
+            // n초면 총 n번 울리도록 목표 재생 횟수를 "지금까지 지난 정수초 + 1"로 계산한다.
+            int desiredTicks = Mathf.Min(Mathf.FloorToInt(_startElapsed) + 1, Mathf.FloorToInt(startDelay));
+            while (_startTickCount < desiredTicks)
             {
                 _startTickCount++;
                 PlayAlternatingTurnEnd();
@@ -94,8 +110,11 @@ public class BattleManager:MonoBehaviour
 
             if (_startElapsed >= startDelay)
             {
-                _turnTimerOverlay?.SetFill(_startElapsed / startDelay);
                 OnBattleStarted();
+            }
+            else
+            {
+                UpdateStartCountdownText();
             }
         }
         else if (CurrentState == BattleState.Turn)
@@ -159,6 +178,12 @@ public class BattleManager:MonoBehaviour
             if (loser == playerCharacterManager)
             {
                 GameManager.Instance.GameOver();
+            }
+            else if (GameManager.Instance.IsBossBattle)
+            {
+                // 보스전 승리 = 게임 클리어. 다음 전투로 이어지는 보상 화면(EndBattle) 대신
+                // GameOver와 동일한 결과 화면으로 바로 보낸다(GameWinBGM만 다르다).
+                GameManager.Instance.GameWin();
             }
             else
             {

@@ -145,15 +145,6 @@ public class DeckDisplay : MonoBehaviour
     // 아직 아무 것도 select되지 않았다면(-1) -1을 그대로 반환한다.
     public int GetSelectedIndex() => _selectedIndex >= 0 ? _cardIndexMap[_selectedIndex] : -1;
 
-    // 현재 select된 카드가 마지막 행에 있는지. 아직 아무 것도 select되지 않았다면(-1) false를 반환한다.
-    public bool IsSelectionOnBottomRow()
-    {
-        if (_selectedIndex < 0 || _cardInstances.Count == 0) return false;
-
-        int lastRow = Mathf.CeilToInt((float)_cardInstances.Count / Columns) - 1;
-        return _selectedIndex / Columns == lastRow;
-    }
-
     // 아직 아무 것도 select되지 않았다면(-1, input이 아직 load되지 않은 상태) 아무 일도 하지 않는다.
     public void MoveSelectionHorizontal(int delta)
     {

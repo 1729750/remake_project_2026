@@ -38,7 +38,8 @@ public class RewardManager : MonoBehaviour
     private int _rewardCardSelectedIndex;
 
     // 강화 후보로 등장하면 안 되는 EffectType(실제 카드 효과가 아니라 내부 마킹용).
-    private static readonly EffectType[] EnhanceableEffectTypes = ((EffectType[])Enum.GetValues(typeof(EffectType)))
+    // CharacterScaler.ScaleBoss도 "카드가 이미 가진 effect 중 강화 가능한 것"을 고를 때 이 목록을 그대로 쓴다.
+    public static readonly EffectType[] EnhanceableEffectTypes = ((EffectType[])Enum.GetValues(typeof(EffectType)))
         .Where(type => type != EffectType.Disposable && type != EffectType.Preserve && type!=EffectType.Guard && type!=EffectType.Weak)
         .ToArray();
     // cost:cooldown 분배가 1:2 경향을 띄도록, 예산 1당 이 확률로 cooldown 쪽에 배분한다.
@@ -217,7 +218,13 @@ public class RewardManager : MonoBehaviour
     public static CardUpgrade RollEnhanceOption()
     {
         EffectType effectType = EnhanceableEffectTypes[UnityEngine.Random.Range(0, EnhanceableEffectTypes.Length)];
+        return RollEnhanceOption(effectType);
+    }
 
+    // effectType을 고정한 채(무작위로 고르지 않고) magnitude/target/cost·cooldown delta만 새로 굴린다.
+    // CharacterScaler.ScaleBoss처럼 강화할 effectType을 먼저 정해야 하는 호출부가 쓴다.
+    public static CardUpgrade RollEnhanceOption(EffectType effectType)
+    {
         EffectPriceInfo priceInfo = GameManager.GetEffectPriceInfo(effectType);
         int magnitude = RollMagnitude(priceInfo);
 

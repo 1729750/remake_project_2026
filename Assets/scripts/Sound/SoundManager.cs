@@ -34,6 +34,7 @@ public class SoundManager : MonoBehaviour
         { EffectSound.MoveSelect2, "Card" },
         { EffectSound.UseCard, "Card" },
         { EffectSound.PlayCard, "Card" },
+        { EffectSound.PlayDenied, "Card" },
 
         { EffectSound.Buff, "Effect" },
         { EffectSound.Debuff, "Effect" },
@@ -49,6 +50,9 @@ public class SoundManager : MonoBehaviour
     {
         { BgmName.BattleBGM, "Sound/Battle/BattleBGM" },
         { BgmName.Menu, "Sound/Misc/menu" },
+        { BgmName.GameWinBGM, "Sound/Misc/GameWinBGM" },
+        { BgmName.GameLoseBGM, "Sound/Misc/GameLoseBGM" },
+        { BgmName.Title, "Sound/Misc/title" },
     };
 
     [SerializeField] private int initialPoolSize = 8;

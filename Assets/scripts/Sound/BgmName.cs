@@ -9,4 +9,6 @@ public enum BgmName
     Battle,
     BattleBGM,
     Menu,
+    GameWinBGM,
+    GameLoseBGM,
 }

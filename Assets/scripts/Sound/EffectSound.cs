@@ -26,6 +26,7 @@ public enum EffectSound
     MoveSelect2,
     UseCard,
     PlayCard,
+    PlayDenied,
 
     // Sound/Effect — 버프/디버프 획득
     Buff,

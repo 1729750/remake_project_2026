@@ -15,8 +15,8 @@ using UnityEngine;
 // 3) SelectEnemy → Battle: 2번의 반대 방향. mapManager가 위로 올라가 화면 밖으로 사라지고,
 //    그와 동시에 battleManager가 아래에서 위로 올라와 자리를 채운다 — 카메라가 다시 아래로
 //    내려가는 듯한 착시.
-// 4) ... → GameOver: PlayRewardDropIn과 같은 패턴으로 gameEndManager가 위에서 내려온다.
-//    battleManager는 전투 도중 패배로 진입하므로 계속 켜진 채 뒤에 비친다.
+// 4) ... → GameOver: 2번(PlayMapReveal)과 같은 패턴. battleManager가 아래로 내려가 화면 밖으로
+//    사라지고, 그와 동시에 gameEndManager가 위에서 내려와 자리를 채운다.
 // 5) GameOver → (StartScreen/SelectEnemy 등): 화면 암전. 실제 페이드 구현은 아직 없고
 //    PlayBlackout에 자리만 마련해뒀다(지금은 즉시 SnapToState).
 // 그 외의 전환은 연출 없이 즉시 SetActive로 전환한다.
@@ -142,7 +142,7 @@ public class TransitionManager : MonoBehaviour
     // 넷 다 각자의 rest position으로 되돌려 다음 연출이 항상 같은 자리에서 시작하게 한다.
     private void SnapToState(GameState state)
     {
-        bool battleActive = state == GameState.Battle || state == GameState.BattleEnd || state == GameState.GameOver;
+        bool battleActive = state == GameState.Battle || state == GameState.BattleEnd;
         bool mapActive = state == GameState.SelectEnemy;
         bool rewardActive = state == GameState.BattleEnd;
         bool gameEndActive = state == GameState.GameOver;
@@ -230,15 +230,31 @@ public class TransitionManager : MonoBehaviour
         _routine = null;
     }
 
-    // PlayRewardDropIn과 같은 패턴: gameEndManager가 화면 위에서 rest position으로 내려온다.
-    // battleManager는 GameOver 진입 시점(전투 도중)에 이미 켜져 있으므로 그대로 뒤에 비친다.
+    // PlayMapReveal과 같은 패턴: battleManager가 아래로 내려가 화면 밖으로 사라지는 동안,
+    // gameEndManager가 위에서 rest position으로 내려와 자리를 채운다.
     private IEnumerator PlayGameEndDropIn()
     {
-        Vector3 start = _gameEndRestPosition + Vector3.up * _travelDistance;
-        _gameEndTransform.position = start;
+        Vector3 battleStart = _battleTransform.position;
+        Vector3 battleEnd = _battleRestPosition - Vector3.up * _travelDistance;
+
+        Vector3 gameEndStart = _gameEndRestPosition + Vector3.up * _travelDistance;
+        _gameEndTransform.position = gameEndStart;
         gameEndManager.gameObject.SetActive(true);
 
-        yield return MoveOverTime(_gameEndTransform, start, _gameEndRestPosition, gameEndDropDuration);
+        float elapsed = 0f;
+        while (elapsed < gameEndDropDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / gameEndDropDuration));
+            _battleTransform.position = Vector3.Lerp(battleStart, battleEnd, t);
+            _gameEndTransform.position = Vector3.Lerp(gameEndStart, _gameEndRestPosition, t);
+            yield return null;
+        }
+
+        battleManager.gameObject.SetActive(false);
+        _battleTransform.position = _battleRestPosition;
+        _gameEndTransform.position = _gameEndRestPosition;
+
         _routine = null;
     }
 
