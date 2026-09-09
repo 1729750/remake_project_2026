@@ -10,11 +10,6 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
     // Inspector
     // =========================================================
 
-    [Header("Game Mode")]
-    [Tooltip("False = 기존 SingleMode / True = 네트워크 MultiMode")]
-    [SerializeField]
-    private bool multiGameMode = true;
-
 
     [Header("Lobby")]
     [SerializeField]

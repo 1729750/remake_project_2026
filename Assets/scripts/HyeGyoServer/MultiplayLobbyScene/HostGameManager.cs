@@ -42,19 +42,6 @@ public sealed class HostGameManager :
     [SerializeField]
     private NetworkLauncher networkLauncher;
 
-    [Header("Lobby Status UI")]
-    [SerializeField]
-    private TMP_Text statusText;
-
-    [SerializeField]
-    private TMP_Text joinCodeText;
-
-    [SerializeField]
-    private TMP_Text hostNicknameText;
-
-    [SerializeField]
-    private TMP_Text clientNicknameText;
-
     // =========================================================
     // Lobby State
     // =========================================================
@@ -153,18 +140,6 @@ public sealed class HostGameManager :
             lobbyPlayers.Clear();
         }
 
-        /*
-         * Client 연결 종료 시
-         * Server의 LobbyPlayerData에서도 제거한다.
-         */
-        if (IsServer &&
-            NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton
-                .OnClientDisconnectCallback +=
-                HandleClientDisconnected;
-        }
-
         RefreshLobbyUI();
 
         /*
@@ -184,12 +159,6 @@ public sealed class HostGameManager :
                 HandleLobbyPlayersChanged;
         }
 
-        if (NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton
-                .OnClientDisconnectCallback -=
-                HandleClientDisconnected;
-        }
     }
 
     // =========================================================

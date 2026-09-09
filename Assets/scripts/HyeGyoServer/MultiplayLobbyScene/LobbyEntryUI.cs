@@ -114,23 +114,6 @@ public sealed class LobbyEntryUI : MonoBehaviour
             return false;
         }
 
-        if (hostGameManager.IsNetworkBusy)
-        {
-            SetStatus(
-                "현재 네트워크 작업을 처리 중입니다."
-            );
-
-            return false;
-        }
-
-        if (hostGameManager.IsInSession)
-        {
-            SetStatus(
-                "이미 참가 중인 방이 있습니다."
-            );
-
-            return false;
-        }
 
         return true;
     }
