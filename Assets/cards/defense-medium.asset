@@ -19,6 +19,7 @@ MonoBehaviour:
       _effectType: 1
       _magnitude: 10
     _target: 0
+    appliedCategory: 2
   sprite: {fileID: 7435987664715613638, guid: 5605dae0613e3764983e1a6e5542c371, type: 3}
   spriteBackground: {fileID: 21300000, guid: e90a2084f2fc5cd4b82dfd51394de74c, type: 3}
-  cardType: 0
+  cardType: 1

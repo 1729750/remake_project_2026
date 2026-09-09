@@ -19,18 +19,9 @@ public class WeakEffect : Effect
             effect.Multiply(0.8f);
         }
 
-        if (!a) return;
+        if (!a || IsInfinite) return;
         _magnitude--;
         if(_magnitude <= 0)
             subject.RemoveEffect<WeakEffect>();
-    }
-
-    public override void OnTurnEnded(CharacterManager subject)
-    {
-        _magnitude -= 1;
-        if (_magnitude <= 0)
-        {
-            subject.RemoveEffect<BurningEffect>();
-        }
     }
 }

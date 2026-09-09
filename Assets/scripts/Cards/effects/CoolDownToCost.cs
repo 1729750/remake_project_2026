@@ -22,7 +22,7 @@ public class CooldownToCost:Effect
         int cooldown = cardInstance.GetCooldown();
         cardInstance.AddCost(cooldown-1);
         cardInstance.ChangeCooldownLeft(-cooldown+1);
-        if (actualUse)
+        if (actualUse && !IsInfinite)
         {
             _magnitude -= 1;
             if (_magnitude <= 0)

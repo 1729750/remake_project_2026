@@ -10,11 +10,16 @@ public class BurningEffect: Effect
     // 음수는 User(디버프 완화)를 향한다.
     public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Negative;
 
+    // 매 턴 감소(OnTurnEnded에서 자체적으로 magnitude를 깎고 0 이하면 제거)로 수명을 관리하는
+    // 타입이라 Continuous(큐 잔류 = 수명)로 재해석하면 그 감쇠 로직과 충돌한다 — Instant만 지원.
+    public override EffectCategory SupportedCategories => EffectCategory.Instant;
+
     public override void OnExpired(CharacterManager subject) { }
 
     public override void OnTurnEnded(CharacterManager subject)
     {
         subject.TakeDamage(_magnitude/10);
+        if (IsInfinite) return;
         _magnitude -= 1;
         if (_magnitude <= 0)
         {
@@ -22,6 +27,8 @@ public class BurningEffect: Effect
         }
     }
 
+    // Instant 경로: 카드가 큐에서 다 됐을 때(CardInstance.Play → CharacterManager.ApplyEffect) 호출된다.
+    // Burning은 SupportedCategories가 Instant뿐이라 Continuous(OnEnterQueue)로는 쓰이지 않는다.
     public override void OnApply(CharacterManager subject)
     {
         if (subject.GetIsGuard())

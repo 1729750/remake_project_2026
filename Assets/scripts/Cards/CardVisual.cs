@@ -15,6 +15,10 @@ public class CardVisual : MonoBehaviour
     private GameObject _isUnplayable;
     private GameObject _front;
     private GameObject _back;
+    // CardType(Instant/Continuous/Mix) 순서대로 인덱싱되는 배경 스프라이트. 더 이상 카드(정의)별로
+    // 배경을 고르지 않고, cardType에 따라 일괄 적용한다 — 인스펙터에서 3개(Instant/Continuous/Mix
+    // 순서) 모두 채워야 한다.
+    [SerializeField] private Sprite[] cardTypeBackgrounds;
     private Coroutine _moveCoroutine;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
     private PopupDisplay _popupDisplay;
@@ -65,9 +69,8 @@ public class CardVisual : MonoBehaviour
     // RefreshEffectDisplays를 통해 갱신한다.
     public void SetCardDefinition(CardDefinition def)
     {
-       // _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
+        ApplyCardTypeBackground(def.GetCardType());
         _sprite.sprite = def.GetSprite();
-        _spriteBackground.sprite = def.GetSpriteBackground();
 
         CardEffect[] effects = def.GetEffects();
         _pendingEffectTypes = new List<EffectType>(effects.Length);
@@ -75,6 +78,15 @@ public class CardVisual : MonoBehaviour
             _pendingEffectTypes.Add(cardEffect.GetEffect().GetEffectType());
 
         RefreshPopupVisibility();
+    }
+
+    private void ApplyCardTypeBackground(CardType cardType)
+    {
+        int index = (int)cardType;
+        if (cardTypeBackgrounds == null || index < 0 || index >= cardTypeBackgrounds.Length) return;
+
+        Sprite background = cardTypeBackgrounds[index];
+        if (background != null) _spriteBackground.sprite = background;
     }
 
     // 현재 코스트로는 낼 수 없는 카드임을 나타내는 오버레이. 기본은 꺼져 있고,

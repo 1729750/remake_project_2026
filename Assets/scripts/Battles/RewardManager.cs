@@ -44,6 +44,15 @@ public class RewardManager : MonoBehaviour
         .ToArray();
     // cost:cooldown 분배가 1:2 경향을 띄도록, 예산 1당 이 확률로 cooldown 쪽에 배분한다.
     private const float CooldownAllocationChance = 2f / 3f;
+    // Instant/Continuous를 둘 다 지원하는 effectType이 강화 후보로 뽑혔을 때, 이 확률로 Continuous를
+    // 고른다(나머지는 Instant). 한쪽만 지원하면 이 확률과 무관하게 그 하나로 고정된다.
+    private const float ContinuousChance = 0.2f;
+    // Continuous는 카드가 큐에 머무는 동안만 발동하는 반쪽짜리 효과라, 같은 magnitude라도 Instant보다
+    // 훨씬 약하다 — 그 보상으로 cost/cooldown 감소 예산을 5배로 쳐준다.
+    private const int ContinuousBudgetMultiplier = 5;
+    // RollFeasibleEnhanceOption가 "덱의 카드 중 하나 이상에 대입 가능한 옵션"이 나올 때까지 다시
+    // 굴리는 시도 횟수 상한. 덱이 비어 있는 등 정상적으로 불가능한 상황에서 무한 루프를 막는다.
+    private const int MaxFeasibleRollAttempts = 100;
 
     private CardUpgrade[] _enhanceOptions;
     private RewardDisplay[] _enhanceDisplays;
@@ -197,9 +206,10 @@ public class RewardManager : MonoBehaviour
         PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
+        List<CardDefinition> deck = PlayerManager.Instance.GetDeck();
         CardUpgrade[] options = new CardUpgrade[3];
         for (int i = 0; i < options.Length; i++)
-            options[i] = RollEnhanceOption();
+            options[i] = RollFeasibleEnhanceOption(deck);
 
         SelectEnhance(options);
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
@@ -221,7 +231,7 @@ public class RewardManager : MonoBehaviour
         return RollEnhanceOption(effectType);
     }
 
-    // effectType을 고정한 채(무작위로 고르지 않고) magnitude/target/cost·cooldown delta만 새로 굴린다.
+    // effectType을 고정한 채(무작위로 고르지 않고) magnitude/target/카테고리/cost·cooldown delta만 새로 굴린다.
     // CharacterScaler.ScaleBoss처럼 강화할 effectType을 먼저 정해야 하는 호출부가 쓴다.
     public static CardUpgrade RollEnhanceOption(EffectType effectType)
     {
@@ -232,11 +242,43 @@ public class RewardManager : MonoBehaviour
         EffectTarget target = ResolveEnhanceTarget(effect.TargetPolarity, magnitude);
         CardEffect cardEffect = new CardEffect(effect, target);
 
+        // Instant/Continuous 둘 다 되는 타입은 80/20으로 하나를 고르고, 한쪽만 되는 타입은 그걸로
+        // 고정한다 — CardEffect에 명시적으로 남겨둬야 CanEnhance/CardDefinition.AddEffect가 어느
+        // cardType 카드에 붙을 수 있는지 판단할 수 있다.
+        EffectCategory appliedCategory = RollAppliedCategory(effect.SupportedCategories);
+        cardEffect.SetAppliedCategory(appliedCategory);
+
         int priceMagnitude = effect.DoesntUseMagnitude ? 1 : magnitude;
         int budget = Mathf.FloorToInt(priceInfo.price * (float)priceMagnitude);
+        // Continuous는 카드가 큐에 머무는 동안만 발동하는 반쪽짜리 효과라 같은 magnitude라도 Instant보다
+        // 약하므로, 그 보상으로 cost/cooldown 감소 예산을 5배로 쳐준다.
+        if (appliedCategory == EffectCategory.Continuous)
+            budget *= ContinuousBudgetMultiplier;
         (int costUnits, int cooldownUnits) = DistributeBudget(budget);
 
         return new CardUpgrade(cardEffect, costUnits, cooldownUnits);
+    }
+
+    // supported가 둘 다 켜져 있으면 ContinuousChance 확률로 Continuous, 아니면 Instant. 하나만
+    // 지원하면(단일 비트) 그 값 그대로 고정해서 돌려준다.
+    private static EffectCategory RollAppliedCategory(EffectCategory supported)
+    {
+        if (supported == (EffectCategory.Instant | EffectCategory.Continuous))
+            return UnityEngine.Random.value < ContinuousChance ? EffectCategory.Continuous : EffectCategory.Instant;
+        return supported;
+    }
+
+    // 덱의 카드 중 하나 이상에 CanEnhance를 통과하는 옵션이 나올 때까지 RollEnhanceOption()을 다시
+    // 굴린다 — Continuous 옵션은 Continuous(또는 Mix) 카드에만, Instant 옵션은 Instant(또는 Mix)
+    // 카드에만 붙을 수 있으므로, 지금 덱 구성상 애초에 어디에도 못 붙는 옵션을 플레이어에게 보여주지
+    // 않기 위함이다. 시도 횟수는 MaxFeasibleRollAttempts로 상한을 둔다(덱이 비정상적인 극단적
+    // 상황에서도 무한 루프에 빠지지 않도록 하는 방어용 — 마지막 시도 결과를 그냥 반환한다).
+    private static CardUpgrade RollFeasibleEnhanceOption(List<CardDefinition> deck)
+    {
+        CardUpgrade option = RollEnhanceOption();
+        for (int attempt = 1; attempt < MaxFeasibleRollAttempts && !deck.Any(def => CanEnhance(def, option)); attempt++)
+            option = RollEnhanceOption();
+        return option;
     }
 
     // source에서 최대 count개를 중복 없이 랜덤으로 뽑아 반환한다. source가 count보다 작으면 전부 반환한다.
@@ -304,23 +346,40 @@ public class RewardManager : MonoBehaviour
     }
 
     // option을 def에 강화로 적용해도 되는지: effect가 3개 미만이면 항상 가능(새 슬롯에 추가),
-    // 3개 이상이면 이미 같은 EffectType을 갖고 있어 병합(AddMagnitude)될 때만 가능하다.
+    // 3개 이상이면 같은 EffectType+같은 appliedCategory인 기존 효과가 있어 병합(AddMagnitude)될
+    // 때만 가능하다(CardDefinition.UpgradeEffect가 실제로 병합하는 기준과 반드시 일치해야 한다).
     // 단, magnitude를 안 쓰는 효과(Disposable/Preserve/DivideCooldown류)는 이미 가진 카드에 또
-    // 얹어봐야 의미가 없으므로 effect 개수와 무관하게 아예 제외한다.
+    // 얹어봐야 의미가 없으므로 병합 대상이 있으면 아예 제외한다.
+    // 그리고 CardDefinition.AddEffect/TryReconcileCardType과 동일하게, option의 appliedCategory와
+    // def의 cardType이 서로 맞아야 한다(Continuous는 Continuous/Mix 카드에만, Instant는 Instant/Mix
+    // 카드에만) — 안 맞으면 애초에 AddEffect가 거부할 옵션이므로 여기서 미리 걸러낸다.
+    // Continuous는 Instant와 달리 같은 타입끼리 magnitude를 합쳐 중첩할 수 없다 — 이미 같은 타입의
+    // continuous 효과가 있으면 슬롯 여유와 무관하게 그 카드엔 아예 적용할 수 없다.
     // ShowEnhanceDeckSelection(DeckDisplay 필터)과 GameManager.GenerateRandomEnemy(무작위 적 생성)가
     // 전부 이 판정을 공유하므로 public.
     public static bool CanEnhance(CardDefinition def, CardUpgrade option)
     {
-        EffectType upgradeType = option.effect.GetEffect().GetEffectType();
-        bool alreadyHasEffect = def.GetEffects().Any(effect => effect.GetEffect().GetEffectType() == upgradeType);
+        EffectCategory appliedCategory = option.effect.GetAppliedCategory();
+        CardType requiredCardType = appliedCategory == EffectCategory.Continuous ? CardType.Continuous : CardType.Instant;
+        if (def.GetCardType() != CardType.Mix && def.GetCardType() != requiredCardType)
+            return false;
 
-        if (option.effect.GetEffect().DoesntUseMagnitude && alreadyHasEffect)
+        EffectType upgradeType = option.effect.GetEffect().GetEffectType();
+
+        if (appliedCategory == EffectCategory.Continuous && def.GetEffects().Any(effect =>
+                effect.GetEffect().GetEffectType() == upgradeType && effect.GetAppliedCategory() == EffectCategory.Continuous))
+            return false;
+
+        bool hasMergeTarget = def.GetEffects().Any(effect =>
+            effect.GetEffect().GetEffectType() == upgradeType && effect.GetAppliedCategory() == appliedCategory);
+
+        if (option.effect.GetEffect().DoesntUseMagnitude && hasMergeTarget)
             return false;
 
         if (def.GetEffects().Length < 3)
             return true;
 
-        return alreadyHasEffect;
+        return hasMergeTarget;
     }
 
     // 강화 후보 선택 확정: DeckDisplay를 띄워 강화할 카드를 고르게 한다.

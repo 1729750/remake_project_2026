@@ -20,6 +20,7 @@ public class QuickerEffect: Effect
 
     public override void OnTurnEnded(CharacterManager subject)
     {
+        if (IsInfinite) return;
         _magnitude -= 1;
         if (_magnitude <= 0)
         {

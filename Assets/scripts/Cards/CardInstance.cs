@@ -20,6 +20,11 @@ public class CardInstance
     private int _costAdder;
     // effect will be added later
 
+    // Continuous/Mix 효과가 큐에 머무는 동안 발휘하는 몫. CardEffect(정의 쪽 데이터, 같은
+    // CardDefinition을 쓰는 다른 CardInstance와 공유됨)를 직접 깎으면 그 데이터가 오염되므로,
+    // EnterQueue에서 카드별로 이 dictionary에 복사해두고 이후로는 이것만 읽고/깎는다.
+    private readonly Dictionary<CardEffect, int> _queuedMagnitudes = new Dictionary<CardEffect, int>();
+
     public CardInstance(CardDefinition definition, CharacterManager owner)
     {
         _definition = definition;
@@ -156,15 +161,72 @@ public class CardInstance
         if (_effects.Exists(e => e.GetEffect().GetEffectType() == EffectType.Attack))
             SoundManager.Instance?.Play(EffectSound.Attack);
 
+        // 큐를 떠나는 시점이므로 먼저 Continuous/Mix 효과가 큐에 머무는 동안 부여했던 몫을 되돌린다.
+        ExitQueue(characterManager);
+
         foreach (CardEffect cardEffect in _effects)
         {
-           cardEffect.Reset();
+            // Instant 비트가 없는(순수 Continuous인) 효과는 큐에 머무는 동안 이미 발휘를 마쳤으므로
+            // (ExitQueue) 여기서 다시 발동하지 않는다. Instant 비트가 있으면(Instant든, 두 비트를
+            // 다 켠 카드별 Mix든) 카드가 다 됐을 때의 즉발 파이프라인을 탄다.
+            if (!cardEffect.GetAppliedCategory().HasFlag(EffectCategory.Instant)) continue;
+
+            cardEffect.Reset();
             Effect[] ownerEffects = characterManager.GetEffectPrioritize();
             for (int i = ownerEffects.Length - 1; i >= 0; i--)
                 ownerEffects[i].OnApplyingOther(characterManager, cardEffect, true);
             CharacterManager resolved = cardEffect.GetTarget(characterManager);
             resolved.ApplyEffect(cardEffect);
         }
+    }
+
+    // 카드별 큐 잔여 magnitude 조회/소모. Defend처럼 큐에 머무는 동안 다른 시스템(공격 상쇄 등)이
+    // magnitude를 직접 깎아써야 하는 Continuous 효과를 위한 것이다.
+    public int GetQueuedMagnitude(CardEffect cardEffect) =>
+        _queuedMagnitudes.TryGetValue(cardEffect, out int value) ? value : 0;
+
+    public int ConsumeQueuedMagnitude(CardEffect cardEffect, int amount)
+    {
+        int available = GetQueuedMagnitude(cardEffect);
+        int consumed = Mathf.Min(available, amount);
+        if (consumed > 0) _queuedMagnitudes[cardEffect] = available - consumed;
+        return consumed;
+    }
+
+    // 큐에 들어가는 순간(CharacterManager.QueueCard 성공 직후) 호출된다. Continuous 비트가 없는
+    // 효과는 건너뛰고, 있는 효과만 그 시점의 버프(OnApplyingOther)를 반영한 magnitude로 OnEnterQueue를
+    // 실행한 뒤, 실제로 적용된(예: Burning처럼 OnApply가 자체 조정한) magnitude를 _queuedMagnitudes에
+    // 등록한다 — ExitQueue가 나중에 정확히 그만큼만 되돌릴 수 있어야 하기 때문이다.
+    public void EnterQueue(CharacterManager owner)
+    {
+        foreach (CardEffect cardEffect in _effects)
+        {
+            if (!cardEffect.GetAppliedCategory().HasFlag(EffectCategory.Continuous)) continue;
+
+            cardEffect.Reset();
+            Effect[] ownerEffects = owner.GetEffectPrioritize();
+            for (int i = ownerEffects.Length - 1; i >= 0; i--)
+                ownerEffects[i].OnApplyingOther(owner, cardEffect, true);
+
+            Effect definitionEffect = cardEffect.GetEffect();
+            Effect runtimeEffect = Effect.Create(definitionEffect.GetEffectType(), cardEffect.GetMagnitude());
+            runtimeEffect.OnEnterQueue(owner, this, cardEffect);
+
+            _queuedMagnitudes[cardEffect] = runtimeEffect.GetMagnitude();
+        }
+    }
+
+    // 큐를 떠날 때(Play() 참고) 호출되어 EnterQueue가 등록한 몫을 되돌린다. Defend처럼 OnExitQueue를
+    // 비워둔 효과는 여기서 아무 것도 하지 않는다(방어 소모는 CharacterManager가 직접 처리).
+    public void ExitQueue(CharacterManager owner)
+    {
+        foreach (var pair in _queuedMagnitudes)
+        {
+            Effect definitionEffect = pair.Key.GetEffect();
+            Effect runtimeEffect = Effect.Create(definitionEffect.GetEffectType(), pair.Value);
+            runtimeEffect.OnExitQueue(owner, this, pair.Key, pair.Value);
+        }
+        _queuedMagnitudes.Clear();
     }
 
     // subject: 이 카드를 쓰는 주체. queuedCards: 현재 큐에 있는 카드들(OnUsingOther가 반응할 대상).
@@ -215,9 +277,9 @@ public class CardInstance
                 ownerEffects[i].OnApplyingOther(subject, cardEffect, false);
 
             CharacterManager target = cardEffect.GetTarget(subject);
-            Effect[] targetEffects = target.GetEffects();
-            for (int i = targetEffects.Length - 1; i >= 0; i--)
-                targetEffects[i].OnAppliedOther(target, cardEffect, false);
+            Effect[] targetEffects = target.GetEffectPrioritize();
+            foreach (Effect targetEffect in targetEffects)
+                targetEffect.OnAppliedOther(target, cardEffect, false);
         }
 
         _visual.SetCostText(preview.GetCost().ToString());
