@@ -1,347 +1,188 @@
 using System;
-using System.Threading.Tasks;
-using Unity.Netcode;
-using Unity.Services.Authentication;
-using Unity.Services.Core;
-using Unity.Services.Multiplayer;
 using UnityEngine;
 
-[RequireComponent(typeof(NetworkManager))]
+/// <summary>
+/// UI가 바라보는 얇은 Facade.
+/// 실제 기능은 각 전용 컴포넌트에게 위임한다.
+/// </summary>
+[RequireComponent(typeof(NetworkModeGate))]
+[RequireComponent(typeof(NetworkStatusHub))]
+[RequireComponent(typeof(UnityServicesAuthService))]
+[RequireComponent(typeof(NetworkSessionService))]
+[RequireComponent(typeof(NetworkConnectionMonitor))]
 public sealed class NetworkLauncher : MonoBehaviour
 {
-    private const int MaxPlayers = 2;
+    private NetworkModeGate modeGate;
+    private NetworkStatusHub statusHub;
+    private UnityServicesAuthService services;
+    private NetworkSessionService sessionService;
 
-    private NetworkManager networkManager;
-    private ISession currentSession;
-    private Task initializationTask;
+    public bool NetworkEnabled =>
+        modeGate != null && modeGate.NetworkEnabled;
 
-    public bool IsInitialized { get; private set; }
-    public bool IsBusy { get; private set; }
-    public bool IsInSession => currentSession != null;
+    public bool IsInitialized =>
+        services != null && services.IsInitialized;
+
+    public bool IsBusy =>
+        sessionService != null && sessionService.IsBusy;
+
+    public bool IsInSession =>
+        sessionService != null && sessionService.IsInSession;
 
     public string JoinCode =>
-        currentSession != null
-            ? currentSession.Code
+        sessionService != null
+            ? sessionService.JoinCode
             : string.Empty;
 
-    public string StatusMessage { get; private set; } =
-        "서비스 초기화 중...";
+    public string StatusMessage =>
+        statusHub != null
+            ? statusHub.StatusMessage
+            : string.Empty;
 
-    public event Action<string> StatusChanged;
-    public event Action<string> SessionCreated;
-    public event Action SessionJoined;
-    public event Action SessionLeft;
+    public event Action<string> StatusChanged
+    {
+        add
+        {
+            EnsureReferences();
+            statusHub.StatusChanged += value;
+        }
+        remove
+        {
+            EnsureReferences();
+            statusHub.StatusChanged -= value;
+        }
+    }
+
+    public event Action<string> SessionCreated
+    {
+        add
+        {
+            EnsureReferences();
+            sessionService.SessionCreated += value;
+        }
+        remove
+        {
+            EnsureReferences();
+            sessionService.SessionCreated -= value;
+        }
+    }
+
+    public event Action SessionJoined
+    {
+        add
+        {
+            EnsureReferences();
+            sessionService.SessionJoined += value;
+        }
+        remove
+        {
+            EnsureReferences();
+            sessionService.SessionJoined -= value;
+        }
+    }
+
+    public event Action SessionLeft
+    {
+        add
+        {
+            EnsureReferences();
+            sessionService.SessionLeft += value;
+        }
+        remove
+        {
+            EnsureReferences();
+            sessionService.SessionLeft -= value;
+        }
+    }
 
     private void Awake()
     {
-        networkManager = GetComponent<NetworkManager>();
+        EnsureReferences();
     }
 
-    private async void Start()
+    private void EnsureReferences()
     {
-        SubscribeNetworkEvents();
+        modeGate ??= GetComponent<NetworkModeGate>();
+        statusHub ??= GetComponent<NetworkStatusHub>();
+        services ??= GetComponent<UnityServicesAuthService>();
+        sessionService ??= GetComponent<NetworkSessionService>();
+    }
 
+    /// <summary>
+    /// UI Toggle(bool)에서 바로 연결 가능.
+    /// ON은 네트워크 사용 허용만 하며 방 생성/참가를 자동 실행하지 않는다.
+    /// OFF 시 세션에 들어가 있다면 먼저 Leave한다.
+    /// </summary>
+    public async void SetNetworkEnabled(bool enabled)
+    {
+        if (enabled)
+        {
+            modeGate.SetNetworkEnabled(true);
+
+            statusHub.SetStatus(
+                "네트워크 ON\n방 생성 또는 참가 대기"
+            );
+
+            return;
+        }
+
+        if (sessionService.IsBusy)
+        {
+            statusHub.SetStatus(
+                "네트워크 작업이 끝난 뒤 OFF로 변경하세요."
+            );
+
+            return;
+        }
+
+        if (sessionService.IsInSession)
+        {
+            bool left =
+                await sessionService.LeaveSessionAsync();
+
+            if (!left)
+                return;
+        }
+
+        modeGate.SetNetworkEnabled(false);
+        statusHub.SetStatus("네트워크 OFF");
+    }
+
+    /// <summary>
+    /// 필요할 때 UGS/Auth만 미리 초기화한다.
+    /// 방 생성/참가는 하지 않는다.
+    /// </summary>
+    public async void InitializeServices()
+    {
         try
         {
-            await EnsureServicesReadyAsync();
+            await services.EnsureReadyAsync();
         }
         catch (Exception exception)
         {
-            SetStatus($"초기화 실패\n{exception.Message}");
+            statusHub.SetStatus(
+                $"서비스 초기화 실패\n{exception.Message}"
+            );
+
             Debug.LogException(exception);
         }
     }
 
-    private void OnDestroy()
-    {
-        UnsubscribeNetworkEvents();
-    }
-
-    private void SubscribeNetworkEvents()
-    {
-        if (networkManager == null)
-            return;
-
-        networkManager.OnClientConnectedCallback +=
-            HandleClientConnected;
-
-        networkManager.OnClientDisconnectCallback +=
-            HandleClientDisconnected;
-    }
-
-    private void UnsubscribeNetworkEvents()
-    {
-        if (networkManager == null)
-            return;
-
-        networkManager.OnClientConnectedCallback -=
-            HandleClientConnected;
-
-        networkManager.OnClientDisconnectCallback -=
-            HandleClientDisconnected;
-    }
-
-    private async Task EnsureServicesReadyAsync()
-    {
-        if (IsInitialized)
-            return;
-
-        initializationTask ??= InitializeServicesAsync();
-
-        try
-        {
-            await initializationTask;
-        }
-        catch
-        {
-            initializationTask = null;
-            throw;
-        }
-    }
-
-    private async Task InitializeServicesAsync()
-    {
-        SetStatus("Unity Services 초기화 중...");
-
-        await UnityServices.InitializeAsync();
-
-        if (!AuthenticationService.Instance.IsSignedIn)
-        {
-            SetStatus("익명 로그인 중...");
-
-            await AuthenticationService.Instance
-                .SignInAnonymouslyAsync();
-        }
-
-        IsInitialized = true;
-
-        SetStatus(
-            $"로그인 완료\n" +
-            $"Player ID: {AuthenticationService.Instance.PlayerId}"
-        );
-    }
-
-    /// <summary>
-    /// Host가 Relay 세션을 생성합니다.
-    /// Canvas Button에서 호출할 수 있습니다.
-    /// </summary>
+    /// <summary>Host 방 생성 Button용.</summary>
     public async void CreateSession()
     {
-        if (!CanBeginSessionOperation())
-            return;
-
-        IsBusy = true;
-
-        try
-        {
-            await EnsureServicesReadyAsync();
-
-            SetStatus("Relay 세션 생성 중...");
-
-            var options = new SessionOptions
-            {
-                MaxPlayers = MaxPlayers,
-                Name = "HyeGyo Match"
-            }.WithRelayNetwork();
-
-            /*
-             * WithRelayNetwork를 사용하므로
-             * 세션 생성 과정에서 NGO Host 네트워크도 시작됩니다.
-             */
-            currentSession =
-                await MultiplayerService.Instance
-                    .CreateSessionAsync(options);
-
-            SetStatus(
-                $"방 생성 완료\n" +
-                $"참가 코드: {currentSession.Code}"
-            );
-
-            SessionCreated?.Invoke(currentSession.Code);
-
-            Debug.Log(
-                $"Relay 세션 생성 완료 | " +
-                $"Session ID: {currentSession.Id} | " +
-                $"Join Code: {currentSession.Code}"
-            );
-        }
-        catch (Exception exception)
-        {
-            currentSession = null;
-
-            SetStatus(
-                $"방 생성 실패\n{exception.Message}"
-            );
-
-            Debug.LogException(exception);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        await sessionService.CreateSessionAsync();
     }
 
-    /// <summary>
-    /// 참가 코드로 Relay 세션에 참가합니다.
-    /// </summary>
+    /// <summary>참가 코드로 Client 입장.</summary>
     public async void JoinSession(string joinCode)
     {
-        if (!CanBeginSessionOperation())
-            return;
-
-        string normalizedCode =
-            joinCode?.Trim().ToUpperInvariant();
-
-        if (string.IsNullOrWhiteSpace(normalizedCode))
-        {
-            SetStatus("참가 코드를 입력하세요.");
-            return;
-        }
-
-        IsBusy = true;
-
-        try
-        {
-            await EnsureServicesReadyAsync();
-
-            SetStatus("Relay 세션 참가 중...");
-
-            /*
-             * 참가 과정에서 NGO Client 네트워크도
-             * 자동으로 연결됩니다.
-             */
-            currentSession =
-                await MultiplayerService.Instance
-                    .JoinSessionByCodeAsync(normalizedCode);
-
-            SetStatus(
-                $"방 참가 완료\n" +
-                $"참가 코드: {currentSession.Code}"
-            );
-
-            SessionJoined?.Invoke();
-
-            Debug.Log(
-                $"Relay 세션 참가 완료 | " +
-                $"Session ID: {currentSession.Id} | " +
-                $"Join Code: {currentSession.Code}"
-            );
-        }
-        catch (Exception exception)
-        {
-            currentSession = null;
-
-            SetStatus(
-                $"방 참가 실패\n{exception.Message}"
-            );
-
-            Debug.LogException(exception);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        await sessionService.JoinSessionAsync(joinCode);
     }
 
-    /// <summary>
-    /// 현재 세션에서 나갑니다.
-    /// </summary>
+    /// <summary>현재 Session 나가기.</summary>
     public async void LeaveSession()
     {
-        if (IsBusy || currentSession == null)
-            return;
-
-        IsBusy = true;
-
-        try
-        {
-            SetStatus("세션에서 나가는 중...");
-
-            await currentSession.LeaveAsync();
-
-            currentSession = null;
-
-            SetStatus("세션에서 나왔습니다.");
-            SessionLeft?.Invoke();
-        }
-        catch (Exception exception)
-        {
-            SetStatus(
-                $"세션 나가기 실패\n{exception.Message}"
-            );
-
-            Debug.LogException(exception);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    private bool CanBeginSessionOperation()
-    {
-        if (IsBusy)
-        {
-            SetStatus("현재 다른 작업을 처리 중입니다.");
-            return false;
-        }
-
-        if (currentSession != null)
-        {
-            SetStatus("이미 참가 중인 세션이 있습니다.");
-            return false;
-        }
-
-        return true;
-    }
-
-    private void HandleClientConnected(ulong clientId)
-    {
-        Debug.Log($"NGO Client 연결 완료: {clientId}");
-
-        if (networkManager.IsServer)
-        {
-            int playerCount =
-                networkManager.ConnectedClientsList.Count;
-
-            SetStatus(
-                $"플레이어 접속\n" +
-                $"접속 인원: {playerCount}/{MaxPlayers}"
-            );
-        }
-        else if (clientId == networkManager.LocalClientId)
-        {
-            SetStatus(
-                $"Relay 네트워크 접속 완료\n" +
-                $"Client ID: {clientId}"
-            );
-        }
-    }
-
-    private void HandleClientDisconnected(ulong clientId)
-    {
-        Debug.Log($"NGO Client 연결 종료: {clientId}");
-
-        if (networkManager != null &&
-            networkManager.IsServer)
-        {
-            int playerCount =
-                networkManager.ConnectedClientsList.Count;
-
-            SetStatus(
-                $"플레이어 연결 종료\n" +
-                $"현재 인원: {playerCount}/{MaxPlayers}"
-            );
-        }
-        else
-        {
-            SetStatus("Host와의 연결이 종료되었습니다.");
-        }
-    }
-
-    private void SetStatus(string message)
-    {
-        StatusMessage = message;
-        StatusChanged?.Invoke(message);
+        await sessionService.LeaveSessionAsync();
     }
 }
