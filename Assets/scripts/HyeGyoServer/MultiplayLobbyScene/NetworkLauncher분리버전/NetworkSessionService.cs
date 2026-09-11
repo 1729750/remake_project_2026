@@ -48,61 +48,56 @@ public sealed class NetworkSessionService : MonoBehaviour
         services = GetComponent<UnityServicesAuthService>();
     }
 
-    public async Task<bool> CreateSessionAsync()
+public async Task<bool> CreateSessionAsync()
+{
+    if (!CanBeginSessionOperation())
+        return false;
+
+    IsBusy = true;
+
+    ISession createdSession;
+
+    try
     {
-        if (!CanBeginSessionOperation())
-            return false;
+        await services.EnsureReadyAsync();
 
-        IsBusy = true;
+        statusHub.SetStatus("Relay 세션 생성 중...");
 
-        try
+        var options = new SessionOptions
         {
-            await services.EnsureReadyAsync();
+            MaxPlayers = maxPlayers,
+            Name = sessionName
+        }.WithRelayNetwork();
 
-            statusHub.SetStatus("Relay 세션 생성 중...");
+        createdSession =
+            await MultiplayerService.Instance
+                .CreateSessionAsync(options);
+    }
+    catch (Exception exception)
+    {
+        statusHub.SetStatus(
+            $"방 생성 실패\n{exception.Message}"
+        );
 
-            var options = new SessionOptions
-            {
-                MaxPlayers = maxPlayers,
-                Name = sessionName
-            }.WithRelayNetwork();
-
-            currentSession =
-                await MultiplayerService.Instance
-                    .CreateSessionAsync(options);
-
-            statusHub.SetStatus(
-                $"방 생성 완료\n" +
-                $"참가 코드: {currentSession.Code}"
-            );
-
-            SessionCreated?.Invoke(currentSession.Code);
-
-            Debug.Log(
-                $"Relay 세션 생성 완료 | " +
-                $"Session ID: {currentSession.Id} | " +
-                $"Join Code: {currentSession.Code}"
-            );
-
-            return true;
-        }
-        catch (Exception exception)
-        {
-            currentSession = null;
-
-            statusHub.SetStatus(
-                $"방 생성 실패\n{exception.Message}"
-            );
-
-            Debug.LogException(exception);
-            return false;
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        Debug.LogException(exception);
+        return false;
+    }
+    finally
+    {
+        IsBusy = false;
     }
 
+    // 네트워크 작업 성공이 확정된 뒤 상태 반영
+    currentSession = createdSession;
+
+    statusHub.SetStatus(
+        $"방 생성 완료\n참가 코드: {currentSession.Code}"
+    );
+
+    RaiseSessionCreated(currentSession.Code);
+
+    return true;
+}
     public async Task<bool> JoinSessionAsync(string joinCode)
     {
         if (!CanBeginSessionOperation())
@@ -232,4 +227,23 @@ public sealed class NetworkSessionService : MonoBehaviour
 
         return true;
     }
+
+    private void RaiseSessionCreated(string joinCode)
+{
+    if (SessionCreated == null)
+        return;
+
+    foreach (Action<string> handler
+             in SessionCreated.GetInvocationList())
+    {
+        try
+        {
+            handler(joinCode);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+        }
+    }
+}
 }
