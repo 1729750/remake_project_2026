@@ -35,12 +35,10 @@ public sealed class HostGameManager :
     // Inspector
     // =========================================================
 
-    [Header("Network")]
-    [Tooltip(
-        "Relay / Session / NGO 연결을 담당하는 NetworkLauncher"
-    )]
+    [Header("Game Mode")]
     [SerializeField]
-    private NetworkLauncher networkLauncher;
+    private bool multiGameMode = true;
+
 
     [Header("Lobby Status UI")]
     [SerializeField]
@@ -54,6 +52,13 @@ public sealed class HostGameManager :
 
     [SerializeField]
     private TMP_Text clientNicknameText;
+
+    [Header("Network")]
+    [Tooltip(
+        "Relay / Session / NGO 연결을 담당하는 NetworkLauncher"
+    )]
+    [SerializeField]
+    private NetworkLauncher networkLauncher;
 
     // =========================================================
     // Lobby State
@@ -153,18 +158,6 @@ public sealed class HostGameManager :
             lobbyPlayers.Clear();
         }
 
-        /*
-         * Client 연결 종료 시
-         * Server의 LobbyPlayerData에서도 제거한다.
-         */
-        if (IsServer &&
-            NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton
-                .OnClientDisconnectCallback +=
-                HandleClientDisconnected;
-        }
-
         RefreshLobbyUI();
 
         /*
@@ -184,12 +177,6 @@ public sealed class HostGameManager :
                 HandleLobbyPlayersChanged;
         }
 
-        if (NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton
-                .OnClientDisconnectCallback -=
-                HandleClientDisconnected;
-        }
     }
 
     // =========================================================

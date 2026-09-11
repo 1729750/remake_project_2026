@@ -84,6 +84,13 @@ public class QueueManager
     public CardInstance[] GetQueue() => _queue;
     public Transform GetSlot(int index) => (_slots != null && index >= 0 && index < _slots.Length) ? _slots[index] : null;
 
+    public bool HasFreeSlot()
+    {
+        for (int i = 0; i < QueueSize; i++)
+            if (_queue[i] == null) return true;
+        return false;
+    }
+
     public void TickQueueCards(CharacterManager characterManager, int tick = 1)
     {
         for (int i = 0; i < QueueSize; i++)

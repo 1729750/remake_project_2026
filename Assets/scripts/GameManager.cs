@@ -11,9 +11,10 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private BattleManager battleManager;
     [SerializeField] private RewardManager rewardManager;
-    [SerializeField] private InputManager inputManager;
     [SerializeField] private MapManager mapManager;
     [SerializeField] private GameEndManager gameEndManager;
+    [SerializeField] private FadeIn fadeIn;
+    [SerializeField] private PlayerDeckPanel playerDeckPanel;
     [SerializeField] private CharacterData firstEnemyData;
     // 적 후보 풀(인스펙터 원본). Awake에서 _enemyCandidatePool로 복제되고, 이후로는 이 배열 자체를
     // 직접 건드리지 않는다.
@@ -21,6 +22,14 @@ public class GameManager : MonoBehaviour
     // 실제로 뽑아가는 풀. ShowEnemySelection이 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여주고,
     // 선택 여부와 무관하게 뽑힌 캐릭터는 여기서 제거되어 다시는 후보로 나오지 않는다.
     private List<CharacterData> _enemyCandidatePool;
+
+    // 일반 후보 풀과 별개인 보스 후보 목록. BossRound번째 승리 이후의 ShowEnemySelection부터는
+    // 이 풀에서 하나만 뽑아 유일한 후보로 보여준다(스케일링 없이 디자이너가 만든 그대로).
+    [SerializeField] private CharacterData[] bossCandidates;
+    private const int BossRound = 4;
+    // 지금 향하는 전투가 보스전인지. ShowEnemySelection에서 정해져 StartBattle 동안 유지되고,
+    // BattleManager.NotifyDefeat가 승리 판정을 GameOver(패배)와 같은 화면으로 보낼지 정하는 데 쓰인다.
+    public bool IsBossBattle { get; private set; }
 
     // MonoBehaviour가 아닌 순수 C# 클래스라 그냥 인스턴스를 들고 있는다.
     private readonly CharacterScaler characterScaler = new CharacterScaler();
@@ -150,17 +159,24 @@ public class GameManager : MonoBehaviour
         public List<EffectSummaryJsonEntry> summaries;
     }
 
+    // TODO: MultiPlayMode 씬도 이 GameManager를 그대로 갖고 있어 여기서도 SingleMode 초기화가
+    // 돌아간다. 싱글/멀티 구분은 아직 넣지 않았다(추후 추가 예정) — NetworkMatchBridge 쪽
+    // 상태와 충돌하지 않는지 그 전까지는 주의해서 확인할 것.
     void Start()
     {
         _currentState = GameState.StartScreen;
-        battleManager.Init();
-        EndBattle();
+        GameStart();
+        fadeIn?.Play();
+        // 승리 후에는 BattleManager.NotifyDefeat가 Menu BGM을 다시 틀어주지만, 씬을 처음
+        // 로드했을 때는 그 트리거가 없어 첫 전투 전까지 계속 무음이었다 — 여기서 시작해준다.
+        SoundManager.Instance?.Play(BgmName.Menu);
+        ShowEnemySelection();
     }
 
     public void StartBattle(CharacterData enemyData)
     {
         SetGameState(GameState.Battle);
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         battleManager.StartBattle(PlayerManager.Instance.GetCharacterData(), enemyData);
     }
 
@@ -168,7 +184,7 @@ public class GameManager : MonoBehaviour
     public void EndBattle()
     {
         SetGameState(GameState.BattleEnd);
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
         mapManager.AddTrophyForLastBattle();
         rewardManager.ShowRewardDisplay();
     }
@@ -179,20 +195,27 @@ public class GameManager : MonoBehaviour
     public void GameOver()
     {
         SetGameState(GameState.GameOver);
-        inputManager.Unload();
+        PlayerInputManager.Instance.Unload();
+        SoundManager.Instance?.Play(BgmName.GameLoseBGM);
         gameEndManager.ShowResult();
     }
 
-    // 게임오버 화면의 "타이틀로" 버튼.
-    public void GoToTitle()
+    // BattleManager.NotifyDefeat가 보스전 승리를 감지하면 호출한다. GameOver와 화면 전환은
+    // 완전히 동일하고(재시작/타이틀 버튼이 있는 같은 결과 화면), BGM만 다르다.
+    public void GameWin()
     {
-        SetGameState(GameState.StartScreen);
+        SetGameState(GameState.GameOver);
+        PlayerInputManager.Instance.Unload();
+        SoundManager.Instance?.Play(BgmName.GameWinBGM);
+        gameEndManager.ShowResult();
     }
 
-    // 새 런을 시작하기 전 공통으로 거쳐야 하는 초기화. 게임오버 화면의 "게임 시작" 버튼과,
-    // 이후 타이틀 화면에서 게임을 처음 시작할 때 둘 다 이 함수를 그대로 탄다.
+    // 새 런을 시작하기 전 공통으로 거쳐야 하는, 씬에 현재 존재하는 SingleMode 매니저 전체 초기화.
+    // Start()(씬이 처음 로드될 때)와, 이후 타이틀/게임오버 화면에서 새 런을 시작할 때 둘 다
+    // 이 함수를 그대로 탄다.
     public void GameStart()
     {
+        IsBossBattle = false;
         battleManager.Init();
         mapManager.Init();
         PlayerManager.Instance.Init();
@@ -252,13 +275,25 @@ public class GameManager : MonoBehaviour
     public void ShowEnemySelection()
     {
         SetGameState(GameState.SelectEnemy);
-        inputManager.Load("Select", new Dictionary<string, Action>
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
-            ["Left"]   = () => mapManager.MoveSelection(-1),
-            ["Right"]  = () => mapManager.MoveSelection(1),
-            ["Up"]     = mapManager.LoadDeckDisplayInput,
-            ["Select"] = mapManager.ConfirmSelection,
+            ["Left"]     = () => mapManager.MoveSelection(-1),
+            ["Right"]    = () => mapManager.MoveSelection(1),
+            ["Up"]       = mapManager.LoadDeckDisplayInput,
+            ["Select"]   = mapManager.ConfirmSelection,
+            ["ViewDeck"] = () => playerDeckPanel?.Open(),
         });
+
+        if (mapManager.GetCurrentRound() >= BossRound && bossCandidates != null && bossCandidates.Length > 0)
+        {
+            IsBossBattle = true;
+            CharacterData bossSource = bossCandidates[UnityEngine.Random.Range(0, bossCandidates.Length)];
+            CharacterData boss = characterScaler.ScaleBoss(bossSource, mapManager.GetCurrentRound());
+            mapManager.ShowEnemySelection(new[] { boss });
+            return;
+        }
+
+        IsBossBattle = false;
 
         CharacterData[] picks = PickRandomDistinct(_enemyCandidatePool, EnemySelectionCount - 1);
         foreach (CharacterData pick in picks)
@@ -357,7 +392,6 @@ public class GameManager : MonoBehaviour
                 mapActive = true;
                 break;
             case GameState.GameOver:
-                battleActive = true;
                 gameEndActive = true;
                 break;
             default:

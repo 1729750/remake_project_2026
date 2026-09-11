@@ -23,6 +23,6 @@ MonoBehaviour:
       _effectType: 7
       _magnitude: 2
     _target: 1
-  sprite: {fileID: 0}
+  sprite: {fileID: -4125150463124897729, guid: 5c7f7bdb41c579b419d45aa82fd788b6, type: 3}
   spriteBackground: {fileID: 21300000, guid: 9e9cc24594fadf446bdaca6f3f76ed7b, type: 3}
   cardType: 0

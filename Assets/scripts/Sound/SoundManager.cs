@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Audio; // [추가 - 설정 음량]
 
 public class SoundManager : MonoBehaviour
 {
@@ -33,6 +34,7 @@ public class SoundManager : MonoBehaviour
         { EffectSound.MoveSelect2, "Card" },
         { EffectSound.UseCard, "Card" },
         { EffectSound.PlayCard, "Card" },
+        { EffectSound.PlayDenied, "Card" },
 
         { EffectSound.Buff, "Effect" },
         { EffectSound.Debuff, "Effect" },
@@ -48,10 +50,44 @@ public class SoundManager : MonoBehaviour
     {
         { BgmName.BattleBGM, "Sound/Battle/BattleBGM" },
         { BgmName.Menu, "Sound/Misc/menu" },
+        { BgmName.GameWinBGM, "Sound/Misc/GameWinBGM" },
+        { BgmName.GameLoseBGM, "Sound/Misc/GameLoseBGM" },
+        { BgmName.Title, "Sound/Misc/title" },
     };
 
     [SerializeField] private int initialPoolSize = 8;
     [SerializeField] private AudioSource bgmSource;
+
+
+    // =========================================================
+    // [추가 - 설정 음량]
+    // 기존 AudioSource.volume과 별도로 설정창의 음량을 적용한다.
+    // =========================================================
+
+    [Header("Setting Volume")]
+
+    [SerializeField]
+    private AudioMixerGroup bgmMixerGroup;
+    // [추가 - 설정 음량] BGM이 통과할 AudioMixer Group
+
+    [SerializeField]
+    private AudioMixerGroup effectMixerGroup;
+    // [추가 - 설정 음량] 효과음이 통과할 AudioMixer Group
+
+    [SerializeField, Range(0, 30)]
+    private int bgmSettingVolume = 30;
+    // [추가 - 설정 음량] BGM 설정 음량 0~30
+
+    [SerializeField, Range(0, 30)]
+    private int effectSettingVolume = 30;
+    // [추가 - 설정 음량] 효과음 설정 음량 0~30
+
+    private const string BgmVolumeParameter = "BGMVolume";
+    // [추가 - 설정 음량] AudioMixer Exposed Parameter 이름
+
+    private const string EffectVolumeParameter = "EffectVolume";
+    // [추가 - 설정 음량] AudioMixer Exposed Parameter 이름
+
 
     private readonly Dictionary<EffectSound, AudioClip> _effectClipCache = new Dictionary<EffectSound, AudioClip>();
     private readonly Dictionary<BgmName, AudioClip> _bgmClipCache = new Dictionary<BgmName, AudioClip>();
@@ -69,6 +105,7 @@ public class SoundManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
@@ -81,14 +118,31 @@ public class SoundManager : MonoBehaviour
             bgmObject.transform.SetParent(transform);
             bgmSource = bgmObject.AddComponent<AudioSource>();
         }
+
         bgmSource.playOnAwake = false;
         bgmSource.loop = true;
         bgmSource.spatialBlend = 0f;
+
+
+        // [추가 - 설정 음량]
+        // 기존 BGM AudioSource가 BGM Mixer를 통과하도록 연결한다.
+        if (bgmMixerGroup != null)
+        {
+            bgmSource.outputAudioMixerGroup = bgmMixerGroup;
+        }
+
 
         for (int i = 0; i < initialPoolSize; i++)
         {
             _effectPool.Push(CreatePooledSource());
         }
+
+
+        // [추가 - 설정 음량]
+        // 게임 시작 시 현재 설정되어 있는 0~30 값을 적용한다.
+        ApplyBgmSettingVolume();
+        ApplyEffectSettingVolume();
+
 
         PreloadEffectClips();
     }
@@ -112,15 +166,20 @@ public class SoundManager : MonoBehaviour
     public void Play(EffectSound sound)
     {
         AudioClip clip = GetEffectClip(sound);
+
         if (clip == null)
         {
-            Debug.LogWarning($"[SoundManager] 사운드 이펙트 클립을 찾을 수 없습니다: {EffectSoundResourceRoot}/{GetEffectSoundPath(sound)}");
+            Debug.LogWarning(
+                $"[SoundManager] 사운드 이펙트 클립을 찾을 수 없습니다: {EffectSoundResourceRoot}/{GetEffectSoundPath(sound)}"
+            );
+
             return;
         }
 
         AudioSource source = RentPooledSource();
         source.clip = clip;
         source.Play();
+
         StartCoroutine(ReturnAfterPlayback(source, clip.length));
     }
 
@@ -128,27 +187,43 @@ public class SoundManager : MonoBehaviour
     {
         GameObject go = new GameObject("EffectSource");
         go.transform.SetParent(_effectPoolParent);
+
         AudioSource source = go.AddComponent<AudioSource>();
+
         source.playOnAwake = false;
         source.spatialBlend = 0f;
+
+
+        // [추가 - 설정 음량]
+        // 모든 효과음 AudioSource가 Effect Mixer를 통과하도록 한다.
+        if (effectMixerGroup != null)
+        {
+            source.outputAudioMixerGroup = effectMixerGroup;
+        }
+
+
         return source;
     }
 
     private AudioSource RentPooledSource()
     {
-        return _effectPool.Count > 0 ? _effectPool.Pop() : CreatePooledSource();
+        return _effectPool.Count > 0
+            ? _effectPool.Pop()
+            : CreatePooledSource();
     }
 
     private void ReturnPooledSource(AudioSource source)
     {
         source.Stop();
         source.clip = null;
+
         _effectPool.Push(source);
     }
 
     private IEnumerator ReturnAfterPlayback(AudioSource source, float delay)
     {
         yield return new WaitForSeconds(delay);
+
         ReturnPooledSource(source);
     }
 
@@ -157,8 +232,13 @@ public class SoundManager : MonoBehaviour
         if (_effectClipCache.TryGetValue(sound, out AudioClip cached))
             return cached;
 
-        AudioClip clip = Resources.Load<AudioClip>($"{EffectSoundResourceRoot}/{GetEffectSoundPath(sound)}");
+        AudioClip clip =
+            Resources.Load<AudioClip>(
+                $"{EffectSoundResourceRoot}/{GetEffectSoundPath(sound)}"
+            );
+
         _effectClipCache[sound] = clip;
+
         return clip;
     }
 
@@ -174,7 +254,10 @@ public class SoundManager : MonoBehaviour
     public float GetEffectClipLength(EffectSound sound)
     {
         AudioClip clip = GetEffectClip(sound);
-        return clip != null ? clip.length : 0f;
+
+        return clip != null
+            ? clip.length
+            : 0f;
     }
 
     // ---------- BGM (단일 소스) ----------
@@ -182,9 +265,13 @@ public class SoundManager : MonoBehaviour
     public void Play(BgmName name)
     {
         AudioClip clip = GetBgmClip(name);
+
         if (clip == null)
         {
-            Debug.LogWarning($"[SoundManager] BGM 클립을 찾을 수 없습니다: {name}");
+            Debug.LogWarning(
+                $"[SoundManager] BGM 클립을 찾을 수 없습니다: {name}"
+            );
+
             return;
         }
 
@@ -193,6 +280,7 @@ public class SoundManager : MonoBehaviour
             StopCoroutine(_delayedBgmRoutine);
             _delayedBgmRoutine = null;
         }
+
         if (_volumeRoutine != null)
         {
             StopCoroutine(_volumeRoutine);
@@ -200,28 +288,37 @@ public class SoundManager : MonoBehaviour
         }
 
         bgmSource.clip = clip;
+
+        // 기존 기능 그대로
         bgmSource.volume = 1f;
+
         bgmSource.Play();
     }
 
-    // delaySeconds초 뒤에 Play(name)을 예약한다. "이 효과음이 끝나면 이 BGM을 틀어라"처럼,
-    // 그 사이에는 아무 BGM도 나오지 않아야 하는 경우에 쓴다(StopBgm과 함께 사용).
+    // delaySeconds초 뒤에 Play(name)을 예약한다.
     public void PlayBgmDelayed(BgmName name, float delaySeconds)
     {
         if (_delayedBgmRoutine != null)
             StopCoroutine(_delayedBgmRoutine);
-        _delayedBgmRoutine = StartCoroutine(PlayBgmAfterDelay(name, delaySeconds));
+
+        _delayedBgmRoutine =
+            StartCoroutine(
+                PlayBgmAfterDelay(name, delaySeconds)
+            );
     }
 
-    private IEnumerator PlayBgmAfterDelay(BgmName name, float delaySeconds)
+    private IEnumerator PlayBgmAfterDelay(
+        BgmName name,
+        float delaySeconds)
     {
         yield return new WaitForSeconds(delaySeconds);
+
         _delayedBgmRoutine = null;
+
         Play(name);
     }
 
-    // 지금 재생 중인(혹은 PlayBgmDelayed로 예약된) BGM을 완전히 멈춘다. Pause와 달리 트랙 자체를
-    // 끝내는 용도라, 이후 다시 들으려면 Play(BgmName)을 새로 호출해야 한다.
+    // 지금 재생 중인 BGM을 완전히 멈춘다.
     public void StopBgm()
     {
         if (_delayedBgmRoutine != null)
@@ -229,6 +326,7 @@ public class SoundManager : MonoBehaviour
             StopCoroutine(_delayedBgmRoutine);
             _delayedBgmRoutine = null;
         }
+
         bgmSource.Stop();
         bgmSource.clip = null;
     }
@@ -249,10 +347,12 @@ public class SoundManager : MonoBehaviour
     public void FadeIn(float magnitude, float time)
     {
         bgmSource.volume = 0f;
+
         ChangeVolume(magnitude, time);
     }
 
-    // 진행 중인 볼륨 변화가 있으면 취소하고, 현재 볼륨에서 magnitude(0~1)까지 time초 동안 1차식으로 변화시킨다.
+    // 진행 중인 볼륨 변화가 있으면 취소하고,
+    // 현재 볼륨에서 magnitude까지 변화시킨다.
     public void ChangeVolume(float magnitude, float time)
     {
         if (time == 0)
@@ -260,15 +360,24 @@ public class SoundManager : MonoBehaviour
             bgmSource.volume = magnitude;
             return;
         }
+
         magnitude = Mathf.Clamp01(magnitude);
 
         if (_volumeRoutine != null)
             StopCoroutine(_volumeRoutine);
 
-        _volumeRoutine = StartCoroutine(ChangeVolumeRoutine(magnitude, Mathf.Max(0f, time)));
+        _volumeRoutine =
+            StartCoroutine(
+                ChangeVolumeRoutine(
+                    magnitude,
+                    Mathf.Max(0f, time)
+                )
+            );
     }
 
-    private IEnumerator ChangeVolumeRoutine(float targetVolume, float duration)
+    private IEnumerator ChangeVolumeRoutine(
+        float targetVolume,
+        float duration)
     {
         float startVolume = bgmSource.volume;
 
@@ -276,14 +385,23 @@ public class SoundManager : MonoBehaviour
         {
             bgmSource.volume = targetVolume;
             _volumeRoutine = null;
+
             yield break;
         }
 
         float elapsed = 0f;
+
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            bgmSource.volume = Mathf.Lerp(startVolume, targetVolume, elapsed / duration);
+
+            bgmSource.volume =
+                Mathf.Lerp(
+                    startVolume,
+                    targetVolume,
+                    elapsed / duration
+                );
+
             yield return null;
         }
 
@@ -297,16 +415,128 @@ public class SoundManager : MonoBehaviour
             return cached;
 
         AudioClip clip;
-        if (BgmResourcePathOverride.TryGetValue(name, out string overridePath))
+
+        if (BgmResourcePathOverride.TryGetValue(
+            name,
+            out string overridePath))
         {
             clip = Resources.Load<AudioClip>(overridePath);
         }
         else
         {
-            AudioClip[] clips = Resources.LoadAll<AudioClip>($"{BgmResourceRoot}/{name}");
-            clip = clips.Length > 0 ? clips[0] : null;
+            AudioClip[] clips =
+                Resources.LoadAll<AudioClip>(
+                    $"{BgmResourceRoot}/{name}"
+                );
+
+            clip = clips.Length > 0
+                ? clips[0]
+                : null;
         }
+
         _bgmClipCache[name] = clip;
+
         return clip;
+    }
+
+
+    // =========================================================
+    // [추가 - 설정 음량]
+    // SettingUIPanel에서 호출하는 부분
+    // =========================================================
+
+
+    // [추가 - 설정 음량]
+    // BGM 음량을 0~30으로 설정한다.
+    public void SetBgmVolume(int volume)
+    {
+        bgmSettingVolume =
+            Mathf.Clamp(volume, 0, 30);
+
+        ApplyBgmSettingVolume();
+    }
+
+
+    // [추가 - 설정 음량]
+    // 효과음 음량을 0~30으로 설정한다.
+    public void SetEffectVolume(int volume)
+    {
+        effectSettingVolume =
+            Mathf.Clamp(volume, 0, 30);
+
+        ApplyEffectSettingVolume();
+    }
+
+
+    // [추가 - 설정 음량]
+    public int GetBgmVolume()
+    {
+        return bgmSettingVolume;
+    }
+
+
+    // [추가 - 설정 음량]
+    public int GetEffectVolume()
+    {
+        return effectSettingVolume;
+    }
+
+
+    // [추가 - 설정 음량]
+    private void ApplyBgmSettingVolume()
+    {
+        if (bgmMixerGroup == null)
+            return;
+
+        float db =
+            VolumeLevelToDecibel(
+                bgmSettingVolume
+            );
+
+        bgmMixerGroup.audioMixer.SetFloat(
+            BgmVolumeParameter,
+            db
+        );
+    }
+
+
+    // [추가 - 설정 음량]
+    private void ApplyEffectSettingVolume()
+    {
+        if (effectMixerGroup == null)
+            return;
+
+        float db =
+            VolumeLevelToDecibel(
+                effectSettingVolume
+            );
+
+        effectMixerGroup.audioMixer.SetFloat(
+            EffectVolumeParameter,
+            db
+        );
+    }
+
+
+    // [추가 - 설정 음량]
+    //
+    // 설정값:
+    //
+    // 30 = 최대 볼륨
+    // 15 = 약 절반
+    // 0  = 음소거
+    //
+    // AudioMixer가 사용하는 dB 값으로 변환한다.
+    private static float VolumeLevelToDecibel(int volume)
+    {
+        volume = Mathf.Clamp(volume, 0, 30);
+
+        if (volume == 0)
+            return -80f;
+
+        float normalized =
+            volume / 30f;
+
+        return Mathf.Log10(normalized) * 20f;
     }
 }

@@ -53,7 +53,9 @@ public class TurnManager
     public void Reset()
     {
         _isActive = false;
-        _currentTurn = 0;
+        // 첫 StartTurn 호출이 0으로 증가시켜, BattleStarting 카운트다운(3-2-1) 직후 턴 표시가
+        // 0부터 시작하도록 한다(3-2-1-0-1-2...).
+        _currentTurn = -1;
         _elapsed = 0f;
         _overlay?.SetFill(0f);
     }

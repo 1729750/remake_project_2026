@@ -23,6 +23,10 @@ public class MapManager : MonoBehaviour
     private int _currentRound;
     private readonly List<CharacterData> _battleHistory = new List<CharacterData>();
 
+    // DeckDisplay.PlayMoveSelectSound와 같은 패턴 — Left/Right로 후보를 옮길 때 MoveSelect1/2를
+    // 번갈아 재생하기 위한 토글.
+    private bool _moveSelectToggle;
+
     // enemyDisplay 프리팹 인스턴스들(mapManager 하위 어딘가)에 붙은 MapVisual을 게임 시작 시 캐싱해둔다.
     private MapVisual[] _enemyVisuals;
 
@@ -57,9 +61,16 @@ public class MapManager : MonoBehaviour
         _candidates = candidates;
         _selectedIndex = 0;
 
+        // candidates가 슬롯 수(_enemyVisuals.Length)보다 적을 수 있다(예: 보스전은 후보 1명만
+        // 온다) — 남는 슬롯은 이전 라운드 데이터가 그대로 남지 않도록 비활성화한다.
         int count = Mathf.Min(_enemyVisuals.Length, candidates.Length);
-        for (int i = 0; i < count; i++)
-            _enemyVisuals[i].SetCharacter(candidates[i]);
+        for (int i = 0; i < _enemyVisuals.Length; i++)
+        {
+            bool active = i < count;
+            _enemyVisuals[i].gameObject.SetActive(active);
+            if (active)
+                _enemyVisuals[i].SetCharacter(candidates[i]);
+        }
 
         RefreshSelectionHighlight();
     }
@@ -71,6 +82,13 @@ public class MapManager : MonoBehaviour
         int count = _candidates.Length;
         _selectedIndex = ((_selectedIndex + delta) % count + count) % count;
         RefreshSelectionHighlight();
+        PlayMoveSelectSound();
+    }
+
+    private void PlayMoveSelectSound()
+    {
+        SoundManager.Instance?.Play(_moveSelectToggle ? EffectSound.MoveSelect1 : EffectSound.MoveSelect2);
+        _moveSelectToggle = !_moveSelectToggle;
     }
 
     private void RefreshSelectionHighlight()
@@ -91,7 +109,7 @@ public class MapManager : MonoBehaviour
 
     // 적 후보 선택("Select") 컨텍스트 위에 opponentDeckDisplay 탐색용 컨텍스트를 새로 쌓는다.
     // RewardManager.RewardCardDelete와 같은 패턴 — DeckDisplay의 Move* 함수들을 그대로 바인딩한다.
-    // 다만 Down은 맨 아래 행에서 눌리면 이동 대신 Unload로 상위(적 후보 선택) 입력으로 돌아간다.
+    // Cancel을 누르면 즉시 Unload로 상위(적 후보 선택) 입력으로 돌아간다.
     public void LoadDeckDisplayInput()
     {
         if (opponentDeckDisplay == null) return;
@@ -104,21 +122,15 @@ public class MapManager : MonoBehaviour
 
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
-            ["Left"]  = () => opponentDeckDisplay.MoveSelectionHorizontal(-1),
-            ["Right"] = () => opponentDeckDisplay.MoveSelectionHorizontal(1),
-            ["Up"]    = () => opponentDeckDisplay.MoveSelectionVertical(-1),
-            ["Down"]  = () =>
+            ["Left"]   = () => opponentDeckDisplay.MoveSelectionHorizontal(-1),
+            ["Right"]  = () => opponentDeckDisplay.MoveSelectionHorizontal(1),
+            ["Up"]     = () => opponentDeckDisplay.MoveSelectionVertical(-1),
+            ["Down"]   = () => opponentDeckDisplay.MoveSelectionVertical(1),
+            ["Cancel"] = () =>
             {
-                if (opponentDeckDisplay.IsSelectionOnBottomRow())
-                {
-                    PlayerInputManager.Instance.Unload();
-                    opponentDeckDisplay.Deselect();
-                    SetDeckViewActive(false);
-                }
-                else
-                {
-                    opponentDeckDisplay.MoveSelectionVertical(1);
-                }
+                PlayerInputManager.Instance.Unload();
+                opponentDeckDisplay.Deselect();
+                SetDeckViewActive(false);
             },
         });
         opponentDeckDisplay.SelectFirst();
