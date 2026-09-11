@@ -35,6 +35,24 @@ public sealed class HostGameManager :
     // Inspector
     // =========================================================
 
+    [Header("Game Mode")]
+    [SerializeField]
+    private bool multiGameMode = true;
+
+
+    [Header("Lobby Status UI")]
+    [SerializeField]
+    private TMP_Text statusText;
+
+    [SerializeField]
+    private TMP_Text joinCodeText;
+
+    [SerializeField]
+    private TMP_Text hostNicknameText;
+
+    [SerializeField]
+    private TMP_Text clientNicknameText;
+
     [Header("Network")]
     [Tooltip(
         "Relay / Session / NGO 연결을 담당하는 NetworkLauncher"
