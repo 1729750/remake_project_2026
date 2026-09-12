@@ -258,7 +258,7 @@ public class GameManager : MonoBehaviour
     }
 
     // effect 설명 텍스트. Resources/Data/EffectSummaries.json에서 읽어온 캐시를 반환한다
-    // (PopupDisplay가 팝업 텍스트로 사용). 보통 Awake에서 이미 채워진 캐시를 그대로 읽지만,
+    // (PopupManager가 팝업 텍스트로 사용). 보통 Awake에서 이미 채워진 캐시를 그대로 읽지만,
     // (에디터 툴 등에서) Awake보다 먼저 호출된 경우를 대비해 비어 있으면 그때 채운다.
     public static string GetEffectSummary(EffectType effectType)
     {
@@ -406,7 +406,9 @@ public class GameManager : MonoBehaviour
         rewardManager.gameObject.SetActive(_currentState == GameState.BattleEnd);
     }
 
-    static public DeckDisplay SummonDeck(Func<CardDefinition, bool> filter = null)
+    // popupManager: 이 DeckDisplay가 뜨는 화면(호출부)의 팝업 인스턴스. 카드가 select됐을 때
+    // 그 인스턴스로 효과 팝업을 띄우도록 그대로 전달한다(씬 전역 static Instance 대신).
+    static public DeckDisplay SummonDeck(Func<CardDefinition, bool> filter = null, PopupManager popupManager = null)
     {
         DeckDisplay deckDisplay = Instantiate(Resources.Load<GameObject>("Prefabs/DeckDisplay")).GetComponent<DeckDisplay>();
         Camera cam = Camera.main;
@@ -414,6 +416,7 @@ public class GameManager : MonoBehaviour
         float screenWidth = screenHeight * cam.aspect;
         deckDisplay.transform.position = new Vector3(cam.transform.position.x, cam.transform.position.y, deckDisplay.transform.position.z);
         deckDisplay.SetSize(new Vector2(screenWidth/3*2, screenHeight/3*2));
+        deckDisplay.SetPopupManager(popupManager);
         deckDisplay.SetDeck(PlayerManager.Instance.GetDeck(), filter, 1.2f);
         return deckDisplay;
     }

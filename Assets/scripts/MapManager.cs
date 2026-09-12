@@ -17,6 +17,10 @@ public class MapManager : MonoBehaviour
     // 전투 승리 트로피들이 나열되는 컨테이너(mapManager의 child로 미리 배치된 Trophies에 붙어 있다).
     [SerializeField] private TrophiesManager trophiesManager;
 
+    // 적 선택 화면 전용 팝업 인스턴스. 후보 카드(MapVisual)와 opponentDeckDisplay에 전부 이
+    // 인스턴스를 넘긴다(씬 전역 static Instance 대신).
+    [SerializeField] private PopupManager popupManager;
+
     private CharacterData[] _candidates;
     private int _selectedIndex;
 
@@ -35,6 +39,9 @@ public class MapManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         _enemyVisuals = GetComponentsInChildren<MapVisual>(true);
+        foreach (MapVisual visual in _enemyVisuals)
+            visual.SetPopupManager(popupManager);
+        opponentDeckDisplay?.SetPopupManager(popupManager);
         ResetTrophies();
     }
 

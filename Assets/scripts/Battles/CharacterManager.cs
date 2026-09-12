@@ -22,6 +22,8 @@ public class CharacterManager: MonoBehaviour
     [SerializeField] private GameObject queueRoots;
     [SerializeField] private bool isHandVisualized;
     [SerializeField] private GameObject handsRoot;
+    // BattleManager가 양쪽 CharacterManager에 공통으로 물려주는 전투 화면 팝업(HandManager가 씀).
+    [SerializeField] private PopupManager handPopupManager;
     [SerializeField] private Transform hpBar;
     [SerializeField] private bool shrinkRight = true;
     [SerializeField] private bool playerControlled = true;
@@ -462,7 +464,7 @@ public class CharacterManager: MonoBehaviour
         _deck = new List<CardInstance>();
 
         _queueManager = new QueueManager(queueRoots);
-        _handManager = new HandManager(this, handsRoot, isHandVisualized);
+        _handManager = new HandManager(this, handsRoot, isHandVisualized, handPopupManager);
 
         Clear();
     }

@@ -26,6 +26,9 @@ public class RewardManager : MonoBehaviour
     // 카드 획득 후보 풀. RewardCard()가 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여준다.
     // GameManager.GenerateRandomEnemy도 GetRewardCards()로 이 풀을 그대로 가져다 쓴다.
     [SerializeField] private CardDefinition[] rewardCards;
+    // 보상 화면(카드 획득/삭제/강화) 전용 팝업 인스턴스. 이 화면에서 만드는 CardVisual/RewardDisplay/
+    // DeckDisplay에 전부 이 인스턴스를 넘긴다(씬 전역 static Instance 대신).
+    [SerializeField] private PopupManager popupManager;
 
     public CardDefinition[] GetRewardCards() => rewardCards;
 
@@ -103,6 +106,7 @@ public class RewardManager : MonoBehaviour
         for (int i = 0; i < labels.Length; i++)
         {
             displays[i] = Instantiate(_rewardDisplayPrefab, transform).GetComponent<RewardDisplay>();
+            displays[i].SetPopupManager(popupManager);
             displays[i].Init(labels[i],rewardSprites[i]);
         }
 
@@ -181,7 +185,7 @@ public class RewardManager : MonoBehaviour
         PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
-        DeckDisplay deckDisplay = GameManager.SummonDeck();
+        DeckDisplay deckDisplay = GameManager.SummonDeck(null, popupManager);
 
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
@@ -388,7 +392,7 @@ public class RewardManager : MonoBehaviour
         CardUpgrade option = ConfirmEnhanceSelection();
         PlayerInputManager.Instance.Unload();
 
-        DeckDisplay deckDisplay = GameManager.SummonDeck(def => CanEnhance(def, option));
+        DeckDisplay deckDisplay = GameManager.SummonDeck(def => CanEnhance(def, option), popupManager);
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),
@@ -475,6 +479,7 @@ public class RewardManager : MonoBehaviour
             var visual = obj.GetComponent<CardVisual>();
             if (visual == null)
                 visual = obj.AddComponent<CardVisual>();
+            visual.SetPopupManager(popupManager);
 
             // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다
             var instance = new CardInstance(cardOptions[i], null);

@@ -277,6 +277,54 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Popup",
+            "id": "8b1d6a3e-2c4f-4a7b-9e6d-1f3a5c7e9b0a",
+            "actions": [
+                {
+                    "name": "NextPage",
+                    "type": "Button",
+                    "id": "5f2e8c1a-7b3d-4e9f-a6c2-0d8b4f6e2a1c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "PrevPage",
+                    "type": "Button",
+                    "id": "3a9d5e7c-1f4b-4c8a-b2e6-6c0a2d4f8e1b",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "d4c8f0a2-6e1b-4a3d-9f5c-2b7e4a8c1d0f",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "NextPage",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7b1e3f9c-4d0a-4b6e-8c2f-5a9d1e3b7c4f",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PrevPage",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": []

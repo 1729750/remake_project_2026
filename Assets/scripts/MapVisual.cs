@@ -20,9 +20,16 @@ public class MapVisual : MonoBehaviour
     private EffectDisplay _mainEffect;
     private EffectDisplay _subEffect;
     private GameObject _highlight;
-    private PopupDisplay _popupDisplay;
     private bool _selected;
     private List<EffectType> _pendingPopupEffects;
+    // MapManager가 SetPopupManager로 넘겨준 자신의 팝업 인스턴스(씬 전역 static Instance 대신).
+    private PopupManager _popupManager;
+
+    public void SetPopupManager(PopupManager popupManager)
+    {
+        _popupManager = popupManager;
+        RefreshPopupVisibility();
+    }
 
     private void Awake()
     {
@@ -33,7 +40,6 @@ public class MapVisual : MonoBehaviour
         _subEffect = transform.Find("SubEffect").GetComponent<EffectDisplay>();
         _highlight = transform.Find("HighLight").gameObject;
         _highlight.SetActive(false);
-        _popupDisplay = transform.Find("PopUpDisplay").GetComponent<PopupDisplay>();
     }
 
     public void SetSelected(bool selected)
@@ -95,6 +101,6 @@ public class MapVisual : MonoBehaviour
     // select된 동안에만 팝업을 보여준다.
     private void RefreshPopupVisibility()
     {
-        _popupDisplay.SetEffects(_selected ? _pendingPopupEffects : null);
+        _popupManager?.Show(_selected ? _pendingPopupEffects : null);
     }
 }

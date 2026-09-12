@@ -12,13 +12,17 @@ public class HandManager
     private readonly Transform[] _slots;
     private readonly GameObject _cardPrefab;
     private readonly bool _isHandVisualized;
+    // BattleManager가 넘겨준, 전투 화면(양쪽 CharacterManager)이 공유하는 팝업 인스턴스
+    // (씬 전역 static Instance 대신 화면별로 분리된 팝업을 쓰기 위함).
+    private readonly PopupManager _popupManager;
 
-    public HandManager(CharacterManager characterManager, GameObject slotsRoot, bool isHandVisualized)
+    public HandManager(CharacterManager characterManager, GameObject slotsRoot, bool isHandVisualized, PopupManager popupManager)
     {
         _characterManager = characterManager;
         _slots = BuildSlots(slotsRoot);
         _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
         _isHandVisualized = isHandVisualized;
+        _popupManager = popupManager;
     }
 
     private static Transform[] BuildSlots(GameObject root)
@@ -54,6 +58,7 @@ public class HandManager
         var visual = obj.GetComponent<CardVisual>();
         if (visual == null)
             visual = obj.AddComponent<CardVisual>();
+        visual.SetPopupManager(_popupManager);
         _hand[i].SetVisual(visual);
         _hand[i].SetFace(_isHandVisualized);
         _hand[i].RefreshDisplay(_characterManager, _characterManager.GetQueue());

@@ -21,7 +21,6 @@ public class CardVisual : MonoBehaviour
     [SerializeField] private Sprite[] cardTypeBackgrounds;
     private Coroutine _moveCoroutine;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
-    private PopupDisplay _popupDisplay;
 
     // SetLayer("UI")로 표시된 카드가 select된 동안에만 effect 팝업을 띄우기 위한 상태.
     // SetCardDefinition이 SetLayer/SetSelected보다 먼저 불리는 경우(DeckDisplay/RewardManager 둘 다
@@ -29,6 +28,15 @@ public class CardVisual : MonoBehaviour
     private bool _popupTrigger;
     private bool _selected;
     private List<EffectType> _pendingEffectTypes = new List<EffectType>();
+    // 이 카드를 생성한 매니저(HandManager/RewardManager/DeckDisplay)가 SetPopupManager로 넘겨준
+    // 자신의 팝업 인스턴스. 씬 전역 static Instance 대신 호출부별로 분리된 팝업을 쓰기 위함이다.
+    private PopupManager _popupManager;
+
+    public void SetPopupManager(PopupManager popupManager)
+    {
+        _popupManager = popupManager;
+        RefreshPopupVisibility();
+    }
 
     private void Awake()
     {
@@ -44,7 +52,6 @@ public class CardVisual : MonoBehaviour
         _selectHighlight.SetActive(false);
         _isUnplayable       = transform.Find("Front/IsUnplayable").gameObject;
         _isUnplayable.SetActive(false);
-        _popupDisplay       = transform.Find("PopUpDisplay").GetComponent<PopupDisplay>();
 
         // 카드 프리팹이 effect 아래에 고정 개수의 EffectDisplay 슬롯을 미리 자식으로 가지고 있다.
         _effectDisplays.AddRange(_effectArea.GetComponentsInChildren<EffectDisplay>(true));
@@ -135,7 +142,7 @@ public class CardVisual : MonoBehaviour
     // 셋 중 하나라도 바뀌는 지점(SetLayer/SetSelected/SetCardDefinition)에서 공통으로 호출한다.
     private void RefreshPopupVisibility()
     {
-        _popupDisplay.SetEffects(_popupTrigger && _selected ? _pendingEffectTypes : null);
+        _popupManager?.Show(_popupTrigger && _selected ? _pendingEffectTypes : null);
     }
 
     // 카드 배경(SpriteRenderer)의 월드 크기가 targetSize가 되도록 균등하지 않게(가로/세로 개별) 스케일한다.

@@ -31,11 +31,16 @@ public class DeckDisplay : MonoBehaviour
     private int _selectedIndex;
     // WASD(Left/Right/Up/Down)로 선택을 옮길 때 MoveSelect1/2를 번갈아 재생하기 위한 토글.
     private bool _moveSelectToggle;
+    // 이 DeckDisplay를 띄운 매니저(RewardManager/MapManager)가 넘겨준 팝업 인스턴스. SpawnCard가
+    // 새로 만드는 CardVisual마다 그대로 전달한다(씬 전역 static Instance 대신).
+    private PopupManager _popupManager;
 
     private void Awake()
     {
         _rectTransform = GetComponent<RectTransform>();
     }
+
+    public void SetPopupManager(PopupManager popupManager) => _popupManager = popupManager;
 
     // 레이아웃 계산에 쓰일 컨테이너 크기(월드 단위)를 명시적으로 지정한다. 이후 SetDeck을 몇 번을
     // 다시 불러도(재활용) 이 값이 계속 쓰이고, RectTransform 기반 기본값은 더 이상 참조하지 않는다.
@@ -216,6 +221,7 @@ public class DeckDisplay : MonoBehaviour
     {
         GameObject obj = Instantiate(_cardPrefab, transform);
         CardVisual visual = obj.GetComponent<CardVisual>();
+        visual.SetPopupManager(_popupManager);
         var instance = new CardInstance(def, null);
         instance.SetVisual(visual);
         instance.SetFace(true);
