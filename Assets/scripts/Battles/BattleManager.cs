@@ -15,8 +15,26 @@ public class BattleManager:MonoBehaviour
     // enemyData(CharacterData)에 EnemyAIBehavior가 지정되어 있지 않을 때 대신 쓰이는 기본 AI.
     [SerializeField] private EnemyAIBehavior defaultEnemyAI;
 
+    // 큐에 쌓인 카드의 남은 턴을 보여주는 눈금(TurnScaleDisplay)이 소환될 중심점.
+    // 눈금 프리팹 자체는 Resources/Prefabs/scale에서 직접 불러온다(HandManager의 카드 프리팹과 동일한 방식).
+    [SerializeField] private Transform scaleArea;
+    [SerializeField] private float scaleSpacing = 0.5f;
+    [SerializeField] private float scaleVerticalOffset = 0.3f;
+    [SerializeField] private Color scaleDefaultColor = new Color(1f, 1f, 1f, 0.6f);
+    // 왼쪽/오른쪽 눈금이 중심에서 한 칸 멀어질 때마다 알파에 곱해지는 값 — 오른쪽을 더 작게 잡아
+    // 왼쪽보다 훨씬 급격히 반투명해지게 한다.
+    [SerializeField] private float scaleLeftFadePerStep = 0.85f;
+    [SerializeField] private float scaleRightFadePerStep = 0.5f;
+    // 적/내 큐 카드의 남은 턴에 따라 칠해지는 색 — near는 남은 턴이 가장 적을 때(중심에 가까움),
+    // far는 가장 많을 때(10칸 끝)의 색이다.
+    [SerializeField] private Color enemyScaleNearColor = new Color(0.8f, 0.05f, 0.05f);
+    [SerializeField] private Color enemyScaleFarColor = new Color(1f, 0.75f, 0.75f);
+    [SerializeField] private Color playerScaleNearColor = new Color(0.05f, 0.05f, 0.8f);
+    [SerializeField] private Color playerScaleFarColor = new Color(0.75f, 0.75f, 1f);
+
     private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
+    private TurnScaleDisplay _turnScaleDisplay;
     private float _startElapsed;
     private static Dictionary<EffectType, Sprite> _emojiCache;
 
@@ -44,6 +62,12 @@ public class BattleManager:MonoBehaviour
         if (_turnTimerOverlay != null)
             Destroy(_turnTimerOverlay.gameObject);
 
+        // TurnScaleDisplay는 매번 scaleArea 밑에 눈금을 새로 소환하므로, 재호출 시 이전 전투의
+        // 눈금이 남아있으면 먼저 지운다(그렇지 않으면 재시작할 때마다 눈금이 쌓인다).
+        if (scaleArea != null)
+            for (int i = scaleArea.childCount - 1; i >= 0; i--)
+                Destroy(scaleArea.GetChild(i).gameObject);
+
         var overlayGO = new GameObject("TurnTimerOverlay");
         overlayGO.transform.SetParent(turnText.transform.parent);
         overlayGO.transform.localPosition = Vector3.zero;
@@ -51,10 +75,16 @@ public class BattleManager:MonoBehaviour
         overlayGO.AddComponent<MeshFilter>();
         overlayGO.AddComponent<MeshRenderer>();
         _turnTimerOverlay = overlayGO.AddComponent<TurnTimerOverlay>();
-        _turnManager = new TurnManager(turnDuration, _turnTimerOverlay, turnText);
+        _turnManager = new TurnManager(turnDuration, _turnTimerOverlay);
 
         _turnManager.OnTurnStarted += OnTurnStarted;
         _turnManager.OnTurnEnded += OnTurnEnded;
+
+        GameObject scalePrefab = Resources.Load<GameObject>("Prefabs/scale");
+        _turnScaleDisplay = new TurnScaleDisplay(
+            scaleArea, scalePrefab, scaleSpacing, scaleVerticalOffset,
+            scaleDefaultColor, scaleLeftFadePerStep, scaleRightFadePerStep,
+            enemyScaleNearColor, enemyScaleFarColor, playerScaleNearColor, playerScaleFarColor);
     }
 
     public void StartBattle(CharacterData playerData, CharacterData enemyData)
@@ -97,6 +127,8 @@ public class BattleManager:MonoBehaviour
 
     public void Tick(float deltaTime)
     {
+        _turnScaleDisplay?.Refresh(playerCharacterManager, enemyCharacterManager);
+
         if (CurrentState == BattleState.BattleStarting)
         {
             _startElapsed += deltaTime;
@@ -135,6 +167,9 @@ public class BattleManager:MonoBehaviour
     {
         SoundManager.Instance?.Play(EffectSound.BattleStart);
         SoundManager.Instance?.Play(BgmName.BattleBGM);
+        // 턴 숫자는 이제 게임 시작 전 카운트다운 용도로만 쓰인다 — 실제 턴이 시작되면 지워서
+        // 이후로는 scaleArea의 눈금이 그 자리를 대신하게 한다.
+        if (turnText != null) turnText.text = "";
         _turnManager.StartTurn();
     }
 
