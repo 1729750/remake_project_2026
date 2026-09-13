@@ -18,6 +18,7 @@ public class TurnManager
     public int GetCurrentTurn() => _currentTurn;
     public float GetTurnDuration() => _turnDuration;
     public float GetElapsedRatio() => _turnDuration > 0 ? Mathf.Clamp01(_elapsed / _turnDuration) : 0f;
+    public float GetRemainingTime() => Mathf.Max(_turnDuration - _elapsed, 0f);
 
     public TurnManager(float turnDuration, TurnTimerOverlay overlay, TextMeshPro turnText)
     {

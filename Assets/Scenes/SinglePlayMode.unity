@@ -923,10 +923,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 4058696262349634330, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
 --- !u!4 &328067579 stripped
 Transform:
@@ -950,7 +947,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1474451738}
+    m_TransformParent: {fileID: 1491141469}
     m_Modifications:
     - target: {fileID: 1260293482681235587, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -1009,16 +1006,24 @@ PrefabInstance:
       value: 0.072
       objectReference: {fileID: 0}
     - target: {fileID: 6309724078382844196, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
+      propertyPath: m_fontSize
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 6309724078382844196, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
+      propertyPath: m_fontSizeBase
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 6309724078382844196, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_sharedMaterial
       value: 
       objectReference: {fileID: 6373466610033631791, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -4.57
+      value: -5
       objectReference: {fileID: 0}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -4.23
+      value: -2.03
       objectReference: {fileID: 0}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2939,6 +2944,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 706200e4caa445842bca051cbbac3f7d, type: 3}
   - effectType: 19
     sprite: {fileID: 21300000, guid: 8b353d31dd7025c4094fddad6db2abd8, type: 3}
+  defaultEnemyAI: {fileID: 11400000, guid: de0ab26f901f86247ab59cc6952a7b0b, type: 2}
 --- !u!4 &955717469
 Transform:
   m_ObjectHideFlags: 0
@@ -5439,7 +5445,6 @@ Transform:
   - {fileID: 458686589}
   - {fileID: 999992122}
   - {fileID: 1375985782}
-  - {fileID: 363793631}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1489030682 stripped
@@ -5478,13 +5483,14 @@ Transform:
   m_GameObject: {fileID: 1491141468}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.02, y: -2.2, z: 0}
+  m_LocalPosition: {x: 1, y: -2.2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1410044622}
   - {fileID: 1842020057}
   - {fileID: 292732394}
+  - {fileID: 363793631}
   m_Father: {fileID: 1474451738}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1514256909 stripped
@@ -6760,6 +6766,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 103eea38d1d4429dbb97d2f0a7659daf, type: 2}
   - {fileID: 11400000, guid: 6029ab442b794ef7866049d9928ea30a, type: 2}
   - {fileID: 11400000, guid: ac045211727241178adc0367a0bf875e, type: 2}
+  weakEnemyCandidates:
+  - {fileID: 11400000, guid: 4b9d9461917d106439aae1d968b5cae1, type: 2}
+  - {fileID: 11400000, guid: 390d4275b6c8de043beef5f796305ea7, type: 2}
+  - {fileID: 11400000, guid: dedf9b46bc03ab948a7aa755769cc7e4, type: 2}
+  - {fileID: 11400000, guid: 1826de89a83403c4cafb8bba0005c525, type: 2}
+  - {fileID: 11400000, guid: b4f265bdc1547254dba8f42c8e463c09, type: 2}
+  weakEnemyAI: {fileID: 11400000, guid: 5bbf294f7b1700f4a83e5eff9f24e487, type: 2}
   bossCandidates:
   - {fileID: 11400000, guid: c4989c84f6b64c5986318c133aac8f33, type: 2}
   - {fileID: 11400000, guid: 7f7735e5f0ca4b06a3b82179e70c2ae2, type: 2}

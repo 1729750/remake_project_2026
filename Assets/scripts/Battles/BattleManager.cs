@@ -12,6 +12,8 @@ public class BattleManager:MonoBehaviour
     [SerializeField] private float turnDuration = 1f;
     [SerializeField] private float startDelay = 3f;
     [SerializeField] private List<EffectEmoji> effectEmojis = new List<EffectEmoji>();
+    // enemyData(CharacterData)에 EnemyAIBehavior가 지정되어 있지 않을 때 대신 쓰이는 기본 AI.
+    [SerializeField] private EnemyAIBehavior defaultEnemyAI;
 
     private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
@@ -57,8 +59,9 @@ public class BattleManager:MonoBehaviour
 
     public void StartBattle(CharacterData playerData, CharacterData enemyData)
     {
+        EnemyAIBehavior enemyAI = enemyData.GetEnemyAI() != null ? enemyData.GetEnemyAI() : defaultEnemyAI;
         playerCharacterManager.CharacterInit(UnpackCardCollection(playerData.GetDeck()).ToArray(), playerData.GetMaxHealth());
-        enemyCharacterManager.CharacterInit(UnpackCardCollection(enemyData.GetDeck()).ToArray(), enemyData.GetMaxHealth());
+        enemyCharacterManager.CharacterInit(UnpackCardCollection(enemyData.GetDeck()).ToArray(), enemyData.GetMaxHealth(), enemyAI);
 
         _turnManager.Reset();
         _startElapsed = 0f;
@@ -201,6 +204,25 @@ public class BattleManager:MonoBehaviour
     public CharacterManager GetOpponent(CharacterManager user)
     {
         return user == playerCharacterManager ? enemyCharacterManager : playerCharacterManager;
+    }
+
+    // 현재 턴 수 / 이번 턴 길이 / 이번 턴 남은 시간 — EnemyAIBehavior가 턴 진행 상황을 보고 판단할 때 쓴다.
+    public EnemyAIBehavior GetDefaultEnemyAI() => defaultEnemyAI;
+    public int GetCurrentTurn() => _turnManager.GetCurrentTurn();
+    public float GetTurnDuration() => _turnManager.GetTurnDuration();
+    public float GetRemainingTurnTime() => _turnManager.GetRemainingTime();
+
+    // enemyAI(!playerControlled인 self)가 매 틱 Decide에 넘길 전투 상황 스냅샷을 만든다.
+    public BattleSnapshot BuildSnapshot(CharacterManager self)
+    {
+        CharacterManager opponent = GetOpponent(self);
+        return new BattleSnapshot(
+            self, opponent,
+            self.GetHealth(), self.getmaxHealth(), self.GetDefense(), self.GetCost(),
+            self.GetEffects(), self.GetHand(), self.GetQueue(), self.QueueHasFreeSlot(), self.GetDeck(),
+            opponent.GetHealth(), opponent.getmaxHealth(), opponent.GetDefense(),
+            opponent.GetEffects(), opponent.GetQueue(),
+            GetCurrentTurn(), GetTurnDuration(), GetRemainingTurnTime());
     }
 
     public static Sprite GetEmoji(EffectType effectType)
