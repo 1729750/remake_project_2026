@@ -7,105 +7,113 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
     [SerializeField]
     private NetworkLauncher networkLauncher;
 
-    [Header("Input")]
+    [Header("Host UI")]
     [SerializeField]
     private TMP_InputField nicknameInput;
 
     [SerializeField]
-    private TMP_InputField codeInput;
+    private TMP_InputField codeOutput;
 
-
-    public string Nickname =>
-        nicknameInput != null
-            ? nicknameInput.text.Trim()
-            : string.Empty;
-
-    public string Code =>
-        codeInput != null
-            ? codeInput.text.Trim().ToUpperInvariant()
-            : string.Empty;
+    private bool hostStartRequested;
 
 
     private void Awake()
     {
+        // 닉네임은 영어만 입력
         if (nicknameInput != null)
         {
             nicknameInput.onValidateInput +=
                 ValidateNicknameCharacter;
         }
 
-        if (codeInput != null)
+        // Host의 Code 칸은 입력하는 곳이 아니라
+        // 자동 생성된 Join Code를 보여주는 곳
+        if (codeOutput != null)
         {
-            codeInput.onValidateInput +=
-                ValidateCodeCharacter;
+            codeOutput.readOnly = true;
+            codeOutput.text = string.Empty;
         }
     }
 
 
-    /// <summary>
-    /// Host 방 생성 버튼에서 호출.
-    /// </summary>
-    public void CreateSession()
+    private void OnEnable()
     {
-        string nickname = Nickname;
-        string code = Code;
-
-        if (string.IsNullOrWhiteSpace(nickname))
+        if (networkLauncher == null)
         {
-            Debug.LogWarning(
-                "[Host UI] 닉네임을 입력하세요."
+            Debug.LogError(
+                "[NetworkLobbyUIHost] NetworkLauncher가 연결되지 않았습니다."
             );
 
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            Debug.LogWarning(
-                "[Host UI] Code를 입력하세요."
-            );
+        // 방 생성 완료 이벤트 먼저 구독
+        networkLauncher.SessionCreated +=
+            HandleSessionCreated;
 
+        // HostPanel이 켜지는 순간 서버 생성
+        StartHostAutomatically();
+    }
+
+
+    private void OnDisable()
+    {
+        if (networkLauncher != null)
+        {
+            networkLauncher.SessionCreated -=
+                HandleSessionCreated;
+        }
+    }
+
+
+    private void StartHostAutomatically()
+    {
+        // OnEnable이 중복 호출되어
+        // 방을 여러 번 만드는 것 방지
+        if (hostStartRequested)
             return;
+
+        // 이미 방에 들어가 있다면 생성하지 않음
+        if (networkLauncher.IsInSession)
+            return;
+
+        // 이미 네트워크 작업 중이면 생성하지 않음
+        if (networkLauncher.IsBusy)
+            return;
+
+        hostStartRequested = true;
+
+        if (codeOutput != null)
+        {
+            codeOutput.text = "Creating...";
         }
 
-        Debug.Log(
-            $"[Host UI] Nickname: {nickname} | Code: {code}"
-        );
+        // 네트워크가 OFF라면 먼저 ON
+        if (!networkLauncher.NetworkEnabled)
+        {
+            networkLauncher.SetNetworkEnabled(true);
+        }
 
-        // 현재 NetworkLauncher의 CreateSession()은
-        // code를 전달받지 않는다.
-        //
-        // 닉네임 / Code를 실제 Server 데이터로 등록하는 것은
-        // 이후 별도로 연결해야 한다.
-
+        // Relay Session + NGO Host 생성
         networkLauncher.CreateSession();
     }
 
 
-    private char ValidateNicknameCharacter(
-        string text,
-        int charIndex,
-        char addedChar)
+    private void HandleSessionCreated(string joinCode)
     {
-        // 영어 대문자
-        if (addedChar >= 'A' &&
-            addedChar <= 'Z')
+        if (codeOutput != null)
         {
-            return addedChar;
+            codeOutput.text =
+                joinCode.ToUpperInvariant();
         }
 
-        // 영어 소문자
-        if (addedChar >= 'a' &&
-            addedChar <= 'z')
-        {
-            return addedChar;
-        }
-
-        return '\0';
+        Debug.Log(
+            $"[Host] 방 생성 완료 | Join Code: {joinCode}"
+        );
     }
 
 
-    private char ValidateCodeCharacter(
+    private char ValidateNicknameCharacter(
         string text,
         int charIndex,
         char addedChar)
@@ -116,19 +124,8 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
             (addedChar >= 'a' &&
              addedChar <= 'z');
 
-        bool isNumber =
-            addedChar >= '0' &&
-            addedChar <= '9';
-
-        if (!isEnglish &&
-            !isNumber)
-        {
-            return '\0';
-        }
-
-        // Code는 자동으로 대문자로
-        return char.ToUpperInvariant(
-            addedChar
-        );
+        return isEnglish
+            ? addedChar
+            : '\0';
     }
 }
