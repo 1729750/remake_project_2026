@@ -1137,10 +1137,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 4058696262349634330, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
 --- !u!4 &363793631 stripped
 Transform:
@@ -1605,7 +1602,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -6.76, y: 0.63}
   m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &513225980
@@ -1657,8 +1654,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 4
-  m_fontSizeBase: 4
+  m_fontSize: 8
+  m_fontSizeBase: 8
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 0
@@ -1749,8 +1746,8 @@ MeshRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: 368851919
+  m_SortingLayer: 1
   m_SortingOrder: 4
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
@@ -3197,6 +3194,16 @@ MonoBehaviour:
   - effectType: 19
     sprite: {fileID: 21300000, guid: 8b353d31dd7025c4094fddad6db2abd8, type: 3}
   defaultEnemyAI: {fileID: 11400000, guid: de0ab26f901f86247ab59cc6952a7b0b, type: 2}
+  scaleArea: {fileID: 2063664843}
+  scaleSpacing: 0.5
+  scaleVerticalOffset: 0.3
+  scaleDefaultColor: {r: 1, g: 1, b: 1, a: 0.6}
+  scaleLeftFadePerStep: 0.85
+  scaleRightFadePerStep: 0.5
+  enemyScaleNearColor: {r: 0.8, g: 0.05, b: 0.05, a: 1}
+  enemyScaleFarColor: {r: 1, g: 0.75, b: 0.75, a: 1}
+  playerScaleNearColor: {r: 0.05, g: 0.05, b: 0.8, a: 1}
+  playerScaleFarColor: {r: 0.75, g: 0.75, b: 1, a: 1}
 --- !u!4 &955717469
 Transform:
   m_ObjectHideFlags: 0
@@ -3794,10 +3801,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1 &1199511218
 GameObject:
@@ -3865,6 +3869,7 @@ Transform:
   m_Children:
   - {fileID: 1895152205}
   - {fileID: 809160020}
+  - {fileID: 2063664843}
   m_Father: {fileID: 955717469}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1216894066
@@ -4575,10 +4580,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1001 &1302734970
 PrefabInstance:
@@ -5457,10 +5459,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1 &1410044621
 GameObject:
@@ -6766,7 +6765,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 6.95, y: -0.69}
   m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1914440734
@@ -6818,8 +6817,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 4
-  m_fontSizeBase: 4
+  m_fontSize: 8
+  m_fontSizeBase: 8
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 0
@@ -7434,6 +7433,41 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d8164d610507d7e42ae34de252ad9d9b, type: 3}
+--- !u!1 &2063664842
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2063664843}
+  m_Layer: 0
+  m_Name: ScaleArea
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2063664843
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2063664842}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1216894065}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 6, y: 1}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2076682901
 GameObject:
   m_ObjectHideFlags: 0

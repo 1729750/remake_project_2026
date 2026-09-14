@@ -13,5 +13,13 @@ MonoBehaviour:
   m_Name: WeakScrapperEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 80
-  deck: {fileID: 11400000, guid: f53ee87937a5f5342a2da6b86f9bce2d, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: fd0cd6fd89259c64eb1a1d8b72537eb8, type: 2}
+    - {fileID: 11400000, guid: ccf8f9dfcc5f4a8e90a171c84d2323d5, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
   enemyAI: {fileID: 11400000, guid: 5bbf294f7b1700f4a83e5eff9f24e487, type: 2}

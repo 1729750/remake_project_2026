@@ -13,5 +13,13 @@ MonoBehaviour:
   m_Name: WeakBrawlerEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 65
-  deck: {fileID: 11400000, guid: ae0107c47e2039f419f302754ad8e6f5, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 7b5dfdeb1ab14e0f83732438e0804218, type: 2}
+    - {fileID: 11400000, guid: f42992e211d149fdaaeb501fa66b2124, type: 2}
   enemyAI: {fileID: 11400000, guid: 5bbf294f7b1700f4a83e5eff9f24e487, type: 2}

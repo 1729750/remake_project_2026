@@ -13,4 +13,14 @@ MonoBehaviour:
   m_Name: DebuffAttackEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 115
-  deck: {fileID: 11400000, guid: 34929e9d4e500144c826da622c2dd96b, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 6e4e4276562262248aecbc66706b5a51, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: 0f5fba19a89ce0d4ca8f9e31e19b809a, type: 2}
+    - {fileID: 11400000, guid: 8ac2a13904754e5aa42070b1ac54f545, type: 2}
+    - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+    - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+    - {fileID: 11400000, guid: 7941aedc84ff4262be4b816c332100dc, type: 2}

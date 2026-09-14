@@ -13,5 +13,13 @@ MonoBehaviour:
   m_Name: WeakGuardEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 75
-  deck: {fileID: 11400000, guid: 75f188b24e3b23c479b5a71d14f8a4fb, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 7b5dfdeb1ab14e0f83732438e0804218, type: 2}
+    - {fileID: 11400000, guid: 7b5dfdeb1ab14e0f83732438e0804218, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+    - {fileID: 11400000, guid: f42992e211d149fdaaeb501fa66b2124, type: 2}
   enemyAI: {fileID: 11400000, guid: 5bbf294f7b1700f4a83e5eff9f24e487, type: 2}

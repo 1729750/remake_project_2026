@@ -13,5 +13,13 @@ MonoBehaviour:
   m_Name: WeakGlassEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 60
-  deck: {fileID: 11400000, guid: 60cbb38f73363ca4eb68afb636fd6d13, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 61c2840774674e3f9c1c449ae8866cf2, type: 2}
+    - {fileID: 11400000, guid: 61c2840774674e3f9c1c449ae8866cf2, type: 2}
+    - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+    - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: f42992e211d149fdaaeb501fa66b2124, type: 2}
   enemyAI: {fileID: 11400000, guid: 5bbf294f7b1700f4a83e5eff9f24e487, type: 2}

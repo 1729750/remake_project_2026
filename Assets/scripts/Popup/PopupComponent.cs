@@ -7,7 +7,7 @@ public class PopupComponent : MonoBehaviour
 {
     private SpriteRenderer _icon;
     private TMP_Text _text;
-
+    private bool flag = false;
     private void Awake()
     {
         _icon = transform.Find("Icon").GetComponent<SpriteRenderer>();
@@ -16,6 +16,14 @@ public class PopupComponent : MonoBehaviour
 
     public void SetEffect(Sprite icon, string text)
     {
+        if(!flag)
+        {
+            if (_icon == null)
+                _icon = transform.Find("Icon").GetComponent<SpriteRenderer>();
+            if(_text == null)
+                _text = transform.Find("Text").GetComponent<TMP_Text>();
+            flag = true;
+        }
         _icon.sprite = icon;
         _text.text = text;
     }

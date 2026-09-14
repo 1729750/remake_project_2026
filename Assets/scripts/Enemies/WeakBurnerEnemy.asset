@@ -13,5 +13,13 @@ MonoBehaviour:
   m_Name: WeakBurnerEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 70
-  deck: {fileID: 11400000, guid: ac6d29d59c4604a499a1e6b0a27390db, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
+    - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
+    - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
+    - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+    - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
   enemyAI: {fileID: 11400000, guid: 5bbf294f7b1700f4a83e5eff9f24e487, type: 2}

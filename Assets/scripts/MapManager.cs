@@ -17,8 +17,8 @@ public class MapManager : MonoBehaviour
     // 전투 승리 트로피들이 나열되는 컨테이너(mapManager의 child로 미리 배치된 Trophies에 붙어 있다).
     [SerializeField] private TrophiesManager trophiesManager;
 
-    // 적 선택 화면 전용 팝업 인스턴스. 후보 카드(MapVisual)와 opponentDeckDisplay에 전부 이
-    // 인스턴스를 넘긴다(씬 전역 static Instance 대신).
+    // 적 선택 화면 전용 팝업 인스턴스. MapVisual/CardVisual이 각자 Show를 부르게 하지 않고,
+    // 지금 뭘 보여줘야 하는지(선택된 후보 vs 열어본 deck의 선택된 카드) 아는 이 클래스가 직접 갱신한다.
     [SerializeField] private PopupManager popupManager;
 
     private CharacterData[] _candidates;
@@ -39,9 +39,6 @@ public class MapManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         _enemyVisuals = GetComponentsInChildren<MapVisual>(true);
-        foreach (MapVisual visual in _enemyVisuals)
-            visual.SetPopupManager(popupManager);
-        opponentDeckDisplay?.SetPopupManager(popupManager);
         ResetTrophies();
     }
 
@@ -102,6 +99,45 @@ public class MapManager : MonoBehaviour
     {
         for (int i = 0; i < _enemyVisuals.Length; i++)
             _enemyVisuals[i]?.SetSelected(i == _selectedIndex);
+        RefreshCandidatePopup();
+    }
+
+    // 팝업의 데이터 소스는 둘 중 하나다: opponentDeckDisplay가 열려 있으면 거기서 현재 select된
+    // 카드의 효과 전체, 아니면 지금 선택된 후보(candidate)의 GetMostFrequentEffectType.
+    // popupManager 자신이 Show()를 부를 때마다 페이지 카운터를 0으로 되돌리므로, 여기서는
+    // "지금 보여줘야 할 목록이 뭔지"만 계산해서 넘겨주면 된다.
+
+    // 현재 선택된 후보의 대표 효과 목록을 팝업에 채운다 — deck을 열지 않은 기본 상태에서 쓴다.
+    private void RefreshCandidatePopup()
+    {
+        if (popupManager == null || _candidates == null || _candidates.Length == 0) return;
+        popupManager.Show(GetMostFrequentEffectType(_candidates[_selectedIndex]));
+    }
+
+    // 지금 opponentDeckDisplay에서 select된 카드의 효과 전체(중복/순서 그대로)를 팝업에 채운다 —
+    // deck을 열어본 동안 쓴다.
+    private void RefreshDeckSelectionPopup()
+    {
+        if (popupManager == null || opponentDeckDisplay == null || _candidates == null || _candidates.Length == 0) return;
+
+        CardCollection deck = _candidates[_selectedIndex]?.GetDeck();
+        CardDefinition[] cards = deck != null ? deck.GetCards() : Array.Empty<CardDefinition>();
+        int index = opponentDeckDisplay.GetSelectedIndex();
+        CardDefinition selected = index >= 0 && index < cards.Length ? cards[index] : null;
+        popupManager.Show(GetCardEffectTypes(selected));
+    }
+
+    // CardVisual.SetCardDefinition과 같은 방식으로, 카드 하나의 CardEffect 전체를 EffectType
+    // 리스트로 변환한다(필터링/정렬 없이 원래 순서 그대로).
+    private static List<EffectType> GetCardEffectTypes(CardDefinition def)
+    {
+        if (def == null) return new List<EffectType>();
+
+        CardEffect[] effects = def.GetEffects();
+        var types = new List<EffectType>(effects.Length);
+        foreach (CardEffect cardEffect in effects)
+            types.Add(cardEffect.GetEffect().GetEffectType());
+        return types;
     }
 
     // 현재 선택된 후보의 deck을 opponentDeckDisplay에 다시 채워 넣는다.
@@ -129,18 +165,20 @@ public class MapManager : MonoBehaviour
 
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
-            ["Left"]   = () => opponentDeckDisplay.MoveSelectionHorizontal(-1),
-            ["Right"]  = () => opponentDeckDisplay.MoveSelectionHorizontal(1),
-            ["Up"]     = () => opponentDeckDisplay.MoveSelectionVertical(-1),
-            ["Down"]   = () => opponentDeckDisplay.MoveSelectionVertical(1),
+            ["Left"]   = () => { opponentDeckDisplay.MoveSelectionHorizontal(-1); RefreshDeckSelectionPopup(); },
+            ["Right"]  = () => { opponentDeckDisplay.MoveSelectionHorizontal(1); RefreshDeckSelectionPopup(); },
+            ["Up"]     = () => { opponentDeckDisplay.MoveSelectionVertical(-1); RefreshDeckSelectionPopup(); },
+            ["Down"]   = () => { opponentDeckDisplay.MoveSelectionVertical(1); RefreshDeckSelectionPopup(); },
             ["Cancel"] = () =>
             {
                 PlayerInputManager.Instance.Unload();
                 opponentDeckDisplay.Deselect();
                 SetDeckViewActive(false);
+                RefreshCandidatePopup();
             },
         });
         opponentDeckDisplay.SelectFirst();
+        RefreshDeckSelectionPopup();
     }
 
     public void ConfirmSelection()
