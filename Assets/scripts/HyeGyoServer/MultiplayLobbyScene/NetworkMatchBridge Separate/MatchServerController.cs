@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// Server의 게임 요청 검증 / 판정 전용 클래스.
@@ -18,6 +19,10 @@ public sealed class MatchServerController : MonoBehaviour
     [Header("Shared State")]
     [SerializeField]
     private NetworkMatchState matchState;
+
+    private readonly Dictionary<ulong, CardUpgrade[]>
+    enhanceCandidatesByClient =
+        new Dictionary<ulong, CardUpgrade[]>();
 
     private void Awake()
     {
@@ -361,4 +366,139 @@ public sealed class MatchServerController : MonoBehaviour
         otherClientId = ulong.MaxValue;
         return false;
     }
+
+    // =========================================================
+// Enhance Candidates
+// =========================================================
+
+public bool TryCreateEnhanceCandidates(
+    ulong senderClientId,
+    out EnhanceOptionNetData[] networkOptions,
+    out string rejectReason)
+{
+    networkOptions = null;
+
+    if (!ValidateServerState(
+            out rejectReason))
+    {
+        return false;
+    }
+
+    CardUpgrade[] options =
+        new CardUpgrade[3];
+
+    for (int i = 0;
+         i < options.Length;
+         i++)
+    {
+        options[i] =
+            RewardManager.RollEnhanceOption();
+    }
+
+    // 실제 검증용 데이터는 Server가 보관
+    enhanceCandidatesByClient[
+        senderClientId
+    ] = options;
+
+    // UI에 보낼 데이터 생성
+    networkOptions =
+        new EnhanceOptionNetData[
+            options.Length
+        ];
+
+    for (int i = 0;
+         i < options.Length;
+         i++)
+    {
+        networkOptions[i] =
+            EnhanceOptionNetData
+                .FromCardUpgrade(
+                    options[i]
+                );
+    }
+
+    Debug.Log(
+        $"[Server] Client {senderClientId} " +
+        "강화 후보 3개 생성 완료"
+    );
+
+    for (int i = 0;
+         i < options.Length;
+         i++)
+    {
+        CardUpgrade option =
+            options[i];
+
+        Debug.Log(
+            $"[Server] Candidate {i} | " +
+            $"{option.effect.GetEffect().GetEffectType()} | " +
+            $"Magnitude: " +
+            $"{option.effect.GetEffect().GetMagnitude()} | " +
+            $"CostDelta: {option.costDelta} | " +
+            $"CooldownDelta: {option.cooldownDelta}"
+        );
+    }
+
+    rejectReason = string.Empty;
+    return true;
+}
+
+public bool TryConfirmEnhanceCandidate(
+    ulong senderClientId,
+    int selectedIndex,
+    out string rejectReason)
+{
+    if (!ValidateServerState(
+            out rejectReason))
+    {
+        return false;
+    }
+
+    if (!enhanceCandidatesByClient
+            .TryGetValue(
+                senderClientId,
+                out CardUpgrade[] options))
+    {
+        rejectReason =
+            "발급된 강화 후보가 없습니다.";
+
+        return false;
+    }
+
+    if (selectedIndex < 0 ||
+        selectedIndex >= options.Length)
+    {
+        rejectReason =
+            "잘못된 강화 후보 번호입니다.";
+
+        return false;
+    }
+
+    CardUpgrade selected =
+        options[selectedIndex];
+
+    Debug.Log(
+        $"[Server] Client {senderClientId} " +
+        $"강화 후보 {selectedIndex}번 확정"
+    );
+
+    Debug.Log(
+        $"[Server] 확정 후보 | " +
+        $"{selected.effect.GetEffect().GetEffectType()} | " +
+        $"Magnitude: " +
+        $"{selected.effect.GetEffect().GetMagnitude()} | " +
+        $"CostDelta: {selected.costDelta} | " +
+        $"CooldownDelta: {selected.cooldownDelta}"
+    );
+
+    // 1차 테스트에서는 여기까지만.
+    // 실제 ApplyUpgrade는 아직 하지 않는다.
+
+    enhanceCandidatesByClient.Remove(
+        senderClientId
+    );
+
+    rejectReason = string.Empty;
+    return true;
+}
 }
