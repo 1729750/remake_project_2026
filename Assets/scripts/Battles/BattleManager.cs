@@ -35,6 +35,9 @@ public class BattleManager:MonoBehaviour
     private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
     private TurnScaleDisplay _turnScaleDisplay;
+    // scaleArea 밑의 눈금 오브젝트를 전투가 바뀌어도 계속 재사용하는 풀 — Init()에서 한 번만 만들고
+    // 이후로는 GameObjectPool.ReleaseAll()로 반납만 한다(Destroy/Instantiate 반복을 피한다).
+    private GameObjectPool _scalePool;
     private float _startElapsed;
     private static Dictionary<EffectType, Sprite> _emojiCache;
 
@@ -62,11 +65,15 @@ public class BattleManager:MonoBehaviour
         if (_turnTimerOverlay != null)
             Destroy(_turnTimerOverlay.gameObject);
 
-        // TurnScaleDisplay는 매번 scaleArea 밑에 눈금을 새로 소환하므로, 재호출 시 이전 전투의
-        // 눈금이 남아있으면 먼저 지운다(그렇지 않으면 재시작할 때마다 눈금이 쌓인다).
+        // TurnScaleDisplay는 매번 scaleArea 밑에 눈금이 필요하므로, 재호출 시 이전 전투에서 쓰던
+        // 눈금 오브젝트를 파괴하는 대신 풀에 반납만 해서(비활성화) 다음 TurnScaleDisplay 생성 때
+        // 그대로 재사용한다 — 배틀이 반복돼도 Destroy/Instantiate가 쌓이지 않는다.
         if (scaleArea != null)
-            for (int i = scaleArea.childCount - 1; i >= 0; i--)
-                Destroy(scaleArea.GetChild(i).gameObject);
+        {
+            if (_scalePool == null)
+                _scalePool = new GameObjectPool(Resources.Load<GameObject>("Prefabs/scale"), scaleArea);
+            _scalePool.ReleaseAll();
+        }
 
         var overlayGO = new GameObject("TurnTimerOverlay");
         overlayGO.transform.SetParent(turnText.transform.parent);
@@ -80,9 +87,8 @@ public class BattleManager:MonoBehaviour
         _turnManager.OnTurnStarted += OnTurnStarted;
         _turnManager.OnTurnEnded += OnTurnEnded;
 
-        GameObject scalePrefab = Resources.Load<GameObject>("Prefabs/scale");
         _turnScaleDisplay = new TurnScaleDisplay(
-            scaleArea, scalePrefab, scaleSpacing, scaleVerticalOffset,
+            _scalePool, scaleSpacing, scaleVerticalOffset,
             scaleDefaultColor, scaleLeftFadePerStep, scaleRightFadePerStep,
             enemyScaleNearColor, enemyScaleFarColor, playerScaleNearColor, playerScaleFarColor);
     }

@@ -67,7 +67,7 @@ public class TurnScaleDisplay
     }
 
     public TurnScaleDisplay(
-        Transform scaleArea, GameObject scalePrefab, float horizontalSpacing, float verticalOffset,
+        GameObjectPool scalePool, float horizontalSpacing, float verticalOffset,
         Color defaultColor, float leftFadePerStep, float rightFadePerStep,
         Color enemyNearColor, Color enemyFarColor, Color playerNearColor, Color playerFarColor)
     {
@@ -83,9 +83,9 @@ public class TurnScaleDisplay
         _verticalOffset = verticalOffset;
         _shiftSpeed = horizontalSpacing / ShiftDuration;
 
-        if (scaleArea == null || scalePrefab == null)
+        if (scalePool == null)
         {
-            Debug.LogWarning("[TurnScaleDisplay] scaleArea/scalePrefab가 지정되지 않아 눈금을 만들지 않습니다.");
+            Debug.LogWarning("[TurnScaleDisplay] scalePool이 지정되지 않아 눈금을 만들지 않습니다.");
             _enemyRow = new RowState { Left = new SpriteRenderer[0], Right = new SpriteRenderer[0] };
             _playerRow = new RowState { Left = new SpriteRenderer[0], Right = new SpriteRenderer[0] };
             return;
@@ -93,44 +93,46 @@ public class TurnScaleDisplay
 
         _enemyRow = new RowState
         {
-            Left = BuildLeftRow(scaleArea, scalePrefab, LeftCount, 1, horizontalSpacing, verticalOffset),
-            Right = BuildRightRow(scaleArea, scalePrefab, RightCount, 1, horizontalSpacing, verticalOffset),
+            Left = BuildLeftRow(scalePool, LeftCount, 1, horizontalSpacing, verticalOffset),
+            Right = BuildRightRow(scalePool, RightCount, 1, horizontalSpacing, verticalOffset),
         };
         _playerRow = new RowState
         {
-            Left = BuildLeftRow(scaleArea, scalePrefab, LeftCount, -1, horizontalSpacing, verticalOffset),
-            Right = BuildRightRow(scaleArea, scalePrefab, RightCount, -1, horizontalSpacing, verticalOffset),
+            Left = BuildLeftRow(scalePool, LeftCount, -1, horizontalSpacing, verticalOffset),
+            Right = BuildRightRow(scalePool, RightCount, -1, horizontalSpacing, verticalOffset),
         };
     }
 
     // 왼쪽(데이터) 줄: 슬롯 i(0..LeftCount-1)의 논리 index는 그대로 i다 — index 0(남은 쿨다운 1)이 x=0.
-    private static SpriteRenderer[] BuildLeftRow(Transform parent, GameObject prefab, int count, int ySign, float spacing, float verticalOffset)
+    // pool.Get()은 재활용된(이전 전투에서 다른 역할로 쓰였을 수 있는) 오브젝트를 돌려줄 수 있으므로
+    // flipY는 조건부로 켜기만 하지 않고 매번 명시적으로 대입해서 이전 상태가 남지 않게 한다.
+    private static SpriteRenderer[] BuildLeftRow(GameObjectPool pool, int count, int ySign, float spacing, float verticalOffset)
     {
         var row = new SpriteRenderer[count];
         for (int i = 0; i < count; i++)
         {
-            GameObject go = Object.Instantiate(prefab, parent);
+            GameObject go = pool.Get();
             go.transform.localPosition = new Vector3(-i * spacing, ySign * verticalOffset, 0f);
             row[i] = go.GetComponent<SpriteRenderer>();
-            if (row[i] != null && ySign < 0)
-                row[i].flipY = true;
+            if (row[i] != null)
+                row[i].flipY = ySign < 0;
         }
         return row;
     }
 
     // 오른쪽(장식/퇴장 트레일) 줄: 슬롯 j(0..RightCount-1)의 논리 index는 -(j+1) — 왼쪽과 같은
     // x = -index * spacing 공식을 그대로 따르므로 x=0에서 이어지는 양수 x 쪽에 자연스럽게 놓인다.
-    private static SpriteRenderer[] BuildRightRow(Transform parent, GameObject prefab, int count, int ySign, float spacing, float verticalOffset)
+    private static SpriteRenderer[] BuildRightRow(GameObjectPool pool, int count, int ySign, float spacing, float verticalOffset)
     {
         var row = new SpriteRenderer[count];
         for (int j = 0; j < count; j++)
         {
             int virtualIndex = -(j + 1);
-            GameObject go = Object.Instantiate(prefab, parent);
+            GameObject go = pool.Get();
             go.transform.localPosition = new Vector3(-virtualIndex * spacing, ySign * verticalOffset, 0f);
             row[j] = go.GetComponent<SpriteRenderer>();
-            if (row[j] != null && ySign < 0)
-                row[j].flipY = true;
+            if (row[j] != null)
+                row[j].flipY = ySign < 0;
         }
         return row;
     }
