@@ -35,10 +35,14 @@ public class GameObjectPool
         return created;
     }
 
-    // go를 비활성화해 풀에 반납한다(파괴하지 않는다).
+    // go를 비활성화하고 원래 부모 밑으로 되돌려 풀에 반납한다(파괴하지 않는다). scale처럼 부모가
+    // 고정인 경우 SetParent는 실질적으로 아무 효과가 없지만, card처럼 손패/큐 슬롯 사이를 옮겨 다니는
+    // 경우에는 반납된 오브젝트가 엉뚱한 슬롯 밑에 비활성 상태로 남아 하이어라키가 지저분해지는 것을 막는다.
     public void Release(GameObject go)
     {
-        if (go != null) go.SetActive(false);
+        if (go == null) return;
+        go.SetActive(false);
+        go.transform.SetParent(_parent);
     }
 
     // 풀이 관리하는 인스턴스를 전부 한꺼번에 반납한다 — 배틀 재시작처럼 "전부 다시 쓸 것"이 정해진
@@ -46,8 +50,6 @@ public class GameObjectPool
     public void ReleaseAll()
     {
         foreach (GameObject go in _pool)
-        {
-            if (go != null) go.SetActive(false);
-        }
+            Release(go);
     }
 }

@@ -10,17 +10,17 @@ public class HandManager
 
     private readonly CharacterManager _characterManager;
     private readonly Transform[] _slots;
-    private readonly GameObject _cardPrefab;
+    private readonly GameObjectPool _cardPool;
     private readonly bool _isHandVisualized;
     // BattleManager가 넘겨준, 전투 화면(양쪽 CharacterManager)이 공유하는 팝업 인스턴스
     // (씬 전역 static Instance 대신 화면별로 분리된 팝업을 쓰기 위함).
     private readonly PopupManager _popupManager;
 
-    public HandManager(CharacterManager characterManager, GameObject slotsRoot, bool isHandVisualized, PopupManager popupManager)
+    public HandManager(CharacterManager characterManager, GameObject slotsRoot, bool isHandVisualized, PopupManager popupManager, GameObjectPool cardPool)
     {
         _characterManager = characterManager;
         _slots = BuildSlots(slotsRoot);
-        _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
+        _cardPool = cardPool;
         _isHandVisualized = isHandVisualized;
         _popupManager = popupManager;
     }
@@ -51,13 +51,16 @@ public class HandManager
 
     private void CreateCardVisual(int i)
     {
-        if (_slots == null || _cardPrefab == null) return;
+        if (_slots == null || _cardPool == null) return;
 
-        GameObject obj = Object.Instantiate(_cardPrefab, _slots[i]);
+        GameObject obj = _cardPool.Get();
+        obj.transform.SetParent(_slots[i]);
         obj.transform.localPosition = Vector3.zero;
         var visual = obj.GetComponent<CardVisual>();
         if (visual == null)
             visual = obj.AddComponent<CardVisual>();
+        // 풀에서 재활용된 오브젝트라면 이전 카드가 남긴 선택 하이라이트/이동 애니메이션 상태를 먼저 지운다.
+        visual.ResetForReuse();
         visual.SetPopupManager(_popupManager);
         _hand[i].SetVisual(visual);
         _hand[i].SetFace(_isHandVisualized);
@@ -94,7 +97,7 @@ public class HandManager
             _hand[i] = null;
             if (_cardObjects[i] != null)
             {
-                Object.Destroy(_cardObjects[i]);
+                _cardPool?.Release(_cardObjects[i]);
                 _cardObjects[i] = null;
             }
         }
@@ -109,7 +112,7 @@ public class HandManager
             _hand[i] = null;
             if (_cardObjects[i] != null)
             {
-                Object.Destroy(_cardObjects[i]);
+                _cardPool?.Release(_cardObjects[i]);
                 _cardObjects[i] = null;
             }
         }
