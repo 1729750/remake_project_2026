@@ -3196,7 +3196,7 @@ MonoBehaviour:
   defaultEnemyAI: {fileID: 11400000, guid: de0ab26f901f86247ab59cc6952a7b0b, type: 2}
   scaleArea: {fileID: 2063664843}
   scaleSpacing: 0.5
-  scaleVerticalOffset: 0.3
+  scaleVerticalOffset: 0
   scaleDefaultColor: {r: 1, g: 1, b: 1, a: 0.6}
   scaleLeftFadePerStep: 0.85
   scaleRightFadePerStep: 0.5

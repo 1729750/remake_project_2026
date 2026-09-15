@@ -127,7 +127,7 @@ public class BattleManager:MonoBehaviour
 
     public void Tick(float deltaTime)
     {
-        _turnScaleDisplay?.Refresh(playerCharacterManager, enemyCharacterManager);
+        _turnScaleDisplay?.Refresh(playerCharacterManager, enemyCharacterManager, deltaTime);
 
         if (CurrentState == BattleState.BattleStarting)
         {
