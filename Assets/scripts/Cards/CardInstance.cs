@@ -302,7 +302,14 @@ public class CardInstance
         };
         clone._effects = new List<CardEffect>(_effects.Count);
         foreach (CardEffect cardEffect in _effects)
-            clone._effects.Add(new CardEffect(cardEffect.GetEffect(), cardEffect.GetEffectTarget()));
+        {
+            CardEffect clonedCardEffect = new CardEffect(cardEffect.GetEffect(), cardEffect.GetEffectTarget());
+            // appliedCategory(어느 모드로 쓸지 저자가 명시적으로 고른 값)도 함께 복제한다 — 그러지
+            // 않으면 Continuous로 골라둔 효과가 클론에서는 자동 해석(Instant)으로 되돌아간다
+            // (CardDefinition.Clone()에 이미 있는 동일한 보정과 맞춘다).
+            clonedCardEffect.SetAppliedCategory(cardEffect.GetAppliedCategory());
+            clone._effects.Add(clonedCardEffect);
+        }
         return clone;
     }
 }
