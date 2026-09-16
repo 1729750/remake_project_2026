@@ -79,6 +79,19 @@ public class PopupManager : MonoBehaviour
 
     public void Hide() => Show(null);
 
+    // EffectType 목록이 아니라 임의의 (아이콘, 텍스트) 한 쌍을 그대로 보여준다 — Tutorial처럼 카드
+    // 효과가 아닌 내용을 표시해야 하는 호출부를 위한 것. 페이지 개념이 없는 단일 항목이라 그냥
+    // 1개짜리 목록으로 취급한다.
+    public void ShowRaw(Sprite icon, string text)
+    {
+        _entries.Clear();
+        _entries.Add((icon, text));
+        _pageIndex = 0;
+
+        if (popupComponent != null) popupComponent.gameObject.SetActive(true);
+        RefreshCurrentPage();
+    }
+
     private void RefreshCurrentPage()
     {
         if (popupComponent == null || _entries.Count == 0) return;

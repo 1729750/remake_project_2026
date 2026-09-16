@@ -9,17 +9,15 @@ public class CardDefinition: ScriptableObject
     [SerializeField] private int cost;
     [SerializeField] private List<CardEffect> _effects;
     [SerializeField] private Sprite sprite;
-    [SerializeField] private Sprite spriteBackground;
     [SerializeField] private CardType cardType;
 
     // ScriptableObject는 new로 생성하면 안 되므로 CreateInstance로 만든 뒤 이 메서드로 초기화한다.
-    public static CardDefinition Create(int cooldown, int cost, CardEffect[] effects, Sprite sprite, Sprite spriteBackground)
+    public static CardDefinition Create(int cooldown, int cost, CardEffect[] effects, Sprite sprite)
     {
         var definition = CreateInstance<CardDefinition>();
         definition.cooldown = cooldown;
         definition.cost = cost;
         definition.sprite = sprite;
-        definition.spriteBackground = spriteBackground;
         definition._effects = effects.ToList();
         return definition;
     }
@@ -29,7 +27,6 @@ public class CardDefinition: ScriptableObject
     public CardEffect[] GetEffects() => _effects.ToArray();
     public CardType GetCardType() => cardType;
     public Sprite GetSprite() => sprite;
-    public Sprite GetSpriteBackground() => spriteBackground;
     // Instant 카드에는 Instant로만 쓰는 효과만, Continuous 카드에는 Continuous로만 쓰는 효과만
     // 추가할 수 있다. Mix 카드는 어느 쪽이든 받아준다. 추가하려는 효과의 appliedCategory가 두
     // 비트(Instant|Continuous)를 다 켰으면 카드 자체를 Mix로 승격시키고 받아준다.
@@ -150,7 +147,6 @@ public class CardDefinition: ScriptableObject
         clone.cooldown = cooldown;
         clone.cost = cost;
         clone.sprite = sprite;
-        clone.spriteBackground = spriteBackground;
         clone.cardType = cardType;
         clone._effects = new List<CardEffect>(_effects.Count);
         foreach (CardEffect cardEffect in _effects)

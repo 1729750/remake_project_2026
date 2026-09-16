@@ -919,23 +919,23 @@ PrefabInstance:
       objectReference: {fileID: 6373466610033631791, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.3
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.3
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.3
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.68
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.51
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_ConstrainProportionsScale
@@ -951,11 +951,11 @@ PrefabInstance:
       objectReference: {fileID: 6373466610033631791, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -4.42
+      value: -6
       objectReference: {fileID: 0}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1036,11 +1036,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.8226
+      value: -0.91
       objectReference: {fileID: 0}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.1104
+      value: 0.98
       objectReference: {fileID: 0}
     - target: {fileID: 1787513101948861402, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_ConstrainProportionsScale
@@ -1056,7 +1056,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4255318710238124244, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_Name
-      value: RewardPopupManager
+      value: MapPopupManager
       objectReference: {fileID: 0}
     - target: {fileID: 4867053093307442729, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_SizeDelta.x
@@ -1088,11 +1088,11 @@ PrefabInstance:
       objectReference: {fileID: 6373466610033631791, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5
+      value: -7
       objectReference: {fileID: 0}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -2.03
+      value: -2
       objectReference: {fileID: 0}
     - target: {fileID: 7422807454270366460, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1746,9 +1746,9 @@ MeshRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 368851919
-  m_SortingLayer: 1
-  m_SortingOrder: 4
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 30
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &519420028
@@ -5708,7 +5708,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapManager
   opponentDeckDisplay: {fileID: 1489030682}
   trophiesManager: {fileID: 1375985783}
-  popupManager: {fileID: 0}
+  popupManager: {fileID: 1945408316}
 --- !u!4 &1474451738
 Transform:
   m_ObjectHideFlags: 0
@@ -6911,7 +6911,7 @@ MeshRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 4
+  m_SortingOrder: 30
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1919513114
@@ -7187,6 +7187,17 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &1945408316 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2296612810257439161, guid: 6968083cdcbf6dd43a451ddf6d17ebca, type: 3}
+  m_PrefabInstance: {fileID: 363793630}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ccd61196d076744daec66a7b29aeece, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PopupManager
 --- !u!1 &1990682881
 GameObject:
   m_ObjectHideFlags: 0
