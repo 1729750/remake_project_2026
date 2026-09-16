@@ -834,7 +834,6 @@ GameObject:
   - component: {fileID: 178852479}
   - component: {fileID: 178852481}
   - component: {fileID: 178852480}
-  - component: {fileID: 178852482}
   m_Layer: 0
   m_Name: NetworkMatchBridge
   m_TagString: Untagged
@@ -956,20 +955,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardSelectionServerService
   cardDatabase: {fileID: 11400000, guid: 236d344d531b38c4fb727d51ad331cbc, type: 2}
-  matchState: {fileID: 178852478}
-  preparationRegistry: {fileID: 516293310}
---- !u!114 &178852482
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 178852474}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3839d220c034b9b4fb3977e8b66d8c10, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnhanceCandidateServerService
   matchState: {fileID: 178852478}
   preparationRegistry: {fileID: 516293310}
 --- !u!1 &214050597

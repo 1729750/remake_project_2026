@@ -12,4 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16275a3823d06084fbb541f043f24a7e, type: 3}
   m_Name: CardDatabase
   m_EditorClassIdentifier: Assembly-CSharp::CardDatabase
-  cards: []
+  cards:
+  - cardId: 0
+    card: {fileID: 0}
+  - cardId: 0
+    card: {fileID: 0}
+  - cardId: 0
+    card: {fileID: 0}
+  - cardId: 0
+    card: {fileID: 0}
