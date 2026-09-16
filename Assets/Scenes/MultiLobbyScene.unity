@@ -832,6 +832,9 @@ GameObject:
   - component: {fileID: 178852478}
   - component: {fileID: 178852477}
   - component: {fileID: 178852479}
+  - component: {fileID: 178852481}
+  - component: {fileID: 178852480}
+  - component: {fileID: 178852482}
   m_Layer: 0
   m_Name: NetworkMatchBridge
   m_TagString: Untagged
@@ -921,9 +924,54 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c1e502fbbd673f4db8cba7128504278, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MatchServerController
-  hostGameManager: {fileID: 0}
-  cardDatabase: {fileID: 0}
+  hostGameManager: {fileID: 1932713659}
   matchState: {fileID: 178852478}
+  preparationRegistry: {fileID: 516293310}
+  cardSelectionService: {fileID: 178852481}
+  enhanceCandidateService: {fileID: 178852480}
+--- !u!114 &178852480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 178852474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3839d220c034b9b4fb3977e8b66d8c10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnhanceCandidateServerService
+  matchState: {fileID: 178852478}
+  preparationRegistry: {fileID: 516293310}
+--- !u!114 &178852481
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 178852474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cafea529ae3db174ba191e43f32c465e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardSelectionServerService
+  cardDatabase: {fileID: 11400000, guid: 236d344d531b38c4fb727d51ad331cbc, type: 2}
+  matchState: {fileID: 178852478}
+  preparationRegistry: {fileID: 516293310}
+--- !u!114 &178852482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 178852474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3839d220c034b9b4fb3977e8b66d8c10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnhanceCandidateServerService
+  matchState: {fileID: 178852478}
+  preparationRegistry: {fileID: 516293310}
 --- !u!1 &214050597
 GameObject:
   m_ObjectHideFlags: 0
@@ -2004,7 +2052,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2029,6 +2077,51 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 516223277}
   m_CullTransparentMesh: 1
+--- !u!1 &516293309
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 516293311}
+  - component: {fileID: 516293310}
+  m_Layer: 0
+  m_Name: PlayerPreparationRegistry
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &516293310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 516293309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 810e8dfff3d9085449beb245476b7df2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerPreparationRegistry
+  connectionMonitor: {fileID: 2107875011}
+--- !u!4 &516293311
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 516293309}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1452.6631, y: 671.60925, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &652478491
 GameObject:
   m_ObjectHideFlags: 0
@@ -6888,3 +6981,4 @@ SceneRoots:
   - {fileID: 2107875010}
   - {fileID: 178852475}
   - {fileID: 1274545946}
+  - {fileID: 516293311}
