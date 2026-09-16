@@ -85,7 +85,7 @@ public class RewardManager : MonoBehaviour
         if (_rewardDisplays == null) return;
 
         _rewardDisplaySelectedIndex = 0;
-        RefreshRewardDisplaySelection();
+        _rewardDisplays[_rewardDisplaySelectedIndex].SetSelected(true);
 
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
@@ -125,9 +125,16 @@ public class RewardManager : MonoBehaviour
         int count = _rewardDisplays.Length;
         int previous = _rewardDisplaySelectedIndex;
         _rewardDisplaySelectedIndex = ((_rewardDisplaySelectedIndex + delta) % count + count) % count;
-        RefreshRewardDisplaySelection();
-        if (_rewardDisplaySelectedIndex != previous)
-            PlayMoveSelectSound();
+        if (_rewardDisplaySelectedIndex == previous) return;
+
+        // 팝업을 띄우는 RewardDisplay.SetSelected가 select될 때마다 곧장 Show를 부르므로, 전체를
+        // 훑으며 i==selectedIndex로 매번 다시 세팅하면(예전 방식) 방금 selected로 켠 것 뒤에 다른
+        // 항목의 deselect 호출이 뒤이어 실행되며 Show(null)로 덮어써버렸다 — 그래서 마지막 인덱스를
+        // 고를 때만 팝업이 남고 나머지는 select해도 안 뜨는 것처럼 보였다. deselect(예전)→select(새)
+        // 딱 두 번만, 이 순서로 불러야 한다.
+        _rewardDisplays[previous].SetSelected(false);
+        _rewardDisplays[_rewardDisplaySelectedIndex].SetSelected(true);
+        PlayMoveSelectSound();
     }
 
     // 왼쪽부터 순서대로 카드 획득/삭제/강화에 대응한다.
@@ -148,12 +155,6 @@ public class RewardManager : MonoBehaviour
             foreach (RewardDisplay display in _rewardDisplays)
                 if (display != null) Destroy(display.gameObject);
         _rewardDisplays = null;
-    }
-
-    private void RefreshRewardDisplaySelection()
-    {
-        for (int i = 0; i < _rewardDisplays.Length; i++)
-            _rewardDisplays[i].SetSelected(i == _rewardDisplaySelectedIndex);
     }
 
     // RewardDisplay 왼쪽 패널: 카드 획득.
@@ -426,7 +427,7 @@ public class RewardManager : MonoBehaviour
             _enhanceDisplays[i].SetUpgrade(options[i]);
 
         _enhanceSelectedIndex = 0;
-        RefreshEnhanceSelection();
+        _enhanceDisplays[_enhanceSelectedIndex].SetSelected(true);
     }
 
     private void MoveEnhanceSelection(int delta)
@@ -436,9 +437,13 @@ public class RewardManager : MonoBehaviour
         int count = _enhanceDisplays.Length;
         int previous = _enhanceSelectedIndex;
         _enhanceSelectedIndex = ((_enhanceSelectedIndex + delta) % count + count) % count;
-        RefreshEnhanceSelection();
-        if (_enhanceSelectedIndex != previous)
-            PlayMoveSelectSound();
+        if (_enhanceSelectedIndex == previous) return;
+
+        // MoveRewardDisplaySelection과 같은 이유 — 전체를 훑으며 다시 세팅하지 않고 예전/새 인덱스만
+        // deselect→select 순서로 건드린다.
+        _enhanceDisplays[previous].SetSelected(false);
+        _enhanceDisplays[_enhanceSelectedIndex].SetSelected(true);
+        PlayMoveSelectSound();
     }
 
     // 강화 후보 선택을 확정하고, 표시해뒀던 RewardDisplay 3개를 정리한다.
@@ -453,12 +458,6 @@ public class RewardManager : MonoBehaviour
         _enhanceOptions = null;
 
         return selected;
-    }
-
-    private void RefreshEnhanceSelection()
-    {
-        for (int i = 0; i < _enhanceDisplays.Length; i++)
-            _enhanceDisplays[i].SetSelected(i == _enhanceSelectedIndex);
     }
 
     // rewardCards에 맞는 카드 오브젝트를 만들어 transform의 직속 자식으로 그대로 넣는다.
@@ -499,7 +498,7 @@ public class RewardManager : MonoBehaviour
         }
 
         _rewardCardSelectedIndex = 0;
-        RefreshRewardCardSelection();
+        _rewardCardInstances[_rewardCardSelectedIndex]?.SetSelected(true);
     }
 
     private void MoveRewardCardSelection(int delta)
@@ -509,9 +508,13 @@ public class RewardManager : MonoBehaviour
         int count = _rewardCardInstances.Length;
         int previous = _rewardCardSelectedIndex;
         _rewardCardSelectedIndex = ((_rewardCardSelectedIndex + delta) % count + count) % count;
-        RefreshRewardCardSelection();
-        if (_rewardCardSelectedIndex != previous)
-            PlayMoveSelectSound();
+        if (_rewardCardSelectedIndex == previous) return;
+
+        // MoveRewardDisplaySelection과 같은 이유 — 전체를 훑으며 다시 세팅하지 않고 예전/새 인덱스만
+        // deselect→select 순서로 건드린다.
+        _rewardCardInstances[previous]?.SetSelected(false);
+        _rewardCardInstances[_rewardCardSelectedIndex]?.SetSelected(true);
+        PlayMoveSelectSound();
     }
 
     private CardDefinition ConfirmRewardCard()
@@ -528,12 +531,6 @@ public class RewardManager : MonoBehaviour
         foreach (CardInstance instance in _rewardCardInstances)
             if (instance != null && instance.GetVisual() != null) Destroy(instance.GetVisual().gameObject);
         _rewardCardInstances = null;
-    }
-
-    private void RefreshRewardCardSelection()
-    {
-        for (int i = 0; i < _rewardCardInstances.Length; i++)
-            _rewardCardInstances[i]?.SetSelected(i == _rewardCardSelectedIndex);
     }
 
     // 보상 화면(카드 획득/삭제/강화 중 무엇이든)을 완전히 닫는 공통 지점.

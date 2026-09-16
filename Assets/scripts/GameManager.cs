@@ -175,12 +175,12 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         _currentState = GameState.StartScreen;
-        GameStart();
+        //GameStart();
         fadeIn?.Play();
         // 승리 후에는 BattleManager.NotifyDefeat가 Menu BGM을 다시 틀어주지만, 씬을 처음
         // 로드했을 때는 그 트리거가 없어 첫 전투 전까지 계속 무음이었다 — 여기서 시작해준다.
         SoundManager.Instance?.Play(BgmName.Menu);
-        ShowEnemySelection();
+        EndBattle();
     }
 
     public void StartBattle(CharacterData enemyData)
