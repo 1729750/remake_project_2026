@@ -1,0 +1,767 @@
+fileFormatVersion: 2
+guid: a7a27318d59ca884799ee188e1e94476
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 6344799072693409044
+    second: typeRoomCodeText1_0
+  - first:
+      213: -8600849969208834941
+    second: typeRoomCodeText1_1
+  - first:
+      213: -8845126838680465672
+    second: typeRoomCodeText1_2
+  - first:
+      213: 7930160806614549423
+    second: typeRoomCodeText1_3
+  - first:
+      213: -6217241423389483900
+    second: typeRoomCodeText1_4
+  - first:
+      213: -3387211643805677506
+    second: typeRoomCodeText1_5
+  - first:
+      213: 7369186062949998047
+    second: typeRoomCodeText1_6
+  - first:
+      213: -7124261737215029770
+    second: typeRoomCodeText1_7
+  - first:
+      213: 2017259687737821259
+    second: typeRoomCodeText1_8
+  - first:
+      213: -5661710011513857662
+    second: typeRoomCodeText1_9
+  - first:
+      213: -873187641202178377
+    second: typeRoomCodeText1_10
+  - first:
+      213: 816202224738035794
+    second: typeRoomCodeText1_11
+  - first:
+      213: 4616495044943448271
+    second: typeRoomCodeText1_12
+  - first:
+      213: 8214063989001056919
+    second: typeRoomCodeText1_13
+  - first:
+      213: -1138482409127963585
+    second: typeRoomCodeText1_14
+  - first:
+      213: 5573718144381242209
+    second: typeRoomCodeText1_15
+  - first:
+      213: 3996575761043758972
+    second: typeRoomCodeText1_16
+  - first:
+      213: 8221550805535664381
+    second: typeRoomCodeText1_17
+  - first:
+      213: 4622763803835615170
+    second: typeRoomCodeText1_18
+  - first:
+      213: -2069271496815590808
+    second: typeRoomCodeText1_19
+  - first:
+      213: 5689370695507247077
+    second: typeRoomCodeText1_20
+  - first:
+      213: 2813584711844231542
+    second: typeRoomCodeText1_21
+  - first:
+      213: -8197033183208690189
+    second: typeRoomCodeText1_22
+  - first:
+      213: 4168382067001704599
+    second: typeRoomCodeText1_23
+  - first:
+      213: -1711544923033486448
+    second: typeRoomCodeText1_24
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: typeRoomCodeText1_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 17
+        width: 20
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4155e13f3214d0850800000000000000
+      internalID: 6344799072693409044
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_1
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 15
+        width: 14
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 384c0e2b584a3a880800000000000000
+      internalID: -8600849969208834941
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_2
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 15
+        width: 21
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8fe4d23f00ccf3580800000000000000
+      internalID: -8845126838680465672
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_3
+      rect:
+        serializedVersion: 2
+        x: 66
+        y: 10
+        width: 14
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fa34cf1ec379d0e60800000000000000
+      internalID: 7930160806614549423
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_4
+      rect:
+        serializedVersion: 2
+        x: 82
+        y: 2
+        width: 36
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 48c9604addbe7b9a0800000000000000
+      internalID: -6217241423389483900
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_5
+      rect:
+        serializedVersion: 2
+        x: 84
+        y: 27
+        width: 33
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3845e7c4f43ef0d0800000000000000
+      internalID: -3387211643805677506
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_6
+      rect:
+        serializedVersion: 2
+        x: 122
+        y: 21
+        width: 31
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fddd4ed3eab944660800000000000000
+      internalID: 7369186062949998047
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_7
+      rect:
+        serializedVersion: 2
+        x: 167
+        y: 18
+        width: 22
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6fd046a22b9812d90800000000000000
+      internalID: -7124261737215029770
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_8
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 17
+        width: 9
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b4804538ffebefb10800000000000000
+      internalID: 2017259687737821259
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_9
+      rect:
+        serializedVersion: 2
+        x: 203
+        y: 14
+        width: 34
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2899176ddb09d61b0800000000000000
+      internalID: -5661710011513857662
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_10
+      rect:
+        serializedVersion: 2
+        x: 238
+        y: 25
+        width: 25
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7b602e77770d1e3f0800000000000000
+      internalID: -873187641202178377
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_11
+      rect:
+        serializedVersion: 2
+        x: 263
+        y: 0
+        width: 14
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 258e466599bb35b00800000000000000
+      internalID: 816202224738035794
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_12
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 0
+        width: 29
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fc8843db8c5111040800000000000000
+      internalID: 4616495044943448271
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_13
+      rect:
+        serializedVersion: 2
+        x: 303
+        y: 0
+        width: 9
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7927cb29da73ef170800000000000000
+      internalID: 8214063989001056919
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_14
+      rect:
+        serializedVersion: 2
+        x: 313
+        y: 3
+        width: 36
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f3495e4e74c4330f0800000000000000
+      internalID: -1138482409127963585
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_15
+      rect:
+        serializedVersion: 2
+        x: 2
+        y: 0
+        width: 29
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 16b4ef91f13d95d40800000000000000
+      internalID: 5573718144381242209
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_16
+      rect:
+        serializedVersion: 2
+        x: 119
+        y: 16
+        width: 36
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c7f13fada70b67730800000000000000
+      internalID: 3996575761043758972
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_17
+      rect:
+        serializedVersion: 2
+        x: 122
+        y: 0
+        width: 31
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: df8a7c2e5e0d81270800000000000000
+      internalID: 8221550805535664381
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_18
+      rect:
+        serializedVersion: 2
+        x: 171
+        y: 0
+        width: 29
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2c7c728ef2b572040800000000000000
+      internalID: 4622763803835615170
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_19
+      rect:
+        serializedVersion: 2
+        x: 240
+        y: 5
+        width: 22
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 862477089887843e0800000000000000
+      internalID: -2069271496815590808
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_20
+      rect:
+        serializedVersion: 2
+        x: 51
+        y: 0
+        width: 30
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5eff9350184b4fe40800000000000000
+      internalID: 5689370695507247077
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_21
+      rect:
+        serializedVersion: 2
+        x: 208
+        y: 0
+        width: 29
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 679f1fe636cdb0720800000000000000
+      internalID: 2813584711844231542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_22
+      rect:
+        serializedVersion: 2
+        x: 352
+        y: 1
+        width: 8
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3fda1c6efb94e3e80800000000000000
+      internalID: -8197033183208690189
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_23
+      rect:
+        serializedVersion: 2
+        x: 365
+        y: 1
+        width: 9
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 790ceb7a76119d930800000000000000
+      internalID: 4168382067001704599
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: typeRoomCodeText1_24
+      rect:
+        serializedVersion: 2
+        x: 378
+        y: 1
+        width: 8
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 09b377de5fe5f38e0800000000000000
+      internalID: -1711544923033486448
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      typeRoomCodeText1_0: 6344799072693409044
+      typeRoomCodeText1_1: -8600849969208834941
+      typeRoomCodeText1_10: -873187641202178377
+      typeRoomCodeText1_11: 816202224738035794
+      typeRoomCodeText1_12: 4616495044943448271
+      typeRoomCodeText1_13: 8214063989001056919
+      typeRoomCodeText1_14: -1138482409127963585
+      typeRoomCodeText1_15: 5573718144381242209
+      typeRoomCodeText1_16: 3996575761043758972
+      typeRoomCodeText1_17: 8221550805535664381
+      typeRoomCodeText1_18: 4622763803835615170
+      typeRoomCodeText1_19: -2069271496815590808
+      typeRoomCodeText1_2: -8845126838680465672
+      typeRoomCodeText1_20: 5689370695507247077
+      typeRoomCodeText1_21: 2813584711844231542
+      typeRoomCodeText1_22: -8197033183208690189
+      typeRoomCodeText1_23: 4168382067001704599
+      typeRoomCodeText1_24: -1711544923033486448
+      typeRoomCodeText1_3: 7930160806614549423
+      typeRoomCodeText1_4: -6217241423389483900
+      typeRoomCodeText1_5: -3387211643805677506
+      typeRoomCodeText1_6: 7369186062949998047
+      typeRoomCodeText1_7: -7124261737215029770
+      typeRoomCodeText1_8: 2017259687737821259
+      typeRoomCodeText1_9: -5661710011513857662
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

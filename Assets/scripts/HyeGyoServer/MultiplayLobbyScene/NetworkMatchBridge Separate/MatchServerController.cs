@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// Server의 게임 요청 검증 / 판정 전용 클래스.
@@ -18,6 +19,10 @@ public sealed class MatchServerController : MonoBehaviour
     [Header("Shared State")]
     [SerializeField]
     private NetworkMatchState matchState;
+
+    private readonly Dictionary<ulong, CardUpgrade[]>
+    enhanceCandidatesByClient =
+        new Dictionary<ulong, CardUpgrade[]>();
 
     private void Awake()
     {
@@ -42,6 +47,7 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+        // Host만 게임 시작 가능
         if (senderClientId !=
             NetworkManager.ServerClientId)
         {
@@ -76,6 +82,7 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+        // 첫 번째 턴은 Host
         matchState.ServerBeginCardSelection(
             NetworkManager.ServerClientId
         );
@@ -86,9 +93,7 @@ public sealed class MatchServerController : MonoBehaviour
             $"{NetworkManager.ServerClientId}"
         );
 
-        rejectReason =
-            string.Empty;
-
+        rejectReason = string.Empty;
         return true;
     }
 
@@ -113,6 +118,7 @@ public sealed class MatchServerController : MonoBehaviour
             $"CardId: {cardId}"
         );
 
+        // 실제 게임에 등록된 플레이어인지 확인
         if (!IsRegisteredPlayer(
                 senderClientId))
         {
@@ -122,6 +128,7 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+        // 현재 카드 선택 단계인지 확인
         if (matchState.CurrentPhase !=
             MatchPhase.ChoosingCard)
         {
@@ -131,6 +138,7 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+        // 현재 턴 플레이어인지 확인
         if (matchState.CurrentTurnClientId !=
             senderClientId)
         {
@@ -140,6 +148,7 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+        // CardDatabase 연결 확인
         if (cardDatabase == null)
         {
             Debug.LogError(
@@ -153,6 +162,7 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+        // 존재하는 카드인지 확인
         if (!cardDatabase.TryGetCard(
                 cardId,
                 out _))
@@ -163,6 +173,7 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+        // 이미 다른 플레이어가 선택한 카드인지 확인
         if (matchState.IsCardAlreadySelected(
                 cardId))
         {
@@ -179,11 +190,39 @@ public sealed class MatchServerController : MonoBehaviour
         );
     }
 
+    /// <summary>
+    /// 모든 기본 검증이 끝난 카드 선택 요청을 실제 상태에 반영한다.
+    /// 상태를 변경하기 전에 다음 플레이어 존재 여부까지 검증한다.
+    /// </summary>
     private bool ApplyCardSelection(
         ulong clientId,
         int cardId,
         out string rejectReason)
     {
+        bool completesSelection =
+            matchState.SelectedCardCount + 1 >= 2;
+
+        ulong nextClientId = ulong.MaxValue;
+
+        // 이번 선택으로 카드 선택 단계가 끝나지 않는다면
+        // 다음 턴을 받을 실제 등록 플레이어가 존재해야 한다.
+        if (!completesSelection)
+        {
+            if (!TryGetOtherRegisteredClientId(
+                    clientId,
+                    out nextClientId))
+            {
+                rejectReason =
+                    "상대 플레이어가 연결되어 있지 않습니다.";
+
+                return false;
+            }
+        }
+
+        // =====================================================
+        // 여기부터 실제 상태 Commit
+        // =====================================================
+
         matchState.ServerAddSelectedCard(
             clientId,
             cardId
@@ -195,8 +234,15 @@ public sealed class MatchServerController : MonoBehaviour
             $"CardId: {cardId}"
         );
 
-        if (matchState.SelectedCardCount >= 2)
+        // 두 플레이어가 모두 카드를 선택했으면
+        // 카드 선택 단계를 종료한다.
+        if (completesSelection)
         {
+            // 현재 턴 없음
+            matchState.ServerSetTurn(
+                ulong.MaxValue
+            );
+
             matchState.ServerSetPhase(
                 MatchPhase.ChoosingCondition
             );
@@ -206,24 +252,11 @@ public sealed class MatchServerController : MonoBehaviour
                 "조건 선택 단계"
             );
 
-            rejectReason =
-                string.Empty;
-
+            rejectReason = string.Empty;
             return true;
         }
 
-        if (!TryGetOtherClientId(
-                clientId,
-                out ulong nextClientId))
-        {
-            matchState.ServerResetToWaiting();
-
-            rejectReason =
-                "상대 플레이어가 연결되어 있지 않습니다.";
-
-            return false;
-        }
-
+        // 다음 플레이어에게 턴 전달
         matchState.ServerSetTurn(
             nextClientId
         );
@@ -233,9 +266,7 @@ public sealed class MatchServerController : MonoBehaviour
             $"Next Client: {nextClientId}"
         );
 
-        rejectReason =
-            string.Empty;
-
+        rejectReason = string.Empty;
         return true;
     }
 
@@ -270,12 +301,13 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
-        rejectReason =
-            string.Empty;
-
+        rejectReason = string.Empty;
         return true;
     }
 
+    /// <summary>
+    /// 해당 ClientId가 실제 게임 플레이어로 등록되어 있는지 확인한다.
+    /// </summary>
     private bool IsRegisteredPlayer(
         ulong clientId)
     {
@@ -288,13 +320,17 @@ public sealed class MatchServerController : MonoBehaviour
         );
     }
 
-    private bool TryGetOtherClientId(
+    /// <summary>
+    /// 현재 플레이어를 제외한 다른 연결 중인
+    /// 실제 등록 플레이어의 ClientId를 찾는다.
+    /// </summary>
+    private bool TryGetOtherRegisteredClientId(
         ulong currentClientId,
         out ulong otherClientId)
     {
         if (NetworkManager.Singleton == null)
         {
-            otherClientId = default;
+            otherClientId = ulong.MaxValue;
             return false;
         }
 
@@ -303,19 +339,166 @@ public sealed class MatchServerController : MonoBehaviour
             in NetworkManager.Singleton
                 .ConnectedClientsList)
         {
-            if (client.ClientId ==
+            ulong candidateId =
+                client.ClientId;
+
+            // 자기 자신 제외
+            if (candidateId ==
                 currentClientId)
             {
                 continue;
             }
 
+            // NGO에 연결되어 있기만 한 Client가 아니라
+            // 실제 게임 플레이어로 등록된 Client만 허용
+            if (!IsRegisteredPlayer(
+                    candidateId))
+            {
+                continue;
+            }
+
             otherClientId =
-                client.ClientId;
+                candidateId;
 
             return true;
         }
 
-        otherClientId = default;
+        otherClientId = ulong.MaxValue;
         return false;
     }
+
+    // =========================================================
+// Enhance Candidates
+// =========================================================
+
+public bool TryCreateEnhanceCandidates(
+    ulong senderClientId,
+    out EnhanceOptionNetData[] networkOptions,
+    out string rejectReason)
+{
+    networkOptions = null;
+
+    if (!ValidateServerState(
+            out rejectReason))
+    {
+        return false;
+    }
+
+    CardUpgrade[] options =
+        new CardUpgrade[3];
+
+    for (int i = 0;
+         i < options.Length;
+         i++)
+    {
+        options[i] =
+            RewardManager.RollEnhanceOption();
+    }
+
+    // 실제 검증용 데이터는 Server가 보관
+    enhanceCandidatesByClient[
+        senderClientId
+    ] = options;
+
+    // UI에 보낼 데이터 생성
+    networkOptions =
+        new EnhanceOptionNetData[
+            options.Length
+        ];
+
+    for (int i = 0;
+         i < options.Length;
+         i++)
+    {
+        networkOptions[i] =
+            EnhanceOptionNetData
+                .FromCardUpgrade(
+                    options[i]
+                );
+    }
+
+    Debug.Log(
+        $"[Server] Client {senderClientId} " +
+        "강화 후보 3개 생성 완료"
+    );
+
+    for (int i = 0;
+         i < options.Length;
+         i++)
+    {
+        CardUpgrade option =
+            options[i];
+
+        Debug.Log(
+            $"[Server] Candidate {i} | " +
+            $"{option.effect.GetEffect().GetEffectType()} | " +
+            $"Magnitude: " +
+            $"{option.effect.GetEffect().GetMagnitude()} | " +
+            $"CostDelta: {option.costDelta} | " +
+            $"CooldownDelta: {option.cooldownDelta}"
+        );
+    }
+
+    rejectReason = string.Empty;
+    return true;
+}
+
+public bool TryConfirmEnhanceCandidate(
+    ulong senderClientId,
+    int selectedIndex,
+    out string rejectReason)
+{
+    if (!ValidateServerState(
+            out rejectReason))
+    {
+        return false;
+    }
+
+    if (!enhanceCandidatesByClient
+            .TryGetValue(
+                senderClientId,
+                out CardUpgrade[] options))
+    {
+        rejectReason =
+            "발급된 강화 후보가 없습니다.";
+
+        return false;
+    }
+
+    if (selectedIndex < 0 ||
+        selectedIndex >= options.Length)
+    {
+        rejectReason =
+            "잘못된 강화 후보 번호입니다.";
+
+        return false;
+    }
+
+    CardUpgrade selected =
+        options[selectedIndex];
+
+    Debug.Log(
+        $"[Server] Client {senderClientId} " +
+        $"강화 후보 {selectedIndex}번 확정"
+    );
+
+    Debug.Log(
+        $"[Server] 확정 후보 | " +
+        $"{selected.effect.GetEffect().GetEffectType()} | " +
+        $"Magnitude: " +
+        $"{selected.effect.GetEffect().GetMagnitude()} | " +
+        $"CostDelta: {selected.costDelta} | " +
+        $"CooldownDelta: {selected.cooldownDelta}"
+    );
+
+    // 1차 테스트에서는 여기까지만.
+    // 실제 ApplyUpgrade는 아직 하지 않는다.
+
+    enhanceCandidatesByClient.Remove(
+        senderClientId
+    );
+
+    rejectReason = string.Empty;
+    return true;
+}
 }
