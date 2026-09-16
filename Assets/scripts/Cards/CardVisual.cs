@@ -57,6 +57,19 @@ public class CardVisual : MonoBehaviour
         _effectDisplays.AddRange(_effectArea.GetComponentsInChildren<EffectDisplay>(true));
     }
 
+    // 풀에서 재활용된 오브젝트를 새 카드에 배정하기 직전에 호출한다. 이전 카드가 남긴 상태(선택
+    // 하이라이트, 진행 중이던 MoveTo 코루틴)가 새 카드로 새어 들어오지 않게 초기화한다 — cost/cooldown/
+    // effect/face 등은 SetVisual 이후 호출부(HandManager)가 항상 다시 채우므로 여기서 건드리지 않는다.
+    public void ResetForReuse()
+    {
+        if (_moveCoroutine != null)
+        {
+            StopCoroutine(_moveCoroutine);
+            _moveCoroutine = null;
+        }
+        SetSelected(false);
+    }
+
     public void SetSelected(bool selected)
     {
         _selectHighlight.SetActive(selected);

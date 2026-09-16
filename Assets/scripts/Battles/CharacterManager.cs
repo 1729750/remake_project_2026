@@ -40,6 +40,7 @@ public class CharacterManager: MonoBehaviour
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
     private HandManager _handManager;
     private QueueManager _queueManager;
+    private GameObjectPool _cardPool;
     private Coroutine _defenseIndicatorCoroutine;
 
     private bool _isGuard = false;
@@ -341,8 +342,19 @@ public class CharacterManager: MonoBehaviour
         _effects = new List<Effect>();
         _deck = new List<CardInstance>();
 
-        _queueManager = new QueueManager(queueRoots);
-        _handManager = new HandManager(this, handsRoot, isHandVisualized, handPopupManager);
+        // 손패/큐를 오가는 카드 시각 오브젝트(Card 프리팹)를 위한 풀의 부모. 카드가 손패/큐에 없는
+        // 동안(덱에 있는 동안) 비활성 상태로 여기에 파킹된다 — TurnTimerOverlay와 같은 방식으로
+        // 씬 참조 없이 직접 만든다. 여기서 한 번만 풀을 만들고 CharacterInit(매 전투)에서는 반납만
+        // 하므로 전투가 반복돼도 Instantiate/Destroy가 쌓이지 않는다.
+        if (_cardPool == null)
+        {
+            Transform deckRoot = new GameObject("Deck").transform;
+            deckRoot.SetParent(transform);
+            _cardPool = new GameObjectPool(Resources.Load<GameObject>("Prefabs/Card"), deckRoot);
+        }
+
+        _queueManager = new QueueManager(queueRoots, _cardPool);
+        _handManager = new HandManager(this, handsRoot, isHandVisualized, handPopupManager, _cardPool);
 
         Clear();
     }
