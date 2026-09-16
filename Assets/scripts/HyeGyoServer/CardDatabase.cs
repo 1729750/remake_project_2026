@@ -4,7 +4,8 @@ using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "CardDatabase",
-    menuName = "Scriptable Objects/CardDatabase")]
+    menuName = "Scriptable Objects/CardDatabase"
+)]
 public class CardDatabase : ScriptableObject
 {
     [Serializable]
@@ -15,7 +16,13 @@ public class CardDatabase : ScriptableObject
     }
 
     [SerializeField]
-    private List<CardEntry> cards = new List<CardEntry>();
+    private List<CardEntry> cards =
+        new List<CardEntry>();
+
+
+    public IReadOnlyList<CardEntry> Cards =>
+        cards;
+
 
     public bool TryGetCard(
         int cardId,
@@ -23,7 +30,8 @@ public class CardDatabase : ScriptableObject
     {
         for (int i = 0; i < cards.Count; i++)
         {
-            CardEntry entry = cards[i];
+            CardEntry entry =
+                cards[i];
 
             if (entry == null)
                 continue;
@@ -35,18 +43,22 @@ public class CardDatabase : ScriptableObject
                 continue;
 
             card = entry.card;
+
             return true;
         }
 
         card = null;
+
         return false;
     }
 
-    public CardDefinition GetCard(int cardId)
+
+    public CardDefinition GetCard(
+        int cardId)
     {
         if (TryGetCard(
-            cardId,
-            out CardDefinition card))
+                cardId,
+                out CardDefinition card))
         {
             return card;
         }
