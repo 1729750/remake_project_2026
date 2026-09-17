@@ -9,6 +9,14 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkObject))]
 public sealed class NetworkMatchState : NetworkBehaviour
 {
+    /// <summary>
+    /// 현재 유효한 ClientId가 없음을 나타내는 값.
+    /// 새 카드 선택 방식에서는 턴을 사용하지 않는다.
+    /// </summary>
+    public const ulong NoClientId =
+        ulong.MaxValue;
+
+
     private readonly NetworkVariable<MatchPhase>
         matchPhase =
             new NetworkVariable<MatchPhase>(
@@ -17,35 +25,45 @@ public sealed class NetworkMatchState : NetworkBehaviour
                 NetworkVariableWritePermission.Server
             );
 
+
+    // 기존 코드 호환을 위해 아직 유지.
+    // 새 카드 선택에서는 사용하지 않을 예정.
     private readonly NetworkVariable<ulong>
         currentTurnClientId =
             new NetworkVariable<ulong>(
-                0,
+                NoClientId,
                 NetworkVariableReadPermission.Everyone,
                 NetworkVariableWritePermission.Server
             );
 
+
     private NetworkList<CardSelectionData>
         selectedCards;
 
+
     public event Action MatchStateChanged;
+
 
     public MatchPhase CurrentPhase =>
         matchPhase.Value;
 
+
     public ulong CurrentTurnClientId =>
         currentTurnClientId.Value;
+
 
     public int SelectedCardCount =>
         selectedCards != null
             ? selectedCards.Count
             : 0;
 
+
     private void Awake()
     {
         selectedCards =
             new NetworkList<CardSelectionData>();
     }
+
 
     public override void OnNetworkSpawn()
     {
@@ -60,6 +78,7 @@ public sealed class NetworkMatchState : NetworkBehaviour
 
         MatchStateChanged?.Invoke();
     }
+
 
     public override void OnNetworkDespawn()
     {
@@ -76,6 +95,7 @@ public sealed class NetworkMatchState : NetworkBehaviour
         }
     }
 
+
     // =========================================================
     // Server Write API
     // =========================================================
@@ -83,38 +103,85 @@ public sealed class NetworkMatchState : NetworkBehaviour
     public void ServerResetToWaiting()
     {
         if (!IsServer)
+        {
             return;
+        }
 
-        selectedCards.Clear();
-
-        currentTurnClientId.Value =
-            NetworkManager.ServerClientId;
-
+        // 먼저 상태 변경
         matchPhase.Value =
             MatchPhase.WaitingForPlayers;
+
+        currentTurnClientId.Value =
+            NoClientId;
+
+        if (selectedCards != null &&
+            selectedCards.Count > 0)
+        {
+            selectedCards.Clear();
+        }
     }
 
+
+    /// <summary>
+    /// 새로운 멀티 방식.
+    /// 두 플레이어가 준비되면 동시에 카드 선택 단계로 진입한다.
+    /// </summary>
+    public void ServerBeginCardSelection()
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        // 중복 실행 방지
+        if (matchPhase.Value ==
+            MatchPhase.ChoosingCard)
+        {
+            return;
+        }
+
+        // 중요:
+        // NetworkList.Clear()보다 Phase를 먼저 변경한다.
+        // 이벤트 재진입 시 다시 이 함수를 실행하지 않게 하기 위함.
+        matchPhase.Value =
+            MatchPhase.ChoosingCard;
+
+        currentTurnClientId.Value =
+            NoClientId;
+
+        // 비어 있는 리스트를 Clear하지 않는다.
+        if (selectedCards != null &&
+            selectedCards.Count > 0)
+        {
+            selectedCards.Clear();
+        }
+
+        Debug.Log(
+            "[NetworkMatchState] " +
+            "카드 선택 단계 시작"
+        );
+    }
+
+
+    /// <summary>
+    /// 기존 MatchServerController 호환용.
+    /// 새 방식에서는 firstTurnClientId를 사용하지 않는다.
+    /// </summary>
     public void ServerBeginCardSelection(
         ulong firstTurnClientId)
     {
-        if (!IsServer)
-            return;
-
-        selectedCards.Clear();
-
-        currentTurnClientId.Value =
-            firstTurnClientId;
-
-        matchPhase.Value =
-            MatchPhase.ChoosingCard;
+        ServerBeginCardSelection();
     }
+
 
     public void ServerAddSelectedCard(
         ulong clientId,
         int cardId)
     {
         if (!IsServer)
+        {
             return;
+        }
 
         selectedCards.Add(
             new CardSelectionData(
@@ -124,25 +191,36 @@ public sealed class NetworkMatchState : NetworkBehaviour
         );
     }
 
+
+    /// <summary>
+    /// 기존 코드 호환용.
+    /// 새 카드 선택 방식에서는 사용하지 않을 예정.
+    /// </summary>
     public void ServerSetTurn(
         ulong clientId)
     {
         if (!IsServer)
+        {
             return;
+        }
 
         currentTurnClientId.Value =
             clientId;
     }
 
+
     public void ServerSetPhase(
         MatchPhase phase)
     {
         if (!IsServer)
+        {
             return;
+        }
 
         matchPhase.Value =
             phase;
     }
+
 
     // =========================================================
     // Read API
@@ -152,7 +230,9 @@ public sealed class NetworkMatchState : NetworkBehaviour
         int cardId)
     {
         if (selectedCards == null)
+        {
             return false;
+        }
 
         for (int i = 0;
              i < selectedCards.Count;
@@ -168,6 +248,7 @@ public sealed class NetworkMatchState : NetworkBehaviour
         return false;
     }
 
+
     public bool TryGetSelectedCard(
         ulong clientId,
         out int cardId)
@@ -175,6 +256,7 @@ public sealed class NetworkMatchState : NetworkBehaviour
         if (selectedCards == null)
         {
             cardId = -1;
+
             return false;
         }
 
@@ -196,8 +278,10 @@ public sealed class NetworkMatchState : NetworkBehaviour
         }
 
         cardId = -1;
+
         return false;
     }
+
 
     // =========================================================
     // State Events
@@ -208,24 +292,26 @@ public sealed class NetworkMatchState : NetworkBehaviour
         MatchPhase current)
     {
         Debug.Log(
-            $"[NetworkMatchState] " +
+            "[NetworkMatchState] " +
             $"MatchPhase: {previous} → {current}"
         );
 
         MatchStateChanged?.Invoke();
     }
 
+
     private void HandleTurnChanged(
         ulong previous,
         ulong current)
     {
         Debug.Log(
-            $"[NetworkMatchState] " +
+            "[NetworkMatchState] " +
             $"Turn: {previous} → {current}"
         );
 
         MatchStateChanged?.Invoke();
     }
+
 
     private void HandleSelectedCardsChanged(
         NetworkListEvent<CardSelectionData>

@@ -18,7 +18,8 @@ public sealed class PlayerPreparationRegistry
 
 
     // 실제 NGO ClientId와 구분하기 위한 테스트 전용 ID
-    public const ulong DebugClientId = ulong.MaxValue;
+    public const ulong DebugClientId =
+        ulong.MaxValue - 1;
 
 
     private readonly Dictionary<
@@ -133,6 +134,9 @@ public sealed class PlayerPreparationRegistry
         }
 
         RegisterPlayer(clientId);
+
+            // 개발 중이라면 가짜 두 번째 플레이어도 등록
+    TryRegisterDebugSecondPlayer();
     }
 
 

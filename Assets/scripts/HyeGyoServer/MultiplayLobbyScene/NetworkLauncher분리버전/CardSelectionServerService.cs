@@ -1,11 +1,20 @@
-using Unity.Netcode;
 using UnityEngine;
+using System.Collections;
 
 public sealed class CardSelectionServerService : MonoBehaviour
 {
     [Header("Preparation Data")]
     [SerializeField]
     private PlayerPreparationRegistry preparationRegistry;
+
+    [Header("Match State")]
+    [SerializeField]
+    private NetworkMatchState matchState;
+
+    private Coroutine beginCardSelectionCoroutine;
+private bool cardSelectionStartRequested;
+
+    private bool isStartingCardSelection;
 
 
     public int RegisteredPlayerCount =>
@@ -50,16 +59,15 @@ public sealed class CardSelectionServerService : MonoBehaviour
         );
 
         LogCurrentPlayers();
+
+        TryRequestCardSelectionStart();
     }
 
 
-    private void OnDisable()
+private void OnDisable()
+{
+    if (preparationRegistry != null)
     {
-        if (preparationRegistry == null)
-        {
-            return;
-        }
-
         preparationRegistry.PlayerRegistered -=
             HandlePlayerRegistered;
 
@@ -67,17 +75,34 @@ public sealed class CardSelectionServerService : MonoBehaviour
             HandlePlayerRemoved;
     }
 
+    if (beginCardSelectionCoroutine != null)
+    {
+        StopCoroutine(
+            beginCardSelectionCoroutine
+        );
+
+        beginCardSelectionCoroutine = null;
+    }
+
+    cardSelectionStartRequested = false;
+}
+
 
     private void EnsureReferences()
     {
-        if (preparationRegistry != null)
+        if (preparationRegistry == null)
         {
-            return;
+            preparationRegistry =
+                FindFirstObjectByType<
+                    PlayerPreparationRegistry>();
         }
 
-        preparationRegistry =
-            FindFirstObjectByType<
-                PlayerPreparationRegistry>();
+        if (matchState == null)
+        {
+            matchState =
+                FindFirstObjectByType<
+                    NetworkMatchState>();
+        }
     }
 
 
@@ -158,14 +183,14 @@ public sealed class CardSelectionServerService : MonoBehaviour
     // ==================================================
 
     /// <summary>
-    /// 현재는 카드 선택 로직을 연결하지 않는다.
+    /// 현재 실제 카드 선택은 Blank 상태.
     ///
-    /// 다음 단계에서:
+    /// 이후:
     /// Server 후보 생성
     /// → CardCandidates 저장
     /// → Client 선택 요청
     /// → Server 검증
-    /// 순서로 구현한다.
+    /// 순서로 구현.
     /// </summary>
     public bool TryChooseCard(
         ulong senderClientId,
@@ -204,23 +229,22 @@ public sealed class CardSelectionServerService : MonoBehaviour
             "[CardSelectionServerService] " +
             $"준비 데이터 연결 | " +
             $"ClientId: {clientId} | " +
-            $"Candidates: " +
-            $"{GetCandidateCount(player)} | " +
-            $"SelectedIndex: " +
-            $"{player.SelectedCardIndex} | " +
-            $"FinalDeck: " +
-            $"{player.FinalDeck.Count} | " +
-            $"RegistryCount: " +
-            $"{preparationRegistry.Count}"
+            $"Candidates: {GetCandidateCount(player)} | " +
+            $"SelectedIndex: {player.SelectedCardIndex} | " +
+            $"FinalDeck: {player.FinalDeck.Count} | " +
+            $"RegistryCount: {preparationRegistry.Count}"
         );
 
-        if (preparationRegistry.Count == 2)
-        {
-            Debug.Log(
-                "[CardSelectionServerService] " +
-                "Host / Client 준비 데이터 2개 연결 완료"
-            );
-        }
+
+if (preparationRegistry.Count == 2)
+{
+    Debug.Log(
+        "[CardSelectionServerService] " +
+        "Host / Client 준비 데이터 2개 연결 완료"
+    );
+
+    TryRequestCardSelectionStart();
+}
     }
 
 
@@ -231,14 +255,273 @@ public sealed class CardSelectionServerService : MonoBehaviour
             "[CardSelectionServerService] " +
             $"플레이어 준비 데이터 연결 해제 | " +
             $"ClientId: {clientId} | " +
-            $"RegistryCount: " +
-            $"{preparationRegistry.Count}"
+            $"RegistryCount: {preparationRegistry.Count}"
         );
+    }
+
+    private void TryRequestCardSelectionStart()
+{
+    if (cardSelectionStartRequested)
+    {
+        return;
+    }
+
+    if (preparationRegistry == null)
+    {
+        return;
+    }
+
+    if (preparationRegistry.Count != 2)
+    {
+        return;
+    }
+
+    cardSelectionStartRequested = true;
+
+    beginCardSelectionCoroutine =
+        StartCoroutine(
+            BeginCardSelectionWhenReady()
+        );
+}
+
+
+private IEnumerator BeginCardSelectionWhenReady()
+{
+    // NetworkMatchState의 NetworkObject가
+    // Spawn될 때까지 기다린다.
+    while (true)
+    {
+        EnsureReferences();
+
+        if (matchState != null &&
+            matchState.IsSpawned)
+        {
+            break;
+        }
+
+        yield return null;
+    }
+
+
+    // 기다리는 도중 플레이어가 빠졌다면 취소
+    if (preparationRegistry == null ||
+        preparationRegistry.Count != 2)
+    {
+        cardSelectionStartRequested = false;
+        beginCardSelectionCoroutine = null;
+
+        yield break;
+    }
+
+
+    if (!matchState.IsServer)
+    {
+        cardSelectionStartRequested = false;
+        beginCardSelectionCoroutine = null;
+
+        yield break;
+    }
+
+
+    if (matchState.CurrentPhase ==
+        MatchPhase.WaitingForPlayers)
+    {
+        Debug.Log(
+            "[CardSelectionServerService] " +
+            "2인 준비 완료 | " +
+            $"RegistryCount: {preparationRegistry.Count}"
+        );
+
+        matchState.ServerBeginCardSelection();
+    }
+
+
+    beginCardSelectionCoroutine = null;
+}
+
+
+    // ==================================================
+    // Debug - 데이터 독립성 테스트
+    // ==================================================
+
+    [ContextMenu(
+        "Debug/Test Independent Player Data")]
+    private void DebugTestIndependentPlayerData()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning(
+                "[CardSelectionServerService] " +
+                "Play Mode에서 실행해주세요."
+            );
+
+            return;
+        }
+
+        if (preparationRegistry == null)
+        {
+            Debug.LogError(
+                "[CardSelectionServerService] " +
+                "Registry가 없습니다."
+            );
+
+            return;
+        }
+
+        if (preparationRegistry.Count < 2)
+        {
+            Debug.LogError(
+                "[CardSelectionServerService] " +
+                "플레이어가 2명 등록되어 있지 않습니다."
+            );
+
+            return;
+        }
+
+
+        ulong hostClientId = 0;
+
+        ulong debugClientId =
+            PlayerPreparationRegistry.DebugClientId;
+
+
+        if (!preparationRegistry.TryGetPlayer(
+                hostClientId,
+                out PlayerPreparationData hostPlayer))
+        {
+            Debug.LogError(
+                "[CardSelectionServerService] " +
+                "Host 데이터를 찾지 못했습니다."
+            );
+
+            return;
+        }
+
+
+        if (!preparationRegistry.TryGetPlayer(
+                debugClientId,
+                out PlayerPreparationData debugPlayer))
+        {
+            Debug.LogError(
+                "[CardSelectionServerService] " +
+                "Debug Client 데이터를 찾지 못했습니다."
+            );
+
+            return;
+        }
+
+
+        hostPlayer.SelectedCardIndex = 100;
+
+        debugPlayer.SelectedCardIndex = 200;
+
+
+        bool isSameObject =
+            ReferenceEquals(
+                hostPlayer,
+                debugPlayer
+            );
+
+
+        Debug.Log(
+            "[CardSelectionServerService] " +
+            "===== 독립 데이터 테스트 ====="
+        );
+
+        Debug.Log(
+            "[CardSelectionServerService] " +
+            $"Host | " +
+            $"ClientId: {hostPlayer.ClientId} | " +
+            $"SelectedCardIndex: " +
+            $"{hostPlayer.SelectedCardIndex}"
+        );
+
+        Debug.Log(
+            "[CardSelectionServerService] " +
+            $"Debug Client | " +
+            $"ClientId: {debugPlayer.ClientId} | " +
+            $"SelectedCardIndex: " +
+            $"{debugPlayer.SelectedCardIndex}"
+        );
+
+        Debug.Log(
+            "[CardSelectionServerService] " +
+            $"같은 PlayerPreparationData 객체인가? " +
+            $"{isSameObject}"
+        );
+
+
+        if (hostPlayer.SelectedCardIndex == 100 &&
+            debugPlayer.SelectedCardIndex == 200 &&
+            !isSameObject)
+        {
+            Debug.Log(
+                "[CardSelectionServerService] " +
+                "Host / Client 데이터 독립 저장 확인 성공"
+            );
+        }
+        else
+        {
+            Debug.LogError(
+                "[CardSelectionServerService] " +
+                "Host / Client 데이터 독립 저장 확인 실패"
+            );
+        }
+    }
+
+
+    [ContextMenu(
+        "Debug/Reset Test Player Data")]
+    private void DebugResetTestPlayerData()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning(
+                "[CardSelectionServerService] " +
+                "Play Mode에서 실행해주세요."
+            );
+
+            return;
+        }
+
+        if (preparationRegistry == null)
+        {
+            return;
+        }
+
+
+        foreach (
+            PlayerPreparationData player
+            in preparationRegistry.Players)
+        {
+            if (player == null)
+            {
+                continue;
+            }
+
+            player.CardCandidates = null;
+
+            player.SelectedCardIndex = -1;
+
+            player.CardSelectionCompleted = false;
+
+            player.ConditionCompleted = false;
+
+            player.FinalDeck.Clear();
+        }
+
+
+        Debug.Log(
+            "[CardSelectionServerService] " +
+            "테스트 준비 데이터 초기화 완료"
+        );
+
+        LogCurrentPlayers();
     }
 
 
     // ==================================================
-    // Debug
+    // Debug - 현재 데이터 출력
     // ==================================================
 
     [ContextMenu(
@@ -255,11 +538,13 @@ public sealed class CardSelectionServerService : MonoBehaviour
             return;
         }
 
+
         Debug.Log(
             "[CardSelectionServerService] " +
             $"현재 준비 데이터 수: " +
             $"{preparationRegistry.Count}"
         );
+
 
         foreach (
             PlayerPreparationData player
@@ -281,7 +566,9 @@ public sealed class CardSelectionServerService : MonoBehaviour
                 $"CardCompleted: " +
                 $"{player.CardSelectionCompleted} | " +
                 $"FinalDeck: " +
-                $"{player.FinalDeck.Count}"
+                $"{player.FinalDeck.Count} | " +
+                $"ConditionCompleted: " +
+                $"{player.ConditionCompleted}"
             );
         }
     }
