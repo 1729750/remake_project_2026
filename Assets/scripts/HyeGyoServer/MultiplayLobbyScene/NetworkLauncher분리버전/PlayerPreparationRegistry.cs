@@ -10,6 +10,17 @@ public sealed class PlayerPreparationRegistry
     [SerializeField]
     private NetworkConnectionMonitor connectionMonitor;
 
+
+    [Header("Debug")]
+    [Tooltip("실제 Client 없이 두 번째 플레이어를 임시 등록합니다.")]
+    [SerializeField]
+    private bool addDebugSecondPlayer;
+
+
+    // 실제 NGO ClientId와 구분하기 위한 테스트 전용 ID
+    public const ulong DebugClientId = ulong.MaxValue;
+
+
     private readonly Dictionary<
         ulong,
         PlayerPreparationData
@@ -35,7 +46,9 @@ public sealed class PlayerPreparationRegistry
 
     private void OnEnable()
     {
-        Debug.Log("[PlayerPreparationRegistry] OnEnable 실행");
+        Debug.Log(
+            "[PlayerPreparationRegistry] OnEnable 실행"
+        );
 
         EnsureReferences();
 
@@ -55,27 +68,35 @@ public sealed class PlayerPreparationRegistry
         connectionMonitor.ClientDisconnected +=
             HandleClientDisconnected;
 
+        // 이미 접속해 있는 실제 NGO 플레이어 등록
         RegisterAlreadyConnectedPlayers();
+
+        // 개발 테스트용 가짜 두 번째 플레이어
+        TryRegisterDebugSecondPlayer();
     }
 
 
     private void OnDisable()
     {
-        if (connectionMonitor == null)
-            return;
+        if (connectionMonitor != null)
+        {
+            connectionMonitor.ClientConnected -=
+                HandleClientConnected;
 
-        connectionMonitor.ClientConnected -=
-            HandleClientConnected;
+            connectionMonitor.ClientDisconnected -=
+                HandleClientDisconnected;
+        }
 
-        connectionMonitor.ClientDisconnected -=
-            HandleClientDisconnected;
+        RemoveDebugSecondPlayer();
     }
 
 
     private void EnsureReferences()
     {
         if (connectionMonitor != null)
+        {
             return;
+        }
 
         connectionMonitor =
             FindFirstObjectByType<
@@ -107,7 +128,9 @@ public sealed class PlayerPreparationRegistry
         ulong clientId)
     {
         if (!IsServer())
+        {
             return;
+        }
 
         RegisterPlayer(clientId);
     }
@@ -117,19 +140,11 @@ public sealed class PlayerPreparationRegistry
         ulong clientId)
     {
         if (!IsServer())
+        {
             return;
+        }
 
-        if (!players.Remove(clientId))
-            return;
-
-        Debug.Log(
-            "[PlayerPreparationRegistry] " +
-            $"준비 데이터 제거 | " +
-            $"ClientId: {clientId} | " +
-            $"Count: {players.Count}"
-        );
-
-        PlayerRemoved?.Invoke(clientId);
+        RemovePlayer(clientId);
     }
 
 
@@ -137,7 +152,9 @@ public sealed class PlayerPreparationRegistry
         ulong clientId)
     {
         if (players.ContainsKey(clientId))
+        {
             return;
+        }
 
         players.Add(
             clientId,
@@ -157,10 +174,36 @@ public sealed class PlayerPreparationRegistry
     }
 
 
+    private void RemovePlayer(
+        ulong clientId)
+    {
+        if (!players.Remove(clientId))
+        {
+            return;
+        }
+
+        Debug.Log(
+            "[PlayerPreparationRegistry] " +
+            $"준비 데이터 제거 | " +
+            $"ClientId: {clientId} | " +
+            $"Count: {players.Count}"
+        );
+
+        PlayerRemoved?.Invoke(clientId);
+    }
+
+
     private void RegisterAlreadyConnectedPlayers()
     {
         if (!IsServer())
+        {
             return;
+        }
+
+        if (NetworkManager.Singleton == null)
+        {
+            return;
+        }
 
         foreach (
             NetworkClient client
@@ -171,6 +214,51 @@ public sealed class PlayerPreparationRegistry
                 client.ClientId
             );
         }
+    }
+
+
+    private void TryRegisterDebugSecondPlayer()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+
+        if (!addDebugSecondPlayer)
+        {
+            return;
+        }
+
+        if (!IsServer())
+        {
+            return;
+        }
+
+        RegisterPlayer(
+            DebugClientId
+        );
+
+        Debug.Log(
+            "[PlayerPreparationRegistry] " +
+            "Debug 두 번째 플레이어 등록 완료"
+        );
+
+#endif
+    }
+
+
+    private void RemoveDebugSecondPlayer()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+
+        if (!players.ContainsKey(
+                DebugClientId))
+        {
+            return;
+        }
+
+        RemovePlayer(
+            DebugClientId
+        );
+
+#endif
     }
 
 
