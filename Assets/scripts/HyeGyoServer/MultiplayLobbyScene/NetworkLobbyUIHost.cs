@@ -112,20 +112,27 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         );
     }
 
-
-    private char ValidateNicknameCharacter(
-        string text,
-        int charIndex,
-        char addedChar)
+    private bool IsValidNickname(string nickname)
     {
-        bool isEnglish =
-            (addedChar >= 'A' &&
-             addedChar <= 'Z') ||
-            (addedChar >= 'a' &&
-             addedChar <= 'z');
+        foreach (char c in nickname)
+            {
+                bool isEnglish =
+                    (c >= 'A' && c <= 'Z') ||
+                    (c >= 'a' && c <= 'z');
 
-        return isEnglish
-            ? addedChar
-            : '\0';
+                bool isHangul =
+                    (c >= '\uAC00' && c <= '\uD7A3') || // 가~힣
+                    (c >= '\u3131' && c <= '\u318E') || // ㄱ~ㆎ
+                    (c >= '\u1100' && c <= '\u11FF');   // 한글 자모
+
+                if (!isEnglish && !isHangul)
+                {
+                    return false;
+                }
+            }
+
+        return true;
     }
+
+
 }
