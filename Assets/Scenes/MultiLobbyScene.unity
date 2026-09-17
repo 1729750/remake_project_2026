@@ -3064,8 +3064,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u200B"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
+  m_sharedMaterial: {fileID: 6373466610033631791, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -5719,8 +5719,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Enter text...
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
+  m_sharedMaterial: {fileID: 6373466610033631791, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -5901,8 +5901,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkLobbyUIHost
   networkLauncher: {fileID: 2107875008}
-  nicknameInput: {fileID: 0}
-  codeOutput: {fileID: 0}
+  nicknameInput: {fileID: 255376336}
+  codeOutput: {fileID: 1213805597}
 --- !u!1 &1822097336
 GameObject:
   m_ObjectHideFlags: 0
