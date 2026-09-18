@@ -2,6 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+
 public sealed class MatchServerController
     : MonoBehaviour
 {
@@ -9,14 +10,17 @@ public sealed class MatchServerController
     [SerializeField]
     private HostGameManager hostGameManager;
 
+
     [Header("Shared State")]
     [SerializeField]
     private NetworkMatchState matchState;
+
 
     [Header("Preparation")]
     [SerializeField]
     private PlayerPreparationRegistry
         preparationRegistry;
+
 
     [Header("Services")]
     [SerializeField]
@@ -27,16 +31,18 @@ public sealed class MatchServerController
     private EnhanceCandidateServerService
         enhanceCandidateService;
 
+
     [Header("Flow")]
-    [InspectorName("셀렉 & 강화 사용")]
-    [SerializeField]
-    private bool useSelectAndEnhance = true;
 
     [InspectorName("게임 씬 이름")]
     [SerializeField]
     private string gameplaySceneName =
         "MultiPlayMode";
+    [InspectorName("셀렉 & 강화 사용")]
+    [SerializeField]
+    private bool useSelectAndEnhance = true;
 
+    
     private void Awake()
     {
         if (matchState == null)
@@ -65,6 +71,33 @@ public sealed class MatchServerController
                 GetComponent<
                     EnhanceCandidateServerService>();
         }
+    }
+
+
+    // =========================================================
+    // Flow Toggle
+    // =========================================================
+
+    /// <summary>
+    /// UI Toggle의 OnValueChanged(bool)에 연결.
+    ///
+    /// true:
+    /// 카드 선택 / 강화 준비 과정 사용.
+    ///
+    /// false:
+    /// 준비 과정을 건너뛰고 바로 게임 Scene 이동.
+    /// </summary>
+    public void SetUseSelectAndEnhance(
+        bool enabled)
+    {
+        useSelectAndEnhance =
+            enabled;
+
+
+        Debug.Log(
+            "[MatchServerController] " +
+            $"셀렉 & 강화 사용: {enabled}"
+        );
     }
 
 
@@ -111,6 +144,36 @@ public sealed class MatchServerController
         }
 
 
+        // =====================================================
+        // 셀렉 & 강화 OFF
+        //
+        // 현재는 준비 과정 전부 건너뛰고
+        // 바로 게임 Scene으로 이동.
+        //
+        // 임시 개발용 우회이므로
+        // MatchPhase 검증보다 먼저 처리한다.
+        // =====================================================
+
+        if (!useSelectAndEnhance)
+        {
+            Debug.Log(
+                "[MatchServerController] " +
+                "셀렉 & 강화 OFF | " +
+                "Preparation 전체 Skip"
+            );
+
+
+            return TryLoadGameplayScene(
+                out rejectReason
+            );
+        }
+
+
+        // =====================================================
+        // 셀렉 & 강화 ON
+        // 기존 준비 흐름 사용
+        // =====================================================
+
         if (matchState.CurrentPhase !=
             MatchPhase.WaitingForPlayers)
         {
@@ -121,14 +184,110 @@ public sealed class MatchServerController
         }
 
 
-        matchState.ServerBeginCardSelection(
-            NetworkManager.ServerClientId
-        );
+        matchState.ServerBeginCardSelection();
 
 
         Debug.Log(
             "[MatchServerController] " +
+            "셀렉 & 강화 ON | " +
             "카드 선택 단계 시작"
+        );
+
+
+        rejectReason =
+            string.Empty;
+
+        return true;
+    }
+
+
+    // =========================================================
+    // Gameplay Scene
+    // =========================================================
+
+    private bool TryLoadGameplayScene(
+        out string rejectReason)
+    {
+        NetworkManager networkManager =
+            NetworkManager.Singleton;
+
+
+        if (networkManager == null)
+        {
+            rejectReason =
+                "NetworkManager가 없습니다.";
+
+            return false;
+        }
+
+
+        if (!networkManager.IsServer)
+        {
+            rejectReason =
+                "Server만 게임 Scene을 " +
+                "변경할 수 있습니다.";
+
+            return false;
+        }
+
+
+        if (networkManager.SceneManager == null)
+        {
+            rejectReason =
+                "NetworkSceneManager가 없습니다.";
+
+            return false;
+        }
+
+
+        if (string.IsNullOrWhiteSpace(
+                gameplaySceneName))
+        {
+            rejectReason =
+                "게임 Scene 이름이 비어 있습니다.";
+
+            return false;
+        }
+
+
+        Debug.Log(
+            "[MatchServerController] " +
+            "게임 Scene 이동 요청 | " +
+            $"Scene: {gameplaySceneName} | " +
+            $"ConnectedClients: " +
+            $"{networkManager.ConnectedClientsIds.Count}"
+        );
+
+
+        SceneEventProgressStatus status =
+            networkManager.SceneManager.LoadScene(
+                gameplaySceneName,
+                LoadSceneMode.Single
+            );
+
+
+        if (status !=
+            SceneEventProgressStatus.Started)
+        {
+            rejectReason =
+                "게임 Scene 이동 실패 | " +
+                $"Status: {status}";
+
+
+            Debug.LogError(
+                "[MatchServerController] " +
+                rejectReason
+            );
+
+
+            return false;
+        }
+
+
+        Debug.Log(
+            "[MatchServerController] " +
+            "게임 Scene 이동 시작 성공 | " +
+            $"Scene: {gameplaySceneName}"
         );
 
 
@@ -156,6 +315,7 @@ public sealed class MatchServerController
             return false;
         }
 
+
         return cardSelectionService.TryChooseCard(
             senderClientId,
             cardId,
@@ -175,6 +335,7 @@ public sealed class MatchServerController
     {
         networkOptions = null;
 
+
         if (enhanceCandidateService == null)
         {
             rejectReason =
@@ -182,6 +343,7 @@ public sealed class MatchServerController
 
             return false;
         }
+
 
         return enhanceCandidateService
             .TryCreateCandidates(
@@ -204,6 +366,7 @@ public sealed class MatchServerController
 
             return false;
         }
+
 
         return enhanceCandidateService
             .TryConfirmCandidate(

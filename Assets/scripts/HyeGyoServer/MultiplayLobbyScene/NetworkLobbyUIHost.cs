@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using Unity.Netcode;
 
 public sealed class NetworkLobbyUIHost : MonoBehaviour
 {
@@ -8,6 +9,16 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
     [SerializeField]
     private NetworkLauncher networkLauncher;
 
+    [Header("Lobby State")]
+    [SerializeField]
+    private HostGameManager hostGameManager;
+    
+    [SerializeField]
+    private MatchServerController matchServerController;
+
+    [Header("Flow")]
+    [SerializeField]
+    private bool autoStartWhenReady = true;
 
     [Header("Host UI")]
     [SerializeField]
@@ -20,7 +31,6 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
     [SerializeField]
     private TMP_Text currentPeopleText;
 
-
     [Header("Waiting Dots")]
     [SerializeField]
     private GameObject waitingDot1;
@@ -31,8 +41,8 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
     [SerializeField]
     private GameObject waitingDot3;
 
-
     private bool hostStartRequested;
+    private bool gameStartRequested;
 
     private Coroutine waitingDotsCoroutine;
 
@@ -89,6 +99,14 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         networkLauncher.SessionCreated +=
             HandleSessionCreated;
 
+        if (hostGameManager != null)
+        {
+            hostGameManager.LobbyPlayersChanged +=
+                HandleLobbyPlayersChanged;
+        }
+
+
+        RefreshCurrentPeople();
         // HostPanel이 켜지는 순간 서버 생성
         StartHostAutomatically();
     }
@@ -100,6 +118,12 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         {
             networkLauncher.SessionCreated -=
                 HandleSessionCreated;
+        }
+
+        if (hostGameManager != null)
+        {
+            hostGameManager.LobbyPlayersChanged -=
+                HandleLobbyPlayersChanged;
         }
 
         // Panel이 꺼지면 대기 애니메이션도 중지
@@ -170,14 +194,9 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         }
 
         // Host 자신이 있으므로 1 / 2
-        if (currentPeopleText != null)
-        {
-            currentPeopleText.text = "1/2";
-        }
+        RefreshCurrentPeople();
 
-        Debug.Log(
-            $"[Host] 방 생성 완료 | Join Code: {joinCode}"
-        );
+        Debug.Log($"[Host] 방 생성 완료 | Join Code: {joinCode}");
     }
 
 
@@ -344,4 +363,99 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
 
         return true;
     }
+
+        private void HandleLobbyPlayersChanged()
+    {
+        RefreshCurrentPeople();
+
+
+        if (!autoStartWhenReady)
+        {
+            return;
+        }
+
+
+        if (gameStartRequested)
+        {
+            return;
+        }
+
+
+            if (hostGameManager == null || !hostGameManager.IsRoomReady)
+        {
+            return;
+        }
+
+
+        TryStartGame();
+    }
+
+        private void RefreshCurrentPeople()
+    {
+        if (currentPeopleText == null)
+        {
+            return;
+        }
+
+
+        if (hostGameManager == null)
+        {
+            currentPeopleText.text =
+                string.Empty;
+
+            return;
+        }
+
+
+        currentPeopleText.text =
+            $"{hostGameManager.ConnectedPlayerCount}/2";
+    }
+    private void TryStartGame()
+{
+    if (matchServerController == null)
+    {
+        Debug.LogError(
+            "[NetworkLobbyUIHost] " +
+            "MatchServerController가 연결되지 않았습니다."
+        );
+
+        return;
+    }
+
+
+    if (NetworkManager.Singleton == null ||
+        !NetworkManager.Singleton.IsHost)
+    {
+        return;
+    }
+
+
+    gameStartRequested = true;
+
+
+    bool success =
+        matchServerController.TryStartMatch(
+            NetworkManager.ServerClientId,
+            out string rejectReason
+        );
+
+
+    if (!success)
+    {
+        gameStartRequested = false;
+
+        Debug.LogWarning(
+            "[NetworkLobbyUIHost] " +
+            $"게임 시작 실패 | {rejectReason}"
+        );
+
+        return;
+    }
+
+
+    Debug.Log(
+        "[NetworkLobbyUIHost] " +
+        "2/2 확인 → 게임 시작 요청 성공"
+    );
+}
 }
