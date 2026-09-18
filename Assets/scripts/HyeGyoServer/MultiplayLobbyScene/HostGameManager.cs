@@ -609,10 +609,27 @@ public sealed class HostGameManager :
     }
 
     private void HandleLobbyPlayersChanged(
-        NetworkListEvent<LobbyPlayerData>
-            changeEvent)
+        NetworkListEvent<LobbyPlayerData> changeEvent)
     {
+        Debug.Log(
+            "[HostGameManager] " +
+            "NetworkList 변경 감지 | " +
+            $"Count: {ConnectedPlayerCount} | " +
+            $"InstanceId: {GetInstanceID()}"
+        );
+
+
         RefreshLobbyUI();
+
+
+        Debug.Log(
+            "[HostGameManager] " +
+            "LobbyPlayersChanged 직접 Invoke | " +
+            $"Count: {ConnectedPlayerCount}"
+        );
+
+
+        LobbyPlayersChanged?.Invoke();
     }
 
     // =========================================================
@@ -714,7 +731,6 @@ public sealed class HostGameManager :
             );
         }
 
-        LobbyPlayersChanged?.Invoke();
     }
 
     private void ResetLobbyDisplay()
