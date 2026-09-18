@@ -1003,8 +1003,8 @@ MonoBehaviour:
   preparationRegistry: {fileID: 516293310}
   cardSelectionService: {fileID: 178852481}
   enhanceCandidateService: {fileID: 178852480}
-  useSelectAndEnhance: 1
   gameplaySceneName: MultiPlayMode
+  useSelectAndEnhance: 0
 --- !u!114 &178852480
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5664,7 +5664,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1799358505
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5751,6 +5751,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkLobbyUIHost
   networkLauncher: {fileID: 2107875008}
+  hostGameManager: {fileID: 1932713659}
+  matchServerController: {fileID: 178852479}
+  autoStartWhenReady: 1
   nicknameInput: {fileID: 255376336}
   codeOutput: {fileID: 681787255}
   currentPeopleText: {fileID: 2091558691}

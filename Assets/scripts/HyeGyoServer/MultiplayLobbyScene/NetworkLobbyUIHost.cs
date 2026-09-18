@@ -366,6 +366,13 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
 
         private void HandleLobbyPlayersChanged()
     {
+
+        Debug.Log(
+        "[NetworkLobbyUIHost] " +
+        $"LobbyPlayersChanged | " +
+        $"Count: {hostGameManager?.ConnectedPlayerCount}"
+        );
+
         RefreshCurrentPeople();
 
 
@@ -411,51 +418,69 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
             $"{hostGameManager.ConnectedPlayerCount}/2";
     }
     private void TryStartGame()
-{
-    if (matchServerController == null)
     {
-        Debug.LogError(
+        Debug.Log(
+            "[NetworkLobbyUIHost] TryStartGame 호출됨"
+        );
+
+        if (matchServerController == null)
+        {
+            Debug.LogError(
+                "[NetworkLobbyUIHost] " +
+                "MatchServerController가 연결되지 않았습니다."
+            );
+
+            return;
+        }
+
+        if (NetworkManager.Singleton == null)
+        {
+            Debug.LogError(
+                "[NetworkLobbyUIHost] NetworkManager 없음"
+            );
+
+            return;
+        }
+
+        Debug.Log(
             "[NetworkLobbyUIHost] " +
-            "MatchServerController가 연결되지 않았습니다."
+            $"IsHost: {NetworkManager.Singleton.IsHost} | " +
+            $"IsServer: {NetworkManager.Singleton.IsServer} | " +
+            $"Players: {hostGameManager?.ConnectedPlayerCount}"
         );
 
-        return;
-    }
+        if (!NetworkManager.Singleton.IsHost)
+        {
+            Debug.LogWarning(
+                "[NetworkLobbyUIHost] Host가 아니므로 시작 안 함"
+            );
 
+            return;
+        }
 
-    if (NetworkManager.Singleton == null ||
-        !NetworkManager.Singleton.IsHost)
-    {
-        return;
-    }
+        gameStartRequested = true;
 
+        bool success =
+            matchServerController.TryStartMatch(
+                NetworkManager.ServerClientId,
+                out string rejectReason
+            );
 
-    gameStartRequested = true;
+        if (!success)
+        {
+            gameStartRequested = false;
 
+            Debug.LogWarning(
+                "[NetworkLobbyUIHost] " +
+                $"게임 시작 실패 | {rejectReason}"
+            );
 
-    bool success =
-        matchServerController.TryStartMatch(
-            NetworkManager.ServerClientId,
-            out string rejectReason
-        );
+            return;
+        }
 
-
-    if (!success)
-    {
-        gameStartRequested = false;
-
-        Debug.LogWarning(
+        Debug.Log(
             "[NetworkLobbyUIHost] " +
-            $"게임 시작 실패 | {rejectReason}"
+            "게임 시작 요청 성공"
         );
-
-        return;
     }
-
-
-    Debug.Log(
-        "[NetworkLobbyUIHost] " +
-        "2/2 확인 → 게임 시작 요청 성공"
-    );
-}
 }
