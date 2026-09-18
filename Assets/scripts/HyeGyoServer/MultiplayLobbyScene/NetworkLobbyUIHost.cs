@@ -86,16 +86,22 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
 
     private void OnEnable()
     {
+        Debug.Log(
+            "[NetworkLobbyUIHost] OnEnable 실행"
+        );
+
+
         if (networkLauncher == null)
         {
             Debug.LogError(
-                "[NetworkLobbyUIHost] NetworkLauncher가 연결되지 않았습니다."
+                "[NetworkLobbyUIHost] " +
+                "NetworkLauncher가 연결되지 않았습니다."
             );
 
             return;
         }
 
-        // 방 생성 완료 이벤트 구독
+
         networkLauncher.SessionCreated +=
             HandleSessionCreated;
 
@@ -103,11 +109,26 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         {
             hostGameManager.LobbyPlayersChanged +=
                 HandleLobbyPlayersChanged;
+
+            Debug.Log(
+                "[NetworkLobbyUIHost] " +
+                "HostGameManager.LobbyPlayersChanged 구독 완료 | " +
+                $"HostGameManager InstanceId: " +
+                $"{hostGameManager.GetInstanceID()}"
+            );
+        }
+        else
+            {
+                Debug.LogError(
+                "[NetworkLobbyUIHost] " +
+                    "HostGameManager가 연결되지 않았습니다."
+                );
+            }
         }
 
 
         RefreshCurrentPeople();
-        // HostPanel이 켜지는 순간 서버 생성
+
         StartHostAutomatically();
     }
 
@@ -364,34 +385,64 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         return true;
     }
 
-        private void HandleLobbyPlayersChanged()
+    private void HandleLobbyPlayersChanged()
     {
-
         Debug.Log(
-        "[NetworkLobbyUIHost] " +
-        $"LobbyPlayersChanged | " +
-        $"Count: {hostGameManager?.ConnectedPlayerCount}"
+            "[NetworkLobbyUIHost] " +
+            "LobbyPlayersChanged 이벤트 수신 | " +
+            $"Count: {hostGameManager.ConnectedPlayerCount} | " +
+            $"HostGameManager InstanceId: " +
+            $"{hostGameManager.GetInstanceID()}"
         );
+
 
         RefreshCurrentPeople();
 
 
         if (!autoStartWhenReady)
         {
+            Debug.Log(
+                "[NetworkLobbyUIHost] " +
+                "AutoStartWhenReady OFF"
+            );
+
             return;
         }
 
 
         if (gameStartRequested)
         {
+            Debug.Log(
+                "[NetworkLobbyUIHost] " +
+                "게임 시작 요청이 이미 처리되었습니다."
+            );
+
             return;
         }
 
 
-            if (hostGameManager == null || !hostGameManager.IsRoomReady)
+        if (hostGameManager == null)
         {
             return;
         }
+
+
+        if (!hostGameManager.IsRoomReady)
+        {
+            Debug.Log(
+                "[NetworkLobbyUIHost] " +
+                $"아직 Room Ready 아님 | " +
+                $"Count: {hostGameManager.ConnectedPlayerCount}"
+            );
+
+            return;
+        }
+
+
+        Debug.Log(
+            "[NetworkLobbyUIHost] " +
+            "2/2 확인 → TryStartGame 호출"
+        );
 
 
         TryStartGame();
