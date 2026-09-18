@@ -402,14 +402,12 @@ private void RefreshCurrentPeople()
             return;
         }
 
-
-        Debug.Log(
-            "[NetworkLobbyUIHost] " +
-            $"IsHost: {NetworkManager.Singleton.IsHost} | " +
-            $"IsServer: {NetworkManager.Singleton.IsServer} | " +
-            $"Players: {hostGameManager.ConnectedPlayerCount}"
-        );
-
+Debug.Log(
+    "[NetworkLobbyUIHost] " +
+    $"IsHost: {NetworkManager.Singleton.IsHost} | " +
+    $"IsServer: {NetworkManager.Singleton.IsServer} | " +
+    $"NGO Players: {connectionMonitor.ConnectedPlayerCount}"
+);
 
         if (!NetworkManager.Singleton.IsHost)
         {
