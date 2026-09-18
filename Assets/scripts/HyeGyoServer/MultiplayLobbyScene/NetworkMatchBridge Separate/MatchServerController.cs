@@ -168,36 +168,48 @@ public sealed class MatchServerController
             );
         }
 
+// =====================================================
+// 셀렉 & 강화 ON
+//
+// MatchServerController가 직접
+// NetworkMatchState를 변경하지 않는다.
+//
+// 실제 카드 선택 시작 처리는
+// CardSelectionServerService에게 위임한다.
+// =====================================================
 
-        // =====================================================
-        // 셀렉 & 강화 ON
-        // 기존 준비 흐름 사용
-        // =====================================================
+    if (cardSelectionService == null)
+    {
+        rejectReason =
+            "CardSelectionServerService가 없습니다.";
 
-        if (matchState.CurrentPhase !=
-            MatchPhase.WaitingForPlayers)
-        {
-            rejectReason =
-                "이미 게임이 진행 중입니다.";
-
-            return false;
-        }
+        return false;
+    }
 
 
-        matchState.ServerBeginCardSelection();
-
-
-        Debug.Log(
-            "[MatchServerController] " +
-            "셀렉 & 강화 ON | " +
-            "카드 선택 단계 시작"
+    bool started =
+        cardSelectionService.TryStartCardSelection(
+            out rejectReason
         );
 
 
-        rejectReason =
-            string.Empty;
+    if (!started)
+    {
+        return false;
+    }
 
-        return true;
+
+    Debug.Log(
+        "[MatchServerController] " +
+        "셀렉 & 강화 ON | " +
+        "CardSelectionServerService 시작 요청 완료"
+    );
+
+
+    rejectReason =
+        string.Empty;
+
+    return true;
     }
 
 
