@@ -627,7 +627,14 @@ public sealed class HostGameManager :
             "LobbyPlayersChanged 직접 Invoke | " +
             $"Count: {ConnectedPlayerCount}"
         );
+Debug.Log(
+    "[HostGameManager] " +
+    "LobbyPlayersChanged Invoke | " +
+    $"Count: {ConnectedPlayerCount} | " +
+    $"InstanceId: {GetInstanceID()}"
+);
 
+LobbyPlayersChanged?.Invoke();
 
         LobbyPlayersChanged?.Invoke();
     }

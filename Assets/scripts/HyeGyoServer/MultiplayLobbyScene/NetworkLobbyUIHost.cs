@@ -144,6 +144,11 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
 
     private void OnDisable()
     {
+
+            Debug.LogWarning(
+        "[NetworkLobbyUIHost] OnDisable 실행 | " +
+        $"InstanceId: {GetInstanceID()}"
+    );
         if (networkLauncher != null)
         {
             networkLauncher.SessionCreated -=
