@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public sealed class MatchServerController
     : MonoBehaviour
@@ -26,6 +27,15 @@ public sealed class MatchServerController
     private EnhanceCandidateServerService
         enhanceCandidateService;
 
+    [Header("Flow")]
+    [InspectorName("셀렉 & 강화 사용")]
+    [SerializeField]
+    private bool useSelectAndEnhance = true;
+
+    [InspectorName("게임 씬 이름")]
+    [SerializeField]
+    private string gameplaySceneName =
+        "MultiPlayMode";
 
     private void Awake()
     {
