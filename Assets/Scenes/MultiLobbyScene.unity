@@ -5751,6 +5751,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkLobbyUIHost
   networkLauncher: {fileID: 2107875008}
+  connectionMonitor: {fileID: 2107875011}
   hostGameManager: {fileID: 1932713659}
   matchServerController: {fileID: 178852479}
   autoStartWhenReady: 1
