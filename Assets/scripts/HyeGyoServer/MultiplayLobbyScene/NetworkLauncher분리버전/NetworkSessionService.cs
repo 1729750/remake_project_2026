@@ -21,32 +21,62 @@ public sealed class NetworkSessionService : MonoBehaviour
     [SerializeField]
     private string sessionName = "HyeGyo Match";
 
+
     private NetworkModeGate modeGate;
     private NetworkStatusHub statusHub;
     private UnityServicesAuthService services;
+
     private ISession currentSession;
 
+
     public bool IsBusy { get; private set; }
-    public bool IsInSession => currentSession != null;
-    public int MaxPlayers => maxPlayers;
+
+    public bool IsInSession =>
+        currentSession != null;
+
+    public int MaxPlayers =>
+        maxPlayers;
 
     public string JoinCode =>
         currentSession != null
             ? currentSession.Code
             : string.Empty;
 
-    public ISession CurrentSession => currentSession;
+    public ISession CurrentSession =>
+        currentSession;
+
 
     public event Action<string> SessionCreated;
     public event Action SessionJoined;
     public event Action SessionLeft;
 
+
+    // =========================================================
+    // Unity
+    // =========================================================
+
     private void Awake()
     {
-        modeGate = GetComponent<NetworkModeGate>();
-        statusHub = GetComponent<NetworkStatusHub>();
-        services = GetComponent<UnityServicesAuthService>();
+        EnsureReferences();
     }
+
+
+    private void EnsureReferences()
+    {
+        modeGate ??=
+            GetComponent<NetworkModeGate>();
+
+        statusHub ??=
+            GetComponent<NetworkStatusHub>();
+
+        services ??=
+            GetComponent<UnityServicesAuthService>();
+    }
+
+
+    // =========================================================
+    // Create Session
+    // =========================================================
 
     public async Task<bool> CreateSessionAsync()
     {
@@ -55,92 +85,135 @@ public sealed class NetworkSessionService : MonoBehaviour
 
         IsBusy = true;
 
+        ISession createdSession;
+
         try
         {
             await services.EnsureReadyAsync();
 
-            statusHub.SetStatus("Relay 세션 생성 중...");
+            statusHub.SetStatus(
+                "Relay 세션 생성 중..."
+            );
 
-            var options = new SessionOptions
-            {
-                MaxPlayers = maxPlayers,
-                Name = sessionName
-            }.WithRelayNetwork();
+            var options =
+                new SessionOptions
+                {
+                    MaxPlayers = maxPlayers,
+                    Name = sessionName
+                }
+                .WithRelayNetwork();
 
-            currentSession =
+            createdSession =
                 await MultiplayerService.Instance
                     .CreateSessionAsync(options);
-
-            statusHub.SetStatus(
-                $"방 생성 완료\n" +
-                $"참가 코드: {currentSession.Code}"
-            );
-
-            SessionCreated?.Invoke(currentSession.Code);
-
-            Debug.Log(
-                $"Relay 세션 생성 완료 | " +
-                $"Session ID: {currentSession.Id} | " +
-                $"Join Code: {currentSession.Code}"
-            );
-
-            return true;
         }
         catch (Exception exception)
         {
-            currentSession = null;
-
             statusHub.SetStatus(
                 $"방 생성 실패\n{exception.Message}"
             );
 
             Debug.LogException(exception);
+
             return false;
         }
         finally
         {
             IsBusy = false;
         }
+
+
+        currentSession =
+            createdSession;
+
+
+        statusHub.SetStatus(
+            $"방 생성 완료\n" +
+            $"참가 코드: {currentSession.Code}"
+        );
+
+
+        RaiseSessionCreated(
+            currentSession.Code
+        );
+
+
+        Debug.Log(
+            $"[NetworkSessionService] " +
+            $"방 생성 완료 | " +
+            $"Session ID: {currentSession.Id} | " +
+            $"Join Code: {currentSession.Code}"
+        );
+
+
+        return true;
     }
 
-    public async Task<bool> JoinSessionAsync(string joinCode)
+
+    // =========================================================
+    // Join Session
+    // =========================================================
+
+    public async Task<bool> JoinSessionAsync(
+        string joinCode)
     {
         if (!CanBeginSessionOperation())
             return false;
 
-        string normalizedCode =
-            joinCode?.Trim().ToUpperInvariant();
 
-        if (string.IsNullOrWhiteSpace(normalizedCode))
+        string normalizedCode =
+            joinCode?
+                .Trim()
+                .ToUpperInvariant();
+
+
+        if (string.IsNullOrWhiteSpace(
+                normalizedCode))
         {
-            statusHub.SetStatus("참가 코드를 입력하세요.");
+            statusHub.SetStatus(
+                "참가 코드를 입력하세요."
+            );
+
             return false;
         }
 
+
         IsBusy = true;
+
 
         try
         {
             await services.EnsureReadyAsync();
 
-            statusHub.SetStatus("Relay 세션 참가 중...");
+
+            statusHub.SetStatus(
+                "Relay 세션 참가 중..."
+            );
+
 
             currentSession =
                 await MultiplayerService.Instance
-                    .JoinSessionByCodeAsync(normalizedCode);
+                    .JoinSessionByCodeAsync(
+                        normalizedCode
+                    );
+
 
             statusHub.SetStatus(
                 $"방 참가 완료\n" +
                 $"참가 코드: {currentSession.Code}"
             );
 
+
             SessionJoined?.Invoke();
 
+
             Debug.Log(
+                $"[NetworkSessionService] " +
                 $"Relay 세션 참가 완료 | " +
                 $"Session ID: {currentSession.Id} | " +
                 $"Join Code: {currentSession.Code}"
             );
+
 
             return true;
         }
@@ -148,11 +221,14 @@ public sealed class NetworkSessionService : MonoBehaviour
         {
             currentSession = null;
 
+
             statusHub.SetStatus(
                 $"방 참가 실패\n{exception.Message}"
             );
 
+
             Debug.LogException(exception);
+
             return false;
         }
         finally
@@ -161,8 +237,28 @@ public sealed class NetworkSessionService : MonoBehaviour
         }
     }
 
+
+    // =========================================================
+    // Leave Session
+    // =========================================================
+
     public async Task<bool> LeaveSessionAsync()
     {
+        EnsureReferences();
+
+
+        if (statusHub == null)
+        {
+            Debug.LogError(
+                "[NetworkSessionService] " +
+                "NetworkStatusHub를 찾을 수 없습니다.",
+                this
+            );
+
+            return false;
+        }
+
+
         if (IsBusy)
         {
             statusHub.SetStatus(
@@ -171,6 +267,7 @@ public sealed class NetworkSessionService : MonoBehaviour
 
             return false;
         }
+
 
         if (currentSession == null)
         {
@@ -181,17 +278,30 @@ public sealed class NetworkSessionService : MonoBehaviour
             return false;
         }
 
+
         IsBusy = true;
+
 
         try
         {
-            statusHub.SetStatus("세션에서 나가는 중...");
+            statusHub.SetStatus(
+                "세션에서 나가는 중..."
+            );
+
 
             await currentSession.LeaveAsync();
+
+
             currentSession = null;
 
-            statusHub.SetStatus("세션에서 나왔습니다.");
+
+            statusHub.SetStatus(
+                "세션에서 나왔습니다."
+            );
+
+
             SessionLeft?.Invoke();
+
 
             return true;
         }
@@ -201,7 +311,9 @@ public sealed class NetworkSessionService : MonoBehaviour
                 $"세션 나가기 실패\n{exception.Message}"
             );
 
+
             Debug.LogException(exception);
+
             return false;
         }
         finally
@@ -210,26 +322,109 @@ public sealed class NetworkSessionService : MonoBehaviour
         }
     }
 
+
+    // =========================================================
+    // Validation
+    // =========================================================
+
     private bool CanBeginSessionOperation()
     {
-        if (!modeGate.NetworkEnabled)
+        EnsureReferences();
+
+
+        if (modeGate == null)
         {
-            statusHub.SetStatus("네트워크 기능이 OFF 상태입니다.");
+            Debug.LogError(
+                "[NetworkSessionService] " +
+                "NetworkModeGate를 찾을 수 없습니다.",
+                this
+            );
+
             return false;
         }
+
+
+        if (statusHub == null)
+        {
+            Debug.LogError(
+                "[NetworkSessionService] " +
+                "NetworkStatusHub를 찾을 수 없습니다.",
+                this
+            );
+
+            return false;
+        }
+
+
+        if (services == null)
+        {
+            Debug.LogError(
+                "[NetworkSessionService] " +
+                "UnityServicesAuthService를 찾을 수 없습니다.",
+                this
+            );
+
+            return false;
+        }
+
+
+        if (!modeGate.NetworkEnabled)
+        {
+            statusHub.SetStatus(
+                "네트워크 기능이 OFF 상태입니다."
+            );
+
+            return false;
+        }
+
 
         if (IsBusy)
         {
-            statusHub.SetStatus("현재 다른 네트워크 작업을 처리 중입니다.");
+            statusHub.SetStatus(
+                "현재 다른 네트워크 작업을 처리 중입니다."
+            );
+
             return false;
         }
+
 
         if (currentSession != null)
         {
-            statusHub.SetStatus("이미 참가 중인 세션이 있습니다.");
+            statusHub.SetStatus(
+                "이미 참가 중인 세션이 있습니다."
+            );
+
             return false;
         }
 
+
         return true;
+    }
+
+
+    // =========================================================
+    // Events
+    // =========================================================
+
+    private void RaiseSessionCreated(
+        string joinCode)
+    {
+        if (SessionCreated == null)
+            return;
+
+
+        foreach (
+            Action<string> handler
+            in SessionCreated.GetInvocationList())
+        {
+            try
+            {
+                handler(joinCode);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
+        }
     }
 }

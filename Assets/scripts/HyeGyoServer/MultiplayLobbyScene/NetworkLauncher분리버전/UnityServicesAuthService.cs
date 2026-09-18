@@ -4,10 +4,6 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using UnityEngine;
 
-/// <summary>
-/// Unity Gaming Services 초기화 + 익명 로그인만 담당한다.
-/// Session 생성/참가/Relay 연결은 담당하지 않는다.
-/// </summary>
 [RequireComponent(typeof(NetworkModeGate))]
 [RequireComponent(typeof(NetworkStatusHub))]
 public sealed class UnityServicesAuthService : MonoBehaviour
@@ -24,14 +20,30 @@ public sealed class UnityServicesAuthService : MonoBehaviour
             ? AuthenticationService.Instance.PlayerId
             : string.Empty;
 
+
     private void Awake()
     {
-        modeGate = GetComponent<NetworkModeGate>();
-        statusHub = GetComponent<NetworkStatusHub>();
+        RefreshReferences();
     }
+
+
+    private void RefreshReferences()
+    {
+        modeGate =
+            GetComponent<NetworkModeGate>();
+
+        statusHub =
+            GetComponent<NetworkStatusHub>();
+    }
+
 
     private async void Start()
     {
+        RefreshReferences();
+
+        if (!ValidateReferences())
+            return;
+
         if (!modeGate.InitializeServicesOnStart)
         {
             statusHub.SetStatus(
@@ -57,12 +69,19 @@ public sealed class UnityServicesAuthService : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// UGS/Auth가 준비되어 있지 않다면 한 번만 초기화한다.
-    /// 여러 곳에서 동시에 호출해도 같은 Task를 기다린다.
-    /// </summary>
+
     public async Task EnsureReadyAsync()
     {
+        // 호출할 때마다 다시 참조 확인
+        RefreshReferences();
+
+        if (!ValidateReferences())
+        {
+            throw new InvalidOperationException(
+                "UnityServicesAuthService의 필수 컴포넌트가 없습니다."
+            );
+        }
+
         if (!modeGate.NetworkEnabled)
         {
             throw new InvalidOperationException(
@@ -73,7 +92,8 @@ public sealed class UnityServicesAuthService : MonoBehaviour
         if (IsInitialized)
             return;
 
-        initializationTask ??= InitializeAsync();
+        initializationTask ??=
+            InitializeAsync();
 
         try
         {
@@ -85,6 +105,35 @@ public sealed class UnityServicesAuthService : MonoBehaviour
             throw;
         }
     }
+
+
+    private bool ValidateReferences()
+    {
+        if (modeGate == null)
+        {
+            Debug.LogError(
+                "[UnityServicesAuthService] " +
+                "같은 GameObject에서 NetworkModeGate를 찾지 못했습니다.",
+                gameObject
+            );
+
+            return false;
+        }
+
+        if (statusHub == null)
+        {
+            Debug.LogError(
+                "[UnityServicesAuthService] " +
+                "같은 GameObject에서 NetworkStatusHub를 찾지 못했습니다.",
+                gameObject
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
 
     private async Task InitializeAsync()
     {
@@ -113,6 +162,10 @@ public sealed class UnityServicesAuthService : MonoBehaviour
         statusHub.SetStatus(
             $"로그인 완료\n" +
             $"Player ID: {AuthenticationService.Instance.PlayerId}"
+        );
+
+        Debug.Log(
+            "[UnityServicesAuthService] UGS/Auth 준비 완료"
         );
     }
 }

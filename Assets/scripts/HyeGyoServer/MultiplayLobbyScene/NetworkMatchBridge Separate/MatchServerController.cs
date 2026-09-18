@@ -1,23 +1,31 @@
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Server의 게임 요청 검증 / 판정 전용 클래스.
-/// RPC와 상태 저장은 담당하지 않는다.
-/// </summary>
-public sealed class MatchServerController : MonoBehaviour
+public sealed class MatchServerController
+    : MonoBehaviour
 {
     [Header("Lobby")]
     [SerializeField]
     private HostGameManager hostGameManager;
 
-    [Header("Data")]
-    [SerializeField]
-    private CardDatabase cardDatabase;
-
     [Header("Shared State")]
     [SerializeField]
     private NetworkMatchState matchState;
+
+    [Header("Preparation")]
+    [SerializeField]
+    private PlayerPreparationRegistry
+        preparationRegistry;
+
+    [Header("Services")]
+    [SerializeField]
+    private CardSelectionServerService
+        cardSelectionService;
+
+    [SerializeField]
+    private EnhanceCandidateServerService
+        enhanceCandidateService;
+
 
     private void Awake()
     {
@@ -26,7 +34,29 @@ public sealed class MatchServerController : MonoBehaviour
             matchState =
                 GetComponent<NetworkMatchState>();
         }
+
+        if (preparationRegistry == null)
+        {
+            preparationRegistry =
+                GetComponent<
+                    PlayerPreparationRegistry>();
+        }
+
+        if (cardSelectionService == null)
+        {
+            cardSelectionService =
+                GetComponent<
+                    CardSelectionServerService>();
+        }
+
+        if (enhanceCandidateService == null)
+        {
+            enhanceCandidateService =
+                GetComponent<
+                    EnhanceCandidateServerService>();
+        }
     }
+
 
     // =========================================================
     // Match Start
@@ -42,6 +72,7 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+
         if (senderClientId !=
             NetworkManager.ServerClientId)
         {
@@ -51,13 +82,15 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+
         if (hostGameManager == null)
         {
             rejectReason =
-                "HostGameManager가 연결되어 있지 않습니다.";
+                "HostGameManager가 없습니다.";
 
             return false;
         }
+
 
         if (!hostGameManager.IsRoomReady)
         {
@@ -66,6 +99,7 @@ public sealed class MatchServerController : MonoBehaviour
 
             return false;
         }
+
 
         if (matchState.CurrentPhase !=
             MatchPhase.WaitingForPlayers)
@@ -76,15 +110,17 @@ public sealed class MatchServerController : MonoBehaviour
             return false;
         }
 
+
         matchState.ServerBeginCardSelection(
             NetworkManager.ServerClientId
         );
 
+
         Debug.Log(
-            "[Server] 멀티 게임 시작 | " +
-            $"첫 번째 턴 ClientId: " +
-            $"{NetworkManager.ServerClientId}"
+            "[MatchServerController] " +
+            "카드 선택 단계 시작"
         );
+
 
         rejectReason =
             string.Empty;
@@ -92,8 +128,9 @@ public sealed class MatchServerController : MonoBehaviour
         return true;
     }
 
+
     // =========================================================
-    // Card Selection
+    // Card
     // =========================================================
 
     public bool TryChooseCard(
@@ -101,146 +138,74 @@ public sealed class MatchServerController : MonoBehaviour
         int cardId,
         out string rejectReason)
     {
-        if (!ValidateServerState(
-                out rejectReason))
-        {
-            return false;
-        }
-
-        Debug.Log(
-            "[Server] 카드 선택 요청 | " +
-            $"Client: {senderClientId} | " +
-            $"CardId: {cardId}"
-        );
-
-        if (!IsRegisteredPlayer(
-                senderClientId))
+        if (cardSelectionService == null)
         {
             rejectReason =
-                "등록되지 않은 플레이어입니다.";
+                "CardSelectionServerService가 없습니다.";
 
             return false;
         }
 
-        if (matchState.CurrentPhase !=
-            MatchPhase.ChoosingCard)
-        {
-            rejectReason =
-                "현재는 카드를 선택할 수 없습니다.";
-
-            return false;
-        }
-
-        if (matchState.CurrentTurnClientId !=
-            senderClientId)
-        {
-            rejectReason =
-                "현재 당신의 차례가 아닙니다.";
-
-            return false;
-        }
-
-        if (cardDatabase == null)
-        {
-            Debug.LogError(
-                "[MatchServerController] " +
-                "CardDatabase가 Inspector에 연결되어 있지 않습니다."
-            );
-
-            rejectReason =
-                "카드 데이터베이스 오류입니다.";
-
-            return false;
-        }
-
-        if (!cardDatabase.TryGetCard(
-                cardId,
-                out _))
-        {
-            rejectReason =
-                "존재하지 않는 카드입니다.";
-
-            return false;
-        }
-
-        if (matchState.IsCardAlreadySelected(
-                cardId))
-        {
-            rejectReason =
-                "이미 선택된 카드입니다.";
-
-            return false;
-        }
-
-        return ApplyCardSelection(
+        return cardSelectionService.TryChooseCard(
             senderClientId,
             cardId,
             out rejectReason
         );
     }
 
-    private bool ApplyCardSelection(
-        ulong clientId,
-        int cardId,
+
+    // =========================================================
+    // Enhance
+    // =========================================================
+
+    public bool TryCreateEnhanceCandidates(
+        ulong senderClientId,
+        out EnhanceOptionNetData[] networkOptions,
         out string rejectReason)
     {
-        matchState.ServerAddSelectedCard(
-            clientId,
-            cardId
-        );
+        networkOptions = null;
 
-        Debug.Log(
-            "[Server] 카드 선택 승인 | " +
-            $"Client: {clientId} | " +
-            $"CardId: {cardId}"
-        );
-
-        if (matchState.SelectedCardCount >= 2)
+        if (enhanceCandidateService == null)
         {
-            matchState.ServerSetPhase(
-                MatchPhase.ChoosingCondition
-            );
-
-            Debug.Log(
-                "[Server] 카드 선택 완료 → " +
-                "조건 선택 단계"
-            );
-
             rejectReason =
-                string.Empty;
-
-            return true;
-        }
-
-        if (!TryGetOtherClientId(
-                clientId,
-                out ulong nextClientId))
-        {
-            matchState.ServerResetToWaiting();
-
-            rejectReason =
-                "상대 플레이어가 연결되어 있지 않습니다.";
+                "EnhanceCandidateServerService가 없습니다.";
 
             return false;
         }
 
-        matchState.ServerSetTurn(
-            nextClientId
-        );
-
-        Debug.Log(
-            "[Server] 카드 선택 턴 변경 | " +
-            $"Next Client: {nextClientId}"
-        );
-
-        rejectReason =
-            string.Empty;
-
-        return true;
+        return enhanceCandidateService
+            .TryCreateCandidates(
+                senderClientId,
+                out networkOptions,
+                out rejectReason
+            );
     }
 
+
+    public bool TryConfirmEnhanceCandidate(
+        ulong senderClientId,
+        int selectedIndex,
+        out string rejectReason)
+    {
+        if (enhanceCandidateService == null)
+        {
+            rejectReason =
+                "EnhanceCandidateServerService가 없습니다.";
+
+            return false;
+        }
+
+        return enhanceCandidateService
+            .TryConfirmCandidate(
+                senderClientId,
+                selectedIndex,
+                out rejectReason
+            );
+    }
+
+
     // =========================================================
-    // Validation Helpers
+    // Validation
     // =========================================================
 
     private bool ValidateServerState(
@@ -249,73 +214,25 @@ public sealed class MatchServerController : MonoBehaviour
         if (matchState == null)
         {
             rejectReason =
-                "NetworkMatchState가 연결되어 있지 않습니다.";
+                "NetworkMatchState가 없습니다.";
 
             return false;
         }
 
-        if (!matchState.IsSpawned)
+
+        if (!matchState.IsSpawned ||
+            !matchState.IsServer)
         {
             rejectReason =
-                "NetworkMatchState가 아직 Spawn되지 않았습니다.";
+                "Server가 아닙니다.";
 
             return false;
         }
 
-        if (!matchState.IsServer)
-        {
-            rejectReason =
-                "Server에서만 처리할 수 있는 요청입니다.";
-
-            return false;
-        }
 
         rejectReason =
             string.Empty;
 
         return true;
-    }
-
-    private bool IsRegisteredPlayer(
-        ulong clientId)
-    {
-        if (hostGameManager == null)
-            return false;
-
-        return hostGameManager.TryGetNickname(
-            clientId,
-            out _
-        );
-    }
-
-    private bool TryGetOtherClientId(
-        ulong currentClientId,
-        out ulong otherClientId)
-    {
-        if (NetworkManager.Singleton == null)
-        {
-            otherClientId = default;
-            return false;
-        }
-
-        foreach (
-            NetworkClient client
-            in NetworkManager.Singleton
-                .ConnectedClientsList)
-        {
-            if (client.ClientId ==
-                currentClientId)
-            {
-                continue;
-            }
-
-            otherClientId =
-                client.ClientId;
-
-            return true;
-        }
-
-        otherClientId = default;
-        return false;
     }
 }
