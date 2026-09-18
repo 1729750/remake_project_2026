@@ -104,84 +104,130 @@ public sealed class MatchServerController
     // =========================================================
     // Match Start
     // =========================================================
+public bool TryStartMatch(
+    ulong senderClientId,
+    out string rejectReason)
+{
+    Debug.Log(
+        "[MatchServerController] " +
+        "TryStartMatch 진입 | " +
+        $"SenderClientId: {senderClientId}"
+    );
 
-    public bool TryStartMatch(
-        ulong senderClientId,
-        out string rejectReason)
+
+    // =====================================================
+    // Server 상태 확인
+    // =====================================================
+
+    if (!ValidateServerState(
+            out rejectReason))
     {
-        if (!ValidateServerState(
-                out rejectReason))
-        {
-            return false;
-        }
+        Debug.LogWarning(
+            "[MatchServerController] " +
+            $"ValidateServerState 실패 | {rejectReason}"
+        );
+
+        return false;
+    }
 
 
-        if (senderClientId !=
-            NetworkManager.ServerClientId)
-        {
-            rejectReason =
-                "Host만 게임을 시작할 수 있습니다.";
+    // =====================================================
+    // Host만 시작 가능
+    // =====================================================
 
-            return false;
-        }
+    if (senderClientId !=
+        NetworkManager.ServerClientId)
+    {
+        rejectReason =
+            "Host만 게임을 시작할 수 있습니다.";
 
+        Debug.LogWarning(
+            "[MatchServerController] " +
+            rejectReason
+        );
 
-        if (hostGameManager == null)
-        {
-            rejectReason =
-                "HostGameManager가 없습니다.";
-
-            return false;
-        }
-
-
-        if (!hostGameManager.IsRoomReady)
-        {
-            rejectReason =
-                "플레이어 2명이 모두 접속해야 합니다.";
-
-            return false;
-        }
+        return false;
+    }
 
 
-        // =====================================================
-        // 셀렉 & 강화 OFF
-        //
-        // 현재는 준비 과정 전부 건너뛰고
-        // 바로 게임 Scene으로 이동.
-        //
-        // 임시 개발용 우회이므로
-        // MatchPhase 검증보다 먼저 처리한다.
-        // =====================================================
+    // =====================================================
+    // 실제 NGO 접속 인원 검사
+    // =====================================================
 
-        if (!useSelectAndEnhance)
-        {
-            Debug.Log(
-                "[MatchServerController] " +
-                "셀렉 & 강화 OFF | " +
-                "Preparation 전체 Skip"
-            );
+    if (NetworkManager.Singleton == null)
+    {
+        rejectReason =
+            "NetworkManager가 없습니다.";
+
+        Debug.LogWarning(
+            "[MatchServerController] " +
+            rejectReason
+        );
+
+        return false;
+    }
 
 
-            return TryLoadGameplayScene(
-                out rejectReason
-            );
-        }
+    int connectedPlayerCount =
+        NetworkManager.Singleton
+            .ConnectedClientsList.Count;
 
-// =====================================================
-// 셀렉 & 강화 ON
-//
-// MatchServerController가 직접
-// NetworkMatchState를 변경하지 않는다.
-//
-// 실제 카드 선택 시작 처리는
-// CardSelectionServerService에게 위임한다.
-// =====================================================
+
+    Debug.Log(
+        "[MatchServerController] " +
+        $"실제 NGO 접속 인원: " +
+        $"{connectedPlayerCount}/2"
+    );
+
+
+    if (connectedPlayerCount < 2)
+    {
+        rejectReason =
+            "실제 NGO 플레이어 2명이 모두 접속해야 합니다.";
+
+        Debug.LogWarning(
+            "[MatchServerController] " +
+            rejectReason
+        );
+
+        return false;
+    }
+
+
+    // =====================================================
+    // 셀렉 & 강화 OFF
+    // 바로 게임 Scene 이동
+    // =====================================================
+
+    if (!useSelectAndEnhance)
+    {
+        Debug.Log(
+            "[MatchServerController] " +
+            "셀렉 & 강화 OFF | " +
+            "Preparation 전체 Skip"
+        );
+
+
+        return TryLoadGameplayScene(
+            out rejectReason
+        );
+    }
+
+
+    // =====================================================
+    // 셀렉 & 강화 ON
+    // CardSelectionServerService에게 시작 요청
+    // =====================================================
 
     if (cardSelectionService == null)
     {
         rejectReason =
             "CardSelectionServerService가 없습니다.";
+
+        Debug.LogWarning(
+            "[MatchServerController] " +
+            rejectReason
+        );
 
         return false;
     }
@@ -195,6 +241,11 @@ public sealed class MatchServerController
 
     if (!started)
     {
+        Debug.LogWarning(
+            "[MatchServerController] " +
+            $"카드 선택 시작 실패 | {rejectReason}"
+        );
+
         return false;
     }
 
@@ -210,7 +261,7 @@ public sealed class MatchServerController
         string.Empty;
 
     return true;
-    }
+}
 
 
     // =========================================================
