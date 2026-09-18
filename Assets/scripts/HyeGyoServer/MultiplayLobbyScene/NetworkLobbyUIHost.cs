@@ -10,6 +10,10 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
     [SerializeField]
     private NetworkLauncher networkLauncher;
 
+    [Header("Connection")]
+    [SerializeField]
+    private NetworkConnectionMonitor connectionMonitor;
+
 
     [Header("Lobby State")]
     [SerializeField]
@@ -135,6 +139,19 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
             );
         }
 
+        if (connectionMonitor != null)
+{
+    connectionMonitor.PlayerCountChanged +=
+        HandlePlayerCountChanged;
+}
+else
+{
+    Debug.LogError(
+        "[NetworkLobbyUIHost] " +
+        "NetworkConnectionMonitor가 연결되지 않았습니다."
+    );
+}
+
 
         RefreshCurrentPeople();
 
@@ -149,6 +166,8 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         "[NetworkLobbyUIHost] OnDisable 실행 | " +
         $"InstanceId: {GetInstanceID()}"
     );
+
+
         if (networkLauncher != null)
         {
             networkLauncher.SessionCreated -=
@@ -160,6 +179,11 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         {
             hostGameManager.LobbyPlayersChanged -=
                 HandleLobbyPlayersChanged;
+        }
+            if (connectionMonitor != null)
+        {
+            connectionMonitor.PlayerCountChanged -=
+                HandlePlayerCountChanged;
         }
 
 
@@ -313,47 +337,36 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         TryStartGame();
     }
 
-
-    private void RefreshCurrentPeople()
+private void RefreshCurrentPeople()
+{
+    if (currentPeopleText == null)
     {
-        if (currentPeopleText == null)
-        {
-            Debug.LogError(
-                "[NetworkLobbyUIHost] " +
-                "CurrentPeopleText가 연결되지 않았습니다."
-            );
-
-            return;
-        }
-
-
-        if (hostGameManager == null)
-        {
-            currentPeopleText.text =
-                string.Empty;
-
-            Debug.LogError(
-                "[NetworkLobbyUIHost] " +
-                "HostGameManager가 연결되지 않았습니다."
-            );
-
-            return;
-        }
-
-
-        int count =
-            hostGameManager.ConnectedPlayerCount;
-
-
-        currentPeopleText.text =
-            $"{count}/2";
-
-
-        Debug.Log(
-            "[NetworkLobbyUIHost] " +
-            $"인원 UI 갱신 → {count}/2"
-        );
+        return;
     }
+
+
+    if (connectionMonitor == null)
+    {
+        currentPeopleText.text =
+            string.Empty;
+
+        return;
+    }
+
+
+    int count =
+        connectionMonitor.ConnectedPlayerCount;
+
+
+    currentPeopleText.text =
+        $"{count}/2";
+
+
+    Debug.Log(
+        "[NetworkLobbyUIHost] " +
+        $"인원 UI 갱신 → {count}/2"
+    );
+}
 
 
     // =========================================================
@@ -627,5 +640,48 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
 
 
         return true;
+    }
+
+        private void HandlePlayerCountChanged(
+        int playerCount)
+    {
+        Debug.Log(
+            "[NetworkLobbyUIHost] " +
+            $"실제 NGO 인원 변경 → {playerCount}/2"
+        );
+
+
+        if (currentPeopleText != null)
+        {
+            currentPeopleText.text =
+                $"{playerCount}/2";
+        }
+
+
+        if (!autoStartWhenReady)
+        {   
+            return;
+        }
+
+
+        if (gameStartRequested)
+        {
+            return;
+        }
+
+
+        if (playerCount < 2)
+        {   
+            return;
+        }
+
+
+        Debug.Log(
+            "[NetworkLobbyUIHost] " +
+            "실제 NGO 2/2 확인 → TryStartGame"
+        );
+
+
+        TryStartGame();
     }
 }
