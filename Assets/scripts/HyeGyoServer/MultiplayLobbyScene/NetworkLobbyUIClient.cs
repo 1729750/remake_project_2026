@@ -7,6 +7,10 @@ public sealed class NetworkLobbyUIClient : MonoBehaviour
     [SerializeField]
     private NetworkLauncher networkLauncher;
 
+    [Header("Panel")]
+    [SerializeField]
+    private GameObject selectionPanel;
+
     [Header("Input")]
     [SerializeField]
     private TMP_InputField nicknameInput;
@@ -30,10 +34,11 @@ public sealed class NetworkLobbyUIClient : MonoBehaviour
     {
         if (nicknameInput != null)
         {
-            nicknameInput.onValidateInput +=
-                ValidateNicknameCharacter;
+            nicknameInput.characterLimit = 10;
         }
+    
 
+        // 방 코드는 영어 + 숫자만 허용
         if (codeInput != null)
         {
             codeInput.onValidateInput +=
@@ -42,9 +47,6 @@ public sealed class NetworkLobbyUIClient : MonoBehaviour
     }
 
 
-    /// <summary>
-    /// Client 참가 버튼에서 호출.
-    /// </summary>
     public void JoinSession()
     {
         string nickname = Nickname;
@@ -72,33 +74,42 @@ public sealed class NetworkLobbyUIClient : MonoBehaviour
             $"[Client UI] Nickname: {nickname} | Code: {code}"
         );
 
-        // 참가 Code는 기존 네트워크 코드로 전달
         networkLauncher.JoinSession(code);
-
-        // 닉네임은 NGO 연결 완료 후
-        // Server에 등록하는 처리가 추가로 필요하다.
     }
 
 
-    private char ValidateNicknameCharacter(
-        string text,
-        int charIndex,
-        char addedChar)
+    public void BackButton()
     {
-        if (addedChar >= 'A' &&
-            addedChar <= 'Z')
+        if (selectionPanel != null)
         {
-            return addedChar;
+            selectionPanel.SetActive(true);
         }
 
-        if (addedChar >= 'a' &&
-            addedChar <= 'z')
-        {
-            return addedChar;
-        }
-
-        return '\0';
+        gameObject.SetActive(false);
     }
+
+    private bool IsValidNickname(string nickname)
+{
+    foreach (char c in nickname)
+    {
+        bool isEnglish =
+            (c >= 'A' && c <= 'Z') ||
+            (c >= 'a' && c <= 'z');
+
+        bool isHangul =
+            (c >= '\uAC00' && c <= '\uD7A3') || // 가~힣
+            (c >= '\u3131' && c <= '\u318E') || // ㄱ~ㆎ
+            (c >= '\u1100' && c <= '\u11FF');   // 한글 자모
+
+        if (!isEnglish && !isHangul)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 
 
     private char ValidateCodeCharacter(
