@@ -59,8 +59,6 @@ private bool cardSelectionStartRequested;
         );
 
         LogCurrentPlayers();
-
-        TryRequestCardSelectionStart();
     }
 
 
@@ -236,15 +234,13 @@ private void OnDisable()
         );
 
 
-if (preparationRegistry.Count == 2)
-{
-    Debug.Log(
-        "[CardSelectionServerService] " +
-        "Host / Client 준비 데이터 2개 연결 완료"
-    );
-
-    TryRequestCardSelectionStart();
-}
+        if (preparationRegistry.Count == 2)
+        {
+            Debug.Log(
+                "[CardSelectionServerService] " +
+                "Host / Client 준비 데이터 2개 연결 완료"
+            );
+        }
     }
 
 
@@ -259,30 +255,55 @@ if (preparationRegistry.Count == 2)
         );
     }
 
-    private void TryRequestCardSelectionStart()
-{
-    if (cardSelectionStartRequested)
+        public bool TryStartCardSelection(out string rejectReason)
     {
-        return;
-    }
+        if (cardSelectionStartRequested)
+        {
+            rejectReason =
+                "카드 선택 시작이 이미 요청되었습니다.";
 
-    if (preparationRegistry == null)
-    {
-        return;
-    }
+            return false;
+        }
 
-    if (preparationRegistry.Count != 2)
-    {
-        return;
-    }
 
-    cardSelectionStartRequested = true;
+        if (preparationRegistry == null)
+        {
+            rejectReason =
+                "PlayerPreparationRegistry가 없습니다.";
 
-    beginCardSelectionCoroutine =
-        StartCoroutine(
-            BeginCardSelectionWhenReady()
+            return false;
+        }
+
+
+        if (preparationRegistry.Count != 2)
+        {
+            rejectReason =
+                "플레이어 2명이 준비되지 않았습니다.";
+
+            return false;
+        }
+
+
+        cardSelectionStartRequested = true;
+
+
+        beginCardSelectionCoroutine =
+            StartCoroutine(
+                BeginCardSelectionWhenReady()
+            );
+
+
+        Debug.Log(
+            "[CardSelectionServerService] " +
+            "카드 선택 시작 요청 수신"
         );
-}
+
+
+        rejectReason =
+            string.Empty;
+
+        return true;
+    }
 
 
 private IEnumerator BeginCardSelectionWhenReady()
