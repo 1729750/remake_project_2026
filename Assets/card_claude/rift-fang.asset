@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: rift-fang
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cooldown: 3
-  cost: 2
+  cost: 1
   _effects:
   - _effect:
       _effectType: 4

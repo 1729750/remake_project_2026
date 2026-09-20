@@ -17,7 +17,7 @@ MonoBehaviour:
   _effects:
   - _effect:
       _effectType: 10
-      _magnitude: 25
+      _magnitude: 20
     _target: 1
     appliedCategory: 1
   sprite: {fileID: 5445496065445543042, guid: 5c7f7bdb41c579b419d45aa82fd788b6, type: 3}

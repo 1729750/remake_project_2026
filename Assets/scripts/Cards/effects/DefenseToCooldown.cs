@@ -18,7 +18,7 @@ public class DefenseToCooldown : Effect
     // 실제로 그만큼 차감한다(ChangeCooldownLeft가 이미 0 밑으로는 못 내려가게 clamp한다).
     public override void OnUse(CharacterManager subject, CardInstance self, bool actualUse)
     {
-        if (subject == null || self == null) return;
+        if (subject == null || self == null || self.IsContinuousCard()) return;
 
         int defense = subject.GetDefense();
         self.ChangeCooldownLeft(-defense);

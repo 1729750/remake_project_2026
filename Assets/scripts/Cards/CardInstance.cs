@@ -104,6 +104,9 @@ public class CardInstance
         }
     }
     public CardDefinition GetDefinition() => _definition;
+    // 순수 Continuous 카드인지. 쿨다운/코스트를 건드리는 수식어(Quicker, DivideCooldown, CostToCooldown 등)는
+    // 이런 카드에는 영향을 주지 않아야 한다.
+    public bool IsContinuousCard() => _definition != null && _definition.GetCardType() == CardType.Continuous;
     public List<CardEffect> GetEffects() => _effects;
     // CardEffect.GetMagnitude()와 같은 방식(adder/multiplier 적용)으로 계산한다.
     public int GetCost() => Mathf.FloorToInt(_cost * _costMultiplier) + _costAdder;
