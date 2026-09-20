@@ -819,7 +819,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bfb3791dc05457488c8cf6021d1cedc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TransitionManager
-  battleManager: {fileID: 955717468}
+  battleManager: {fileID: 0}
   rewardManager: {fileID: 772567246}
   mapManager: {fileID: 1474451737}
   gameEndManager: {fileID: 1357964252}
@@ -1427,27 +1427,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2024536bb2630b4ab93b6ddbced8d5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MultiBattleManager
-  ShowTopMostFoldoutHeaderGroup: 1
-  m_NetworkManager: {fileID: 0}
-  <IsLocalPlayer>k__BackingField: 0
-  <IsOwner>k__BackingField: 0
-  <IsServer>k__BackingField: 0
-  <HasAuthority>k__BackingField: 0
-  <IsSessionOwner>k__BackingField: 0
-  <ServerIsHost>k__BackingField: 0
-  <IsClient>k__BackingField: 0
-  <IsHost>k__BackingField: 0
-  <IsOwnedByServer>k__BackingField: 0
-  <IsSpawned>k__BackingField: 0
-  m_NetworkObject: {fileID: 0}
-  <NetworkObjectId>k__BackingField: 0
-  <NetworkBehaviourId>k__BackingField: 0
-  <OwnerClientId>k__BackingField: 0
-  <IsDestroying>k__BackingField: 0
-  m_VarInit: 0
-  <m_TargetIdBeingSynchronized>k__BackingField: 0
-  gameNetworkState: {fileID: 43848199}
-  battleStarted: 0
 --- !u!114 &417258758
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1460,28 +1439,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7649b4ff523379c4b969588e77bc9200, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MultiGameManager
-  ShowTopMostFoldoutHeaderGroup: 1
-  m_NetworkManager: {fileID: 0}
-  <IsLocalPlayer>k__BackingField: 0
-  <IsOwner>k__BackingField: 0
-  <IsServer>k__BackingField: 0
-  <HasAuthority>k__BackingField: 0
-  <IsSessionOwner>k__BackingField: 0
-  <ServerIsHost>k__BackingField: 0
-  <IsClient>k__BackingField: 0
-  <IsHost>k__BackingField: 0
-  <IsOwnedByServer>k__BackingField: 0
-  <IsSpawned>k__BackingField: 0
-  m_NetworkObject: {fileID: 0}
-  <NetworkObjectId>k__BackingField: 0
-  <NetworkBehaviourId>k__BackingField: 0
-  <OwnerClientId>k__BackingField: 0
-  <IsDestroying>k__BackingField: 0
-  m_VarInit: 0
-  <m_TargetIdBeingSynchronized>k__BackingField: 0
-  gameNetworkState: {fileID: 43848199}
-  multiBattleManager: {fileID: 417258757}
-  gameStarted: 0
 --- !u!224 &458686589 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 680747832752182091, guid: d8164d610507d7e42ae34de252ad9d9b, type: 3}
@@ -1848,6 +1805,74 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!1 &613203761
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 613203763}
+  - component: {fileID: 613203762}
+  m_Layer: 0
+  m_Name: EnemyManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &613203762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613203761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37fdb14d63e7858479bb044eed0e1e06, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterManager_Multi
+  gameNetworkState: {fileID: 43848199}
+  startDeck:
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 194265b917c1f494b886aae7d8e52985, type: 2}
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: d8282a6efacc94948870bdc623775219, type: 2}
+  queueRoots: {fileID: 1199511218}
+  isHandVisualized: 1
+  handsRoot: {fileID: 74830598}
+  hpBar: {fileID: 305637825}
+  shrinkRight: 0
+  playerControlled: 1
+  costText: {fileID: 1597749340}
+  effectList: {fileID: 769539712}
+  defenseText: {fileID: 1121280546}
+  defenseIndicator: {fileID: 488539929}
+  defenseIndicatorRestPosition:
+  - {fileID: 1007066763}
+  - {fileID: 2118538213}
+  defenseIndicatorMoveDuration: 0.3
+--- !u!4 &613203763
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613203761}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1312835011}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -2954,7 +2979,6 @@ GameObject:
   - component: {fileID: 955717469}
   - component: {fileID: 955717470}
   - component: {fileID: 955717471}
-  - component: {fileID: 955717468}
   m_Layer: 0
   m_Name: BattleManager
   m_TagString: Untagged
@@ -2962,64 +2986,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &955717468
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 955717467}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f508334bf125ce47b5e26e8e69e1319, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BattleManager
-  playerCharacterManager: {fileID: 0}
-  enemyCharacterManager: {fileID: 0}
-  turnText: {fileID: 1895152206}
-  turnDuration: 1
-  startDelay: 3
-  effectEmojis:
-  - effectType: 0
-    sprite: {fileID: 21300000, guid: 8bda0dd2cdca9b64b8293c7a8b653899, type: 3}
-  - effectType: 1
-    sprite: {fileID: 21300000, guid: 1af84b259e73b5942804b5ff8718b4cd, type: 3}
-  - effectType: 2
-    sprite: {fileID: 21300000, guid: a3d0ac484919367478251b4740261c73, type: 3}
-  - effectType: 3
-    sprite: {fileID: 21300000, guid: f92d0633605320445961a9904933de33, type: 3}
-  - effectType: 4
-    sprite: {fileID: 21300000, guid: 6e24dbcb5e7f80f4a8e19eacf623f843, type: 3}
-  - effectType: 5
-    sprite: {fileID: 21300000, guid: 41cf9913b84d6084db02f23808333a35, type: 3}
-  - effectType: 6
-    sprite: {fileID: -7746483929725356217, guid: bd76407b9e7063241a69f1b49b9d9d53, type: 3}
-  - effectType: 7
-    sprite: {fileID: 21300000, guid: e5fe154e1eb1b0242bac81a4e7c69729, type: 3}
-  - effectType: 8
-    sprite: {fileID: 21300000, guid: 962e2d77b0edbbb48b5375573c41c7fe, type: 3}
-  - effectType: 9
-    sprite: {fileID: 21300000, guid: 836c997dc123d9142a96396ef956cf74, type: 3}
-  - effectType: 10
-    sprite: {fileID: 21300000, guid: ded04d5cd4acead469f632599543dfc1, type: 3}
-  - effectType: 11
-    sprite: {fileID: 21300000, guid: 01ed87108cb46a54d8efa33151cf72eb, type: 3}
-  - effectType: 12
-    sprite: {fileID: 21300000, guid: 5361a1ca50c7457419c4f4364f6eba37, type: 3}
-  - effectType: 13
-    sprite: {fileID: 21300000, guid: 22cc668ea67469147988527edad8eac3, type: 3}
-  - effectType: 14
-    sprite: {fileID: 21300000, guid: 3b9c915e6f15d0a47951a2a0413087fb, type: 3}
-  - effectType: 15
-    sprite: {fileID: 21300000, guid: d044de8bf84f5004bbeb4b8dd5078042, type: 3}
-  - effectType: 16
-    sprite: {fileID: 0}
-  - effectType: 17
-    sprite: {fileID: 0}
-  - effectType: 18
-    sprite: {fileID: 21300000, guid: 706200e4caa445842bca051cbbac3f7d, type: 3}
-  - effectType: 19
-    sprite: {fileID: 21300000, guid: 8b353d31dd7025c4094fddad6db2abd8, type: 3}
 --- !u!4 &955717469
 Transform:
   m_ObjectHideFlags: 0
@@ -3074,13 +3040,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 955717467}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1db5b171a309f9d44a50e017f1a14d9f, type: 3}
+  m_Script: {fileID: 11500000, guid: e15746e5a63e4b64d9fb4ed5dbd595bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager_Multi
   ShowTopMostFoldoutHeaderGroup: 1
   gameNetworkState: {fileID: 43848199}
-  playerCharacterManager: {fileID: 0}
-  enemyCharacterManager: {fileID: 0}
+  playerCharacterManager: {fileID: 1900544485}
+  enemyCharacterManager: {fileID: 613203762}
   turnText: {fileID: 1895152206}
   turnDuration: 1
   startDelay: 3
@@ -3110,7 +3076,7 @@ MonoBehaviour:
   - effectType: 11
     sprite: {fileID: 21300000, guid: 01ed87108cb46a54d8efa33151cf72eb, type: 3}
   - effectType: 12
-    sprite: {fileID: 21300000, guid: 5361a1ca50c7457419c4f4364f6eba37, type: 3}
+    sprite: {fileID: 21300000, guid: 01ed87108cb46a54d8efa33151cf72eb, type: 3}
   - effectType: 13
     sprite: {fileID: 21300000, guid: 22cc668ea67469147988527edad8eac3, type: 3}
   - effectType: 14
@@ -4749,7 +4715,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 25429942}
-  - {fileID: 1533461077}
+  - {fileID: 613203763}
   - {fileID: 19310951}
   - {fileID: 282753775}
   - {fileID: 2098708659}
@@ -5622,9 +5588,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 267b7c71ac7bc354587726a943993317, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MultiTransitionManager
-  gameNetworkState: {fileID: 43848199}
-  battleRoot: {fileID: 955717467}
-  resultRoot: {fileID: 0}
 --- !u!4 &1431684836
 Transform:
   m_ObjectHideFlags: 0
@@ -5740,73 +5703,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8063017431280850933, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
   m_PrefabInstance: {fileID: 1135925056}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1533461076
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1533461077}
-  - component: {fileID: 1533461078}
-  m_Layer: 0
-  m_Name: CharacterManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1533461077
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1533461076}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1312835011}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1533461078
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1533461076}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d89048843f3e8c468d292884285db44, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterManager
-  startDeck:
-  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
-  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  - {fileID: 11400000, guid: 194265b917c1f494b886aae7d8e52985, type: 2}
-  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
-  - {fileID: 11400000, guid: d8282a6efacc94948870bdc623775219, type: 2}
-  queueRoots: {fileID: 977913906}
-  isHandVisualized: 0
-  handsRoot: {fileID: 2098708658}
-  hpBar: {fileID: 1740255577}
-  shrinkRight: 0
-  playerControlled: 0
-  costText: {fileID: 1597749340}
-  effectList: {fileID: 769539712}
-  defenseText: {fileID: 1121280546}
-  defenseIndicator: {fileID: 488539929}
-  defenseIndicatorRestPosition:
-  - {fileID: 1007066763}
-  - {fileID: 2118538213}
-  defenseIndicatorMoveDuration: 0.3
 --- !u!1 &1597749338
 GameObject:
   m_ObjectHideFlags: 0
@@ -6699,7 +6595,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1900544482}
-  - component: {fileID: 1900544484}
+  - component: {fileID: 1900544485}
   m_Layer: 0
   m_Name: CharacterManager
   m_TagString: Untagged
@@ -6722,7 +6618,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 550371443}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1900544484
+--- !u!114 &1900544485
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6731,9 +6627,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1900544481}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d89048843f3e8c468d292884285db44, type: 3}
+  m_Script: {fileID: 11500000, guid: 37fdb14d63e7858479bb044eed0e1e06, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterManager
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterManager_Multi
+  gameNetworkState: {fileID: 43848199}
   startDeck:
   - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
   - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
@@ -7040,7 +6937,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1990682883}
   - component: {fileID: 1990682884}
-  - component: {fileID: 1990682882}
   - component: {fileID: 1990682885}
   m_Layer: 0
   m_Name: GameManager
@@ -7049,37 +6945,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1990682882
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1990682881}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fd70d85d1a621a34fbf22a475a3cd896, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  battleManager: {fileID: 955717468}
-  rewardManager: {fileID: 772567246}
-  mapManager: {fileID: 1474451737}
-  gameEndManager: {fileID: 1357964252}
-  fadeIn: {fileID: 896569714}
-  playerDeckPanel: {fileID: 153191107}
-  firstEnemyData: {fileID: 11400000, guid: 8f0868a9f1c6be442a0cfdaf90206dd7, type: 2}
-  enemyCandidates:
-  - {fileID: 11400000, guid: 7f7735e5f0ca4b06a3b82179e70c2ae2, type: 2}
-  - {fileID: 11400000, guid: 6a4799f864a74783abb3beac373165d7, type: 2}
-  - {fileID: 11400000, guid: c4989c84f6b64c5986318c133aac8f33, type: 2}
-  - {fileID: 11400000, guid: 0c54e1fbcee54487978472b233cac7e2, type: 2}
-  - {fileID: 11400000, guid: 103eea38d1d4429dbb97d2f0a7659daf, type: 2}
-  - {fileID: 11400000, guid: 6029ab442b794ef7866049d9928ea30a, type: 2}
-  - {fileID: 11400000, guid: ac045211727241178adc0367a0bf875e, type: 2}
-  bossCandidates:
-  - {fileID: 11400000, guid: c4989c84f6b64c5986318c133aac8f33, type: 2}
-  - {fileID: 11400000, guid: 7f7735e5f0ca4b06a3b82179e70c2ae2, type: 2}
-  - {fileID: 11400000, guid: ac045211727241178adc0367a0bf875e, type: 2}
 --- !u!4 &1990682883
 Transform:
   m_ObjectHideFlags: 0
@@ -7135,12 +7000,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager_Multi
   ShowTopMostFoldoutHeaderGroup: 1
   gameNetworkState: {fileID: 43848199}
-  battleManager: {fileID: 955717471}
-  rewardManager: {fileID: 772567244}
-  mapManager: {fileID: 1474451736}
-  gameEndManager: {fileID: 1357964251}
+  battleManager: {fileID: 0}
   fadeIn: {fileID: 896569714}
-  playerDeckPanel: {fileID: 153191107}
 --- !u!1 &2052035366
 GameObject:
   m_ObjectHideFlags: 0
