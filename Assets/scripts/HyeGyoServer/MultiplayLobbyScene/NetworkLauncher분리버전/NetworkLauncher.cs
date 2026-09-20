@@ -98,6 +98,12 @@ public sealed class NetworkLauncher : MonoBehaviour
     private void Awake()
     {
         EnsureReferences();
+
+        modeGate.SetNetworkEnabled(true);
+
+       statusHub.SetStatus(
+            "네트워크 ON\n방 생성 또는 참가 대기"
+        );
     }
 
     private void EnsureReferences()
