@@ -24,7 +24,7 @@ public class DefenseToCooldown : Effect
         self.ChangeCooldownLeft(-defense);
 
         if (actualUse)
-            subject.AddDefense(-defense);
+            subject.ConsumeAllDefense();
     }
 
     public override void OnUsingOther(CharacterManager subject, CardInstance cardInstance, bool actualUse) { }

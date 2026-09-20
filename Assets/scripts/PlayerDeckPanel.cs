@@ -8,10 +8,13 @@ using UnityEngine;
 public class PlayerDeckPanel : MonoBehaviour
 {
     [SerializeField] private DeckDisplay deckDisplay;
+    // 이 패널 전용 팝업 인스턴스(씬 전역 static Instance 대신).
+    [SerializeField] private PopupManager popupManager;
 
     private void Awake()
     {
         gameObject.SetActive(false);
+        deckDisplay?.SetPopupManager(popupManager);
     }
 
     public void Open()

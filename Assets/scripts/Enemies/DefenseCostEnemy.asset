@@ -13,4 +13,14 @@ MonoBehaviour:
   m_Name: DefenseCostEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 110
-  deck: {fileID: 11400000, guid: 240624fdd5b8c704b87d04be1effbf37, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: e1875c35347d4f329d55fd6fe8f6a982, type: 2}
+    - {fileID: 11400000, guid: e1875c35347d4f329d55fd6fe8f6a982, type: 2}
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: f38c189ec00642e0b41978b1b8a2f08d, type: 2}

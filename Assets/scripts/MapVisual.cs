@@ -4,6 +4,8 @@ using UnityEngine;
 
 // EnemyDisplay 프리팹 루트에 부착. MapManager가 넘겨주는 CharacterData를 기반으로
 // Attack/Defense sprite 너비, HP 텍스트, MainEffect/SubEffect(효과 아이콘 2슬롯)를 갱신한다.
+// 팝업(효과 상세 설명)은 스스로 띄우지 않는다 — 후보 여럿이 각자 Show를 부르면 서로 덮어써버리는
+// 문제가 있어서, 지금 선택된 후보가 누구인지 아는 MapManager가 팝업을 직접 갱신한다.
 public class MapVisual : MonoBehaviour
 {
     // score(해당 이펙트가 있는 카드 수 x 그 이펙트의 magnitude 합)를 Attack/Defense sprite
@@ -20,9 +22,6 @@ public class MapVisual : MonoBehaviour
     private EffectDisplay _mainEffect;
     private EffectDisplay _subEffect;
     private GameObject _highlight;
-    private PopupDisplay _popupDisplay;
-    private bool _selected;
-    private List<EffectType> _pendingPopupEffects;
 
     private void Awake()
     {
@@ -33,14 +32,11 @@ public class MapVisual : MonoBehaviour
         _subEffect = transform.Find("SubEffect").GetComponent<EffectDisplay>();
         _highlight = transform.Find("HighLight").gameObject;
         _highlight.SetActive(false);
-        _popupDisplay = transform.Find("PopUpDisplay").GetComponent<PopupDisplay>();
     }
 
     public void SetSelected(bool selected)
     {
         _highlight.SetActive(selected);
-        _selected = selected;
-        RefreshPopupVisibility();
     }
 
     public void SetCharacter(CharacterData data)
@@ -78,9 +74,6 @@ public class MapVisual : MonoBehaviour
     // topEffects가 그보다 적으면 남는 슬롯은 비운다.
     private void RefreshEffectDisplays(List<EffectType> topEffects)
     {
-        _pendingPopupEffects = topEffects;
-        RefreshPopupVisibility();
-
         if (topEffects != null && topEffects.Count > 0)
             _mainEffect.SetEffect(topEffects[0], "");
         else
@@ -90,11 +83,5 @@ public class MapVisual : MonoBehaviour
             _subEffect.SetEffect(topEffects[1], "");
         else
             _subEffect.Clear();
-    }
-
-    // select된 동안에만 팝업을 보여준다.
-    private void RefreshPopupVisibility()
-    {
-        _popupDisplay.SetEffects(_selected ? _pendingPopupEffects : null);
     }
 }

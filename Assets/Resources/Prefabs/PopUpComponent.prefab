@@ -34,8 +34,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.49088, y: -0.01877}
-  m_SizeDelta: {x: 4.53964, y: 1.2563}
+  m_AnchoredPosition: {x: 1.2914, y: -0.1382}
+  m_SizeDelta: {x: 13.8013, y: 3.9515}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!23 &4113593073666868746
 MeshRenderer:
@@ -133,13 +133,13 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 3
-  m_fontSizeBase: 3
+  m_fontSize: 10
+  m_fontSizeBase: 10
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 1
+  m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -208,9 +208,9 @@ Transform:
   m_GameObject: {fileID: 2836450954090337283}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 20.2608, y: -6.4739, z: 0}
-  m_LocalScale: {x: 6.72326, y: 6.5339365, z: 1}
-  m_ConstrainProportionsScale: 1
+  m_LocalPosition: {x: 6.3025, y: -2.2971, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4954595605385488858}
   - {fileID: 7773250502238787744}
@@ -270,7 +270,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 1
-  m_Size: {x: 7, y: 2.1}
+  m_Size: {x: 20, y: 7}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -287,7 +287,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bb568d3a5fe2f04e8a9cfa7aafeadd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PopupComponent
-  background: {fileID: 1099293564234488587}
 --- !u!1 &6729007392018258079
 GameObject:
   m_ObjectHideFlags: 0
@@ -314,9 +313,9 @@ Transform:
   m_GameObject: {fileID: 6729007392018258079}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.356, y: 0.019, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: -7, y: 0, z: 0}
+  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 3505375662516667731}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

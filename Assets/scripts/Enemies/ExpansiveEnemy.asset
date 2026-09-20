@@ -13,4 +13,15 @@ MonoBehaviour:
   m_Name: ExpansiveEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 115
-  deck: {fileID: 11400000, guid: 07d53032a36a6f24aa6ead4ba597a5d1, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 237f6ed46cf7484eaf83b6465bb9d8bf, type: 2}
+    - {fileID: 11400000, guid: 1d0f4083eb82443ca4739191f210b0dc, type: 2}
+    - {fileID: 11400000, guid: 6e4e4276562262248aecbc66706b5a51, type: 2}
+    - {fileID: 11400000, guid: 6e4e4276562262248aecbc66706b5a51, type: 2}
+    - {fileID: 11400000, guid: 6e4e4276562262248aecbc66706b5a51, type: 2}
+    - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
+    - {fileID: 11400000, guid: 8ac2a13904754e5aa42070b1ac54f545, type: 2}
+    - {fileID: 11400000, guid: 7941aedc84ff4262be4b816c332100dc, type: 2}
+    - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}
+    - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}

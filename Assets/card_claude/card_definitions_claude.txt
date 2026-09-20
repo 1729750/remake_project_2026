@@ -10,8 +10,8 @@
 #     - EffectType magnitude -> Target   <- Target은 User(자기 자신) / Opponent(상대)
 #
 # EffectType 전체 목록(참고용): Attack, Defend, Weak, Vulnerable, Strength, Harden, Guard, PoseBreak,
-#   EnergyHeal, AddDump, Burning, CostToCooldown, CooldownToCost, DivideCooldown, TimeSkip, Preserve,
-#   Disposable, DefenseToCooldown
+#   EnergyHeal, AddDump, Burning, CostToCooldown, CooldownToCost, DivideCooldown, TimeSkip, Quicker,
+#   Preserve, Disposable, DefenseToCooldown, EnergyDrain
 #
 # 새 카드를 추가하려면 새 [이름] 블록을 똑같은 포맷으로 추가하시면 됩니다. 카드 삭제는 블록 통째로 지우면 됩니다.
 

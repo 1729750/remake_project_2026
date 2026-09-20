@@ -13,4 +13,15 @@ MonoBehaviour:
   m_Name: BurnEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 95
-  deck: {fileID: 11400000, guid: 100704c2dd5a6804f82014547f452025, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}
+    - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}
+    - {fileID: 11400000, guid: fcaa4318c10e47eaa173c9aa749c997b, type: 2}
+    - {fileID: 11400000, guid: fcaa4318c10e47eaa173c9aa749c997b, type: 2}
+    - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+    - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+    - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}

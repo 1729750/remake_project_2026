@@ -13,9 +13,16 @@ public class RewardDisplay : MonoBehaviour
     private TMP_Text _costText;
     private GameObject _cooltimeRoot;
     private TMP_Text _cooltimeText;
-    private PopupDisplay _popupDisplay;
     private bool _selected;
     private List<EffectType> _pendingPopupEffects;
+    // RewardManager가 SetPopupManager로 넘겨준 자신의 팝업 인스턴스(씬 전역 static Instance 대신).
+    private PopupManager _popupManager;
+
+    public void SetPopupManager(PopupManager popupManager)
+    {
+        _popupManager = popupManager;
+        RefreshPopupVisibility();
+    }
 
     private void Awake()
     {
@@ -30,8 +37,6 @@ public class RewardDisplay : MonoBehaviour
         _cooltimeRoot = transform.Find("cooltime").gameObject;
         _cooltimeText = transform.Find("cooltime/cooltimeText").GetComponent<TMP_Text>();
         SetCostCooldownActive(false);
-
-        _popupDisplay = transform.Find("PopUpDisplay").GetComponent<PopupDisplay>();
     }
 
     // RewardDisplay를 빈 상태로 되돌린다: RewardText/RewardSprite를 비우고, SetUpgrade가 띄웠던
@@ -112,6 +117,6 @@ public class RewardDisplay : MonoBehaviour
     // Init(카드 획득/삭제)는 _pendingPopupEffects를 채우지 않으므로 select되어도 아무것도 안 뜬다.
     private void RefreshPopupVisibility()
     {
-        _popupDisplay.SetEffects(_selected ? _pendingPopupEffects : null);
+        _popupManager?.Show(_selected ? _pendingPopupEffects : null);
     }
 }
