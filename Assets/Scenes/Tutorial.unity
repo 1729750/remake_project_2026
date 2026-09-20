@@ -3077,8 +3077,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
-<<<<<<< Updated upstream
-=======
 --- !u!1 &1203425837
 GameObject:
   m_ObjectHideFlags: 0
@@ -3170,7 +3168,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
->>>>>>> Stashed changes
 --- !u!1 &1247901588
 GameObject:
   m_ObjectHideFlags: 0
@@ -3634,14 +3631,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
-<<<<<<< Updated upstream
---- !u!114 &1574315071 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2296612810257439161, guid: a0511c45bb4154044a493cfedcafa672, type: 3}
-  m_PrefabInstance: {fileID: 1142153518}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-=======
 --- !u!114 &1574315071
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3649,19 +3638,11 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 1142153518}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1610244013}
->>>>>>> Stashed changes
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ccd61196d076744daec66a7b29aeece, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PopupManager
-<<<<<<< Updated upstream
---- !u!4 &1574315072 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 7422807454270366460, guid: a0511c45bb4154044a493cfedcafa672, type: 3}
-  m_PrefabInstance: {fileID: 1142153518}
-  m_PrefabAsset: {fileID: 0}
-=======
 --- !u!4 &1574315072
 Transform:
   m_ObjectHideFlags: 0
@@ -3695,7 +3676,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
->>>>>>> Stashed changes
 --- !u!1 &1699473317
 GameObject:
   m_ObjectHideFlags: 0
