@@ -8,35 +8,22 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     public static BattleManager_Multi Instance { get; private set; }
 
     [Header("Network")]
-    [SerializeField]
-    private GameNetworkState gameNetworkState;
+    [SerializeField] private GameNetworkState gameNetworkState;
 
     [Header("Battle View")]
-    [SerializeField]
-    private CharacterManager_Multi playerCharacterManager;
+    [SerializeField] private CharacterManager_Multi playerCharacterManager;
+    [SerializeField] private CharacterManager_Multi enemyCharacterManager;
+    [SerializeField] private TextMeshPro turnText;
+    [SerializeField] private float turnDuration = 1f;
+    [SerializeField] private float startDelay = 3f;
+    [SerializeField] private List<EffectEmoji> effectEmojis = new List<EffectEmoji>();
 
-    [SerializeField]
-    private CharacterManager_Multi enemyCharacterManager;
-
-    [SerializeField]
-    private TextMeshPro turnText;
-
-    [SerializeField]
-    private float turnDuration = 1f;
-
-    [SerializeField]
-    private float startDelay = 3f;
-
-    [SerializeField]
-    private List<EffectEmoji> effectEmojis =
-        new List<EffectEmoji>();
-
-    private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
     private float _startElapsed;
+    private float _turnElapsed;
+    private int _currentTurnNumber;
 
-    private static Dictionary<EffectType, Sprite>
-        _emojiCache;
+    private static Dictionary<EffectType, Sprite> _emojiCache;
 
     private int _startTickCount;
     private bool _nextTurnEndIsFirst = true;
@@ -48,8 +35,7 @@ public sealed class BattleManager_Multi : NetworkBehaviour
 
     private void Awake()
     {
-        if (Instance != null &&
-            Instance != this)
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
@@ -61,10 +47,7 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if (gameNetworkState != null)
-        {
-            gameNetworkState.StateChanged +=
-                HandleNetworkStateChanged;
-        }
+            gameNetworkState.StateChanged += HandleNetworkStateChanged;
 
         Init();
         TryBindLocalViews();
@@ -73,10 +56,7 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         if (gameNetworkState != null)
-        {
-            gameNetworkState.StateChanged -=
-                HandleNetworkStateChanged;
-        }
+            gameNetworkState.StateChanged -= HandleNetworkStateChanged;
     }
 
     public void Init()
@@ -87,43 +67,19 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         if (_turnTimerOverlay != null)
             Destroy(_turnTimerOverlay.gameObject);
 
-        if (turnText != null)
-        {
-            GameObject overlayGO =
-                new GameObject(
-                    "TurnTimerOverlay_Multi");
+        if (turnText == null)
+            return;
 
-            overlayGO.transform.SetParent(
-                turnText.transform.parent);
+        GameObject overlayGO =
+            new GameObject("TurnTimerOverlay_Multi");
 
-            overlayGO.transform.localPosition =
-                Vector3.zero;
+        overlayGO.transform.SetParent(turnText.transform.parent);
+        overlayGO.transform.localPosition = Vector3.zero;
+        overlayGO.transform.localScale = Vector3.one;
 
-            overlayGO.transform.localScale =
-                Vector3.one;
-
-            overlayGO.AddComponent<MeshFilter>();
-            overlayGO.AddComponent<MeshRenderer>();
-
-            _turnTimerOverlay =
-                overlayGO.AddComponent<
-                    TurnTimerOverlay>();
-        }
-
-        if (IsServer)
-        {
-            _turnManager =
-                new TurnManager(
-                    turnDuration,
-                    _turnTimerOverlay,
-                    turnText);
-
-            _turnManager.OnTurnStarted +=
-                OnTurnStarted;
-
-            _turnManager.OnTurnEnded +=
-                OnTurnEnded;
-        }
+        overlayGO.AddComponent<MeshFilter>();
+        overlayGO.AddComponent<MeshRenderer>();
+        _turnTimerOverlay = overlayGO.AddComponent<TurnTimerOverlay>();
     }
 
     private void TryBindLocalViews()
@@ -135,34 +91,20 @@ public sealed class BattleManager_Multi : NetworkBehaviour
             return;
         }
 
-        ulong localId =
-            NetworkManager.Singleton.LocalClientId;
+        ulong localId = NetworkManager.Singleton.LocalClientId;
+        ulong opponentId = gameNetworkState.GetOpponentClientId(localId);
 
-        ulong opponentId =
-            gameNetworkState.GetOpponentClientId(
-                localId);
-
-        if (opponentId ==
-            GameNetworkState.UnassignedClientId)
-        {
+        if (opponentId == GameNetworkState.UnassignedClientId)
             return;
-        }
 
-        playerCharacterManager?.BindClientId(
-            localId,
-            true);
-
-        enemyCharacterManager?.BindClientId(
-            opponentId,
-            false);
+        // 각 PC에서 Player = 나, Enemy = 상대.
+        playerCharacterManager?.BindClientId(localId, true);
+        enemyCharacterManager?.BindClientId(opponentId, false);
     }
 
     public void InitializeBattleServer()
     {
-        if (!IsServer)
-            return;
-
-        if (_battleStarted)
+        if (!IsServer || _battleStarted)
             return;
 
         if (gameNetworkState == null ||
@@ -173,21 +115,25 @@ public sealed class BattleManager_Multi : NetworkBehaviour
 
         TryBindLocalViews();
 
+        // 현재 단계에서는 Inspector Start Deck으로 실제 Server 캐릭터를 만든다.
+        // FinalDeck 네트워크 연동 후 이 소스만 실제 플레이어 덱으로 교체한다.
+        playerCharacterManager?.InitializeConfiguredCharacterServer();
+        enemyCharacterManager?.InitializeConfiguredCharacterServer();
+
         _battleStarted = true;
-
-        _turnManager?.Reset();
-
         _startElapsed = 0f;
+        _turnElapsed = 0f;
+        _currentTurnNumber = 0;
         _startTickCount = 0;
+        _nextTurnEndIsFirst = true;
 
         _turnTimerOverlay?.SetFill(0f);
 
-        SetState(
-            BattleState.BattleStarting);
+        SetState(BattleState.BattleStarting);
+        gameNetworkState.SetCurrentTurnServer(0);
+        gameNetworkState.SetMatchStateServer(MultiMatchState.BattleStarting);
 
-        gameNetworkState.SetMatchStateServer(
-            MultiMatchState.BattleStarting);
-
+        SoundManager.Instance?.StopBgm();
         UpdateStartCountdownText();
     }
 
@@ -196,34 +142,24 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         if (turnText == null)
             return;
 
-        int remaining =
-            Mathf.CeilToInt(
-                Mathf.Max(
-                    startDelay -
-                    _startElapsed,
-                    0f));
+        int remaining = Mathf.CeilToInt(
+            Mathf.Max(startDelay - _startElapsed, 0f));
 
-        turnText.text =
-            $"{remaining}";
+        turnText.text = remaining.ToString();
     }
 
-    public static List<CardDefinition>
-        UnpackCardCollection(
-            CardCollection collection)
+    public static List<CardDefinition> UnpackCardCollection(
+        CardCollection collection)
     {
-        var result =
-            new List<CardDefinition>();
+        var result = new List<CardDefinition>();
 
         if (collection == null)
             return result;
 
-        foreach (
-            CardDefinition def
-            in collection.GetCards())
+        foreach (CardDefinition def in collection.GetCards())
         {
             if (def != null)
-                result.Add(
-                    Instantiate(def));
+                result.Add(Instantiate(def));
         }
 
         return result;
@@ -231,77 +167,89 @@ public sealed class BattleManager_Multi : NetworkBehaviour
 
     public void Tick(float deltaTime)
     {
-        if (!IsServer ||
-            !_battleStarted)
-        {
+        if (!IsServer || !_battleStarted)
             return;
-        }
 
-        if (CurrentState ==
-            BattleState.BattleStarting)
+        if (CurrentState == BattleState.BattleStarting)
         {
-            _startElapsed +=
-                deltaTime;
+            _startElapsed += deltaTime;
 
-            _turnTimerOverlay?.SetFill(
-                Mathf.Clamp01(
-                    _startElapsed /
-                    startDelay));
+            float startRatio = startDelay > 0f
+                ? Mathf.Clamp01(_startElapsed / startDelay)
+                : 1f;
 
-            int desiredTicks =
-                Mathf.Min(
-                    Mathf.FloorToInt(
-                        _startElapsed) + 1,
-                    Mathf.FloorToInt(
-                        startDelay));
+            _turnTimerOverlay?.SetFill(startRatio);
 
-            while (_startTickCount <
-                   desiredTicks)
+            int maxTicks = Mathf.Max(0, Mathf.FloorToInt(startDelay));
+            int desiredTicks = Mathf.Min(
+                Mathf.FloorToInt(_startElapsed) + 1,
+                maxTicks);
+
+            while (_startTickCount < desiredTicks)
             {
                 _startTickCount++;
                 PlayAlternatingTurnEnd();
             }
 
             if (_startElapsed >= startDelay)
-            {
                 OnBattleStarted();
-            }
             else
-            {
                 UpdateStartCountdownText();
-            }
+
+            return;
         }
-        else if (
-            CurrentState ==
-            BattleState.Turn)
+
+        if (CurrentState == BattleState.Turn)
         {
-            _turnManager?.Tick(
-                deltaTime);
+            _turnElapsed += deltaTime;
+
+            float turnRatio = turnDuration > 0f
+                ? Mathf.Clamp01(_turnElapsed / turnDuration)
+                : 1f;
+
+            _turnTimerOverlay?.SetFill(turnRatio);
+
+            if (_turnElapsed >= turnDuration)
+                OnTurnEnded();
         }
     }
 
-    private void SetState(
-        BattleState state)
+    private void SetState(BattleState state)
     {
         CurrentState = state;
     }
 
     private void OnBattleStarted()
     {
-        if (!IsServer)
+        if (!IsServer || CurrentState != BattleState.BattleStarting)
             return;
 
-        gameNetworkState
-            .SetMatchStateServer(
-                MultiMatchState.Battle);
+        gameNetworkState.SetMatchStateServer(MultiMatchState.Battle);
 
-        SoundManager.Instance?.Play(
-            EffectSound.BattleStart);
+        SoundManager.Instance?.Play(EffectSound.BattleStart);
+        SoundManager.Instance?.Play(BgmName.BattleBGM);
 
-        SoundManager.Instance?.Play(
-            BgmName.BattleBGM);
+        StartNextTurnServer();
+    }
 
-        _turnManager?.StartTurn();
+    private void StartNextTurnServer()
+    {
+        if (!IsServer || !_battleStarted ||
+            CurrentState == BattleState.BattleFinish)
+        {
+            return;
+        }
+
+        _currentTurnNumber++;
+        _turnElapsed = 0f;
+
+        gameNetworkState.SetCurrentTurnServer(_currentTurnNumber);
+
+        if (turnText != null)
+            turnText.text = _currentTurnNumber.ToString();
+
+        _turnTimerOverlay?.SetFill(0f);
+        OnTurnStarted();
     }
 
     private void OnTurnStarted()
@@ -309,61 +257,46 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         if (!IsServer)
             return;
 
-        SetState(
-            BattleState.TurnStart);
+        SetState(BattleState.TurnStart);
 
-        if (_turnManager != null)
-        {
-            gameNetworkState
-                .SetCurrentTurnServer(
-                    _turnManager
-                        .GetCurrentTurn());
-        }
+        playerCharacterManager?.OnTurnStart();
+        if (CurrentState == BattleState.BattleFinish)
+            return;
 
-        playerCharacterManager
-            ?.OnTurnStart();
+        enemyCharacterManager?.OnTurnStart();
+        if (CurrentState == BattleState.BattleFinish)
+            return;
 
-        enemyCharacterManager
-            ?.OnTurnStart();
-
-        SetState(
-            BattleState.Turn);
+        SetState(BattleState.Turn);
     }
 
     private void OnTurnEnded()
     {
-        if (!IsServer)
+        if (!IsServer || CurrentState != BattleState.Turn)
             return;
 
-        SetState(
-            BattleState.TurnEnd);
-
+        SetState(BattleState.TurnEnd);
         PlayAlternatingTurnEnd();
 
-        playerCharacterManager
-            ?.OnTurnEnd();
+        playerCharacterManager?.OnTurnEnd();
+        if (CurrentState == BattleState.BattleFinish)
+            return;
 
-        enemyCharacterManager
-            ?.OnTurnEnd();
+        enemyCharacterManager?.OnTurnEnd();
+        if (CurrentState == BattleState.BattleFinish)
+            return;
 
-        if (CurrentState !=
-            BattleState.BattleFinish)
-        {
-            _turnManager?.StartTurn();
-        }
+        StartNextTurnServer();
     }
 
     private void PlayAlternatingTurnEnd()
     {
-        // 현재는 Server/Host에서 실제 판정과 함께 재생.
-        // Client 사운드 동기화는 별도 RPC 단계에서 추가한다.
         SoundManager.Instance?.Play(
             _nextTurnEndIsFirst
                 ? EffectSound.TurnEnd1
                 : EffectSound.TurnEnd2);
 
-        _nextTurnEndIsFirst =
-            !_nextTurnEndIsFirst;
+        _nextTurnEndIsFirst = !_nextTurnEndIsFirst;
     }
 
     public void RequestSelectCard(int index)
@@ -374,10 +307,8 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         if (IsServer)
         {
             ExecuteSelectCardServer(
-                NetworkManager.Singleton
-                    .LocalClientId,
+                NetworkManager.Singleton.LocalClientId,
                 index);
-
             return;
         }
 
@@ -398,77 +329,51 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         ulong senderClientId,
         int index)
     {
-        if (!IsServer ||
-            CurrentState != BattleState.Turn)
-        {
+        if (!IsServer || CurrentState != BattleState.Turn)
             return;
-        }
 
         CharacterManager_Multi character =
-            GetCharacterByClientId(
-                senderClientId);
+            GetCharacterByClientId(senderClientId);
 
-        character?.SelectCardServer(
-            index);
+        character?.SelectCardServer(index);
     }
 
     public void ApplyDamageServer(
         ulong targetClientId,
         int damage)
     {
-        if (!IsServer ||
-            !_battleStarted ||
-            damage <= 0)
-        {
+        if (!IsServer || !_battleStarted || damage <= 0)
             return;
-        }
 
         CharacterManager_Multi target =
-            GetCharacterByClientId(
-                targetClientId);
+            GetCharacterByClientId(targetClientId);
 
         target?.Attacked(damage);
     }
 
-    public void NotifyDefeat(
-        CharacterManager_Multi loser)
+    public void NotifyDefeat(CharacterManager_Multi loser)
     {
         if (!IsServer ||
             loser == null ||
-            CurrentState ==
-                BattleState.BattleFinish)
+            CurrentState == BattleState.BattleFinish)
         {
             return;
         }
 
-        SetState(
-            BattleState.BattleFinish);
-
+        SetState(BattleState.BattleFinish);
         _nextTurnEndIsFirst = true;
 
-        playerCharacterManager
-            ?.ClearHandAndQueue();
-
-        enemyCharacterManager
-            ?.ClearHandAndQueue();
+        playerCharacterManager?.ClearHandAndQueue();
+        enemyCharacterManager?.ClearHandAndQueue();
 
         SoundManager.Instance?.StopBgm();
 
-        ulong loserClientId =
-            loser.RepresentedClientId;
-
+        ulong loserClientId = loser.RepresentedClientId;
         ulong winnerClientId =
-            gameNetworkState
-                .GetOpponentClientId(
-                    loserClientId);
+            gameNetworkState.GetOpponentClientId(loserClientId);
 
-        gameNetworkState.SetWinnerServer(
-            winnerClientId);
-
-        gameNetworkState
-            .SetMatchStateServer(
-                MultiMatchState
-                    .BattleFinished);
+        gameNetworkState.SetWinnerServer(winnerClientId);
+        gameNetworkState.SetMatchStateServer(MultiMatchState.BattleFinished);
 
         _battleStarted = false;
     }
@@ -476,28 +381,22 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     public CharacterManager_Multi GetOpponent(
         CharacterManager_Multi user)
     {
-        return user ==
-               playerCharacterManager
+        return user == playerCharacterManager
             ? enemyCharacterManager
             : playerCharacterManager;
     }
 
-    public CharacterManager_Multi
-        GetCharacterByClientId(
-            ulong clientId)
+    public CharacterManager_Multi GetCharacterByClientId(
+        ulong clientId)
     {
         if (playerCharacterManager != null &&
-            playerCharacterManager
-                .RepresentedClientId ==
-            clientId)
+            playerCharacterManager.RepresentedClientId == clientId)
         {
             return playerCharacterManager;
         }
 
         if (enemyCharacterManager != null &&
-            enemyCharacterManager
-                .RepresentedClientId ==
-            clientId)
+            enemyCharacterManager.RepresentedClientId == clientId)
         {
             return enemyCharacterManager;
         }
@@ -505,43 +404,27 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         return null;
     }
 
-    public ulong GetOpponentClientId(
-        ulong clientId)
+    public ulong GetOpponentClientId(ulong clientId)
     {
         return gameNetworkState != null
-            ? gameNetworkState
-                .GetOpponentClientId(clientId)
-            : GameNetworkState
-                .UnassignedClientId;
+            ? gameNetworkState.GetOpponentClientId(clientId)
+            : GameNetworkState.UnassignedClientId;
     }
 
-    public static Sprite GetEmoji(
-        EffectType effectType)
+    public static Sprite GetEmoji(EffectType effectType)
     {
         if (_emojiCache == null)
         {
-            _emojiCache =
-                new Dictionary<
-                    EffectType,
-                    Sprite>();
+            _emojiCache = new Dictionary<EffectType, Sprite>();
 
             if (Instance == null)
                 return null;
 
-            foreach (
-                EffectEmoji entry
-                in Instance.effectEmojis)
-            {
-                _emojiCache[
-                    entry.effectType] =
-                    entry.sprite;
-            }
+            foreach (EffectEmoji entry in Instance.effectEmojis)
+                _emojiCache[entry.effectType] = entry.sprite;
         }
 
-        _emojiCache.TryGetValue(
-            effectType,
-            out Sprite sprite);
-
+        _emojiCache.TryGetValue(effectType, out Sprite sprite);
         return sprite;
     }
 
@@ -552,24 +435,17 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         if (!IsServer &&
             turnText != null &&
             gameNetworkState != null &&
-            gameNetworkState.MatchState.Value ==
-                MultiMatchState.Battle)
+            gameNetworkState.MatchState.Value == MultiMatchState.Battle)
         {
             turnText.text =
-                gameNetworkState
-                    .CurrentTurnNumber
-                    .Value
-                    .ToString();
+                gameNetworkState.CurrentTurnNumber.Value.ToString();
         }
     }
 
     private void Update()
     {
-        if (!IsServer ||
-            !_battleStarted)
-        {
+        if (!IsServer || !_battleStarted)
             return;
-        }
 
         Tick(Time.deltaTime);
     }

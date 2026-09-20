@@ -60,6 +60,50 @@ public class PopupDisplay_Multi : MonoBehaviour
         _slotsFound = true;
     }
 
+    private static bool IsSlotClipped(
+        PopupComponent slot,
+        Camera camera)
+    {
+        if (slot == null || camera == null)
+            return false;
+
+        Renderer[] renderers =
+            slot.GetComponentsInChildren<Renderer>(true);
+
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null)
+                continue;
+
+            Bounds bounds = renderer.bounds;
+            Vector3 min = bounds.min;
+            Vector3 max = bounds.max;
+
+            Vector3[] corners =
+            {
+                new Vector3(min.x, min.y, bounds.center.z),
+                new Vector3(min.x, max.y, bounds.center.z),
+                new Vector3(max.x, min.y, bounds.center.z),
+                new Vector3(max.x, max.y, bounds.center.z)
+            };
+
+            foreach (Vector3 corner in corners)
+            {
+                Vector3 viewport =
+                    camera.WorldToViewportPoint(corner);
+
+                if (viewport.z < 0f ||
+                    viewport.x < 0f || viewport.x > 1f ||
+                    viewport.y < 0f || viewport.y > 1f)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private void CheckClipAndFlip()
     {
         Camera camera = Camera.main;
@@ -68,7 +112,7 @@ public class PopupDisplay_Multi : MonoBehaviour
 
         foreach (PopupComponent slot in _slots)
         {
-            if (slot.IsClipped(camera))
+            if (IsSlotClipped(slot, camera))
             {
                 anyClipped = true;
                 break;
