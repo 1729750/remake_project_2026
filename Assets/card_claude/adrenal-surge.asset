@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: adrenal-surge
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 2
+  cooldown: 10
   cost: 4
   _effects:
   - _effect:
       _effectType: 4
-      _magnitude: 5
+      _magnitude: 10
     _target: 0
     appliedCategory: 1
   - _effect:

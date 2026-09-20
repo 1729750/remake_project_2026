@@ -12,17 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: defense-buff
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 4
+  cooldown: 3
   cost: 6
   _effects:
   - _effect:
       _effectType: 4
-      _magnitude: 4
+      _magnitude: 3
     _target: 0
     appliedCategory: 1
   - _effect:
       _effectType: 1
-      _magnitude: 6
+      _magnitude: 10
     _target: 0
     appliedCategory: 2
   sprite: {fileID: 2570338963525645694, guid: b9c8a96f81968824cbd61a1b7e5b24e8, type: 3}

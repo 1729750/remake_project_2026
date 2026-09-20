@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: second-wind
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 6
+  cooldown: 5
   cost: 0
   _effects:
   - _effect:
       _effectType: 8
-      _magnitude: 7
+      _magnitude: 10
     _target: 0
     appliedCategory: 1
   sprite: {fileID: 7887758050866625008, guid: 5c7f7bdb41c579b419d45aa82fd788b6, type: 3}

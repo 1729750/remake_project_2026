@@ -53,7 +53,7 @@ public class DefaultEnemyAI : EnemyAIBehavior
     // 카드의 각 CardEffect를 CardInstance.RefreshDisplay와 동일한 경로로 미리 계산해(현재 버프
     // 반영한 최종 magnitude) 점수를 합산한다. duration은 이 카드가 큐에 머무는 턴 수(=쿨다운)로,
     // Continuous로 발동하는 효과의 가치가 여기에 비례한다(ScoreCardEffect 참고).
-    protected static float ScoreCard(in BattleSnapshot snapshot, CardInstance card)
+    protected float ScoreCard(in BattleSnapshot snapshot, CardInstance card)
     {
         CharacterManager self = snapshot.Self;
         CharacterManager opponent = snapshot.Opponent;
@@ -91,7 +91,7 @@ public class DefaultEnemyAI : EnemyAIBehavior
     //   - Continuous: 카드를 내는 즉시(지금부터) 큐에 머무는 duration턴 동안 유지되다가 큐를 떠나며
     //     사라진다 — 같은 magnitude라도 더 오래 지속될수록 가치가 크므로 duration에 비례해(체감
     //     증가) 가중치를 더한다. Defend는 이제 Continuous만 지원하므로 항상 이 경로를 탄다.
-    private static float ScoreCardEffect(in BattleSnapshot snapshot, CardEffect cardEffect, CharacterManager target, CharacterManager opponent, int duration)
+    private float ScoreCardEffect(in BattleSnapshot snapshot, CardEffect cardEffect, CharacterManager target, CharacterManager opponent, int duration)
     {
         EffectType type = cardEffect.GetEffect().GetEffectType();
         int magnitude = cardEffect.GetMagnitude();
@@ -103,6 +103,7 @@ public class DefaultEnemyAI : EnemyAIBehavior
             float value = magnitude;
             if (magnitude >= target.GetDefense() + target.GetHealth())
                 value += 40f; // 지금 내면 상대를 처치할 수 있으면 최우선으로 취급한다.
+            value *= GetEffectWeight(EffectType.Attack);
             return targetsSelf ? -value : value;
         }
 
@@ -125,8 +126,11 @@ public class DefaultEnemyAI : EnemyAIBehavior
         if (category.HasFlag(EffectCategory.Continuous))
             score += baseImportance * ContinuousDurationFactor(duration) * sign;
 
-        return score;
+        return score * GetEffectWeight(type);
     }
+
+    // 특수 AI가 성향(방어/상태이상/공격)에 따라 EffectType별 점수 배율을 바꾸기 위한 훅. 기본 AI는 전부 1배.
+    protected virtual float GetEffectWeight(EffectType type) => 1f;
 
     // Continuous 효과의 duration(턴) 대비 가중치. 3턴을 기준(1배)으로 삼아 그보다 짧으면 깎이고
     // 길면 늘되, sqrt로 체감시켜 아주 긴 쿨다운 카드의 점수가 끝없이 커지지 않게 막는다.

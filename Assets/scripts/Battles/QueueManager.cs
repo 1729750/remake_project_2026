@@ -99,7 +99,8 @@ public class QueueManager
         {
             if (_queue[i] == null) continue;
 
-            _queue[i].TickCooldown(tick);
+            // Quicker 등으로 빨라진 틱 속도는 Continuous 카드에는 적용하지 않는다.
+            _queue[i].TickCooldown(_queue[i].IsContinuousCard() ? 1 : tick);
             foreach (CardEffect cardEffect in _queue[i].GetEffects())
                 cardEffect.GetEffect().OnTick(characterManager);
         }

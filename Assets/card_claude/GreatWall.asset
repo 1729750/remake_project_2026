@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: GreatWall
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 3
-  cost: 13
+  cooldown: 20
+  cost: 10
   _effects:
   - _effect:
       _effectType: 1
-      _magnitude: 30
+      _magnitude: 50
     _target: 0
     appliedCategory: 2
   sprite: {fileID: -4984109093754881449, guid: 5c7f7bdb41c579b419d45aa82fd788b6, type: 3}
