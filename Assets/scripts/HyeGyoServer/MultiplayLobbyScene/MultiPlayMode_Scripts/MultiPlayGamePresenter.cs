@@ -3,18 +3,17 @@ using UnityEngine;
 
 public sealed class MultiPlayGamePresenter : MonoBehaviour
 {
-    [Header("Network State")]
     [SerializeField]
     private GameNetworkState gameNetworkState;
 
     public bool IsReady { get; private set; }
 
-    public ulong LocalClientId { get; private set; }
+    public ulong MyClientId { get; private set; }
+    public ulong EnemyClientId { get; private set; }
 
     public bool LocalIsPlayer0 { get; private set; }
 
     public int MyHealth { get; private set; }
-
     public int EnemyHealth { get; private set; }
 
     private void OnEnable()
@@ -52,7 +51,7 @@ public sealed class MultiPlayGamePresenter : MonoBehaviour
         if (NetworkManager.Singleton == null)
             return;
 
-        LocalClientId =
+        ulong localId =
             NetworkManager.Singleton.LocalClientId;
 
         ulong player0Id =
@@ -61,9 +60,13 @@ public sealed class MultiPlayGamePresenter : MonoBehaviour
         ulong player1Id =
             gameNetworkState.Player1ClientId.Value;
 
-        if (LocalClientId == player0Id)
+        MyClientId = localId;
+
+        if (localId == player0Id)
         {
             LocalIsPlayer0 = true;
+
+            EnemyClientId = player1Id;
 
             MyHealth =
                 gameNetworkState.Player0Health.Value;
@@ -71,9 +74,11 @@ public sealed class MultiPlayGamePresenter : MonoBehaviour
             EnemyHealth =
                 gameNetworkState.Player1Health.Value;
         }
-        else if (LocalClientId == player1Id)
+        else if (localId == player1Id)
         {
             LocalIsPlayer0 = false;
+
+            EnemyClientId = player0Id;
 
             MyHealth =
                 gameNetworkState.Player1Health.Value;
@@ -85,10 +90,10 @@ public sealed class MultiPlayGamePresenter : MonoBehaviour
         {
             Debug.LogError(
                 $"[MultiPlayGamePresenter] " +
-                $"LocalClientId {LocalClientId}가 " +
-                $"Player0/Player1에 없습니다."
+                $"LocalClientId {localId}가 Player0/Player1에 없습니다."
             );
 
+            IsReady = false;
             return;
         }
 
@@ -96,7 +101,8 @@ public sealed class MultiPlayGamePresenter : MonoBehaviour
 
         Debug.Log(
             "[MultiPlayGamePresenter]\n" +
-            $"LocalClientId: {LocalClientId}\n" +
+            $"MyClientId: {MyClientId}\n" +
+            $"EnemyClientId: {EnemyClientId}\n" +
             $"Role: {(LocalIsPlayer0 ? "Player0" : "Player1")}\n" +
             $"MyHealth: {MyHealth}\n" +
             $"EnemyHealth: {EnemyHealth}"

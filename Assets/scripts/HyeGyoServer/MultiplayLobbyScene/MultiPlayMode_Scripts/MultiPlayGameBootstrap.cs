@@ -7,67 +7,54 @@ public sealed class MultiPlayGameBootstrap : NetworkBehaviour
     [SerializeField]
     private GameNetworkState gameNetworkState;
 
-    [Header("Initial Game State")]
+    [Header("Initial State")]
     [SerializeField]
     private int initialHealth = 100;
 
     public override void OnNetworkSpawn()
     {
         if (!IsServer)
-        {
             return;
-        }
 
-        InitializePlayers();
+        InitializePlayersServer();
     }
 
-    private void InitializePlayers()
+    private void InitializePlayersServer()
     {
         if (gameNetworkState == null)
         {
             Debug.LogError(
-                "[MultiPlayGameBootstrap] GameNetworkState가 연결되지 않았습니다."
+                "[MultiPlayGameBootstrap] GameNetworkState가 없습니다."
             );
             return;
         }
 
-        var connectedClientIds =
+        var clients =
             NetworkManager.Singleton.ConnectedClientsIds;
 
-        if (connectedClientIds.Count != 2)
+        if (clients.Count != 2)
         {
             Debug.LogError(
-                $"[MultiPlayGameBootstrap] 게임 시작 시점의 실제 NGO 인원이 2명이 아닙니다.\n" +
-                $"ConnectedClients: {connectedClientIds.Count}"
+                "[MultiPlayGameBootstrap] " +
+                $"현재 연결 수가 2명이 아닙니다: {clients.Count}"
             );
             return;
         }
 
-        ulong firstClientId = connectedClientIds[0];
-        ulong secondClientId = connectedClientIds[1];
+        ulong player0 = clients[0];
+        ulong player1 = clients[1];
 
-        // 연결 리스트 순서에 의존하지 않도록
-        // ClientId가 작은 쪽을 Player0으로 고정한다.
-        ulong player0ClientId = firstClientId;
-        ulong player1ClientId = secondClientId;
-
-        if (player1ClientId < player0ClientId)
+        // 순서가 달라져도 항상 작은 ClientId = Player0
+        if (player1 < player0)
         {
-            (player0ClientId, player1ClientId) =
-                (player1ClientId, player0ClientId);
+            (player0, player1) =
+                (player1, player0);
         }
 
         gameNetworkState.InitializePlayersServer(
-            player0ClientId,
-            player1ClientId,
+            player0,
+            player1,
             initialHealth
-        );
-
-        Debug.Log(
-            $"[MultiPlayGameBootstrap] 게임 플레이어 배치 완료\n" +
-            $"Player0: {player0ClientId}\n" +
-            $"Player1: {player1ClientId}\n" +
-            $"ConnectedClients: {connectedClientIds.Count}"
         );
     }
 }
