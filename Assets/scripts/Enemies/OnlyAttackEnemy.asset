@@ -13,4 +13,13 @@ MonoBehaviour:
   m_Name: OnlyAttackEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 100
-  deck: {fileID: 11400000, guid: fd016abdead0ddc43892924e0ad671aa, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 487e1117532a455bbf97bb73edfd001c, type: 2}
+    - {fileID: 11400000, guid: 487e1117532a455bbf97bb73edfd001c, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+    - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}

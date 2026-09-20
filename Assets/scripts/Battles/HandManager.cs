@@ -10,15 +10,19 @@ public class HandManager
 
     private readonly CharacterManager _characterManager;
     private readonly Transform[] _slots;
-    private readonly GameObject _cardPrefab;
+    private readonly GameObjectPool _cardPool;
     private readonly bool _isHandVisualized;
+    // BattleManager가 넘겨준, 전투 화면(양쪽 CharacterManager)이 공유하는 팝업 인스턴스
+    // (씬 전역 static Instance 대신 화면별로 분리된 팝업을 쓰기 위함).
+    private readonly PopupManager _popupManager;
 
-    public HandManager(CharacterManager characterManager, GameObject slotsRoot, bool isHandVisualized)
+    public HandManager(CharacterManager characterManager, GameObject slotsRoot, bool isHandVisualized, PopupManager popupManager, GameObjectPool cardPool)
     {
         _characterManager = characterManager;
         _slots = BuildSlots(slotsRoot);
-        _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
+        _cardPool = cardPool;
         _isHandVisualized = isHandVisualized;
+        _popupManager = popupManager;
     }
 
     private static Transform[] BuildSlots(GameObject root)
@@ -42,18 +46,25 @@ public class HandManager
                     CreateCardVisual(i);
             }
         }
-        RefreshSelection();
+        // 새로 채워진 슬롯의 카드는 CardVisual.Awake에서 이미 비선택 상태로 시작하고, 기존에
+        // 있던 카드는 이 루프에서 손대지 않으니(if _hand[i] == null일 때만 새로 만듦) 선택 상태가
+        // 그대로 유지된다 — 그래서 지금 선택돼 있던 슬롯 하나만 다시 확인해주면 된다.
+        ApplySelection(-1, _selectedIndex);
     }
 
     private void CreateCardVisual(int i)
     {
-        if (_slots == null || _cardPrefab == null) return;
+        if (_slots == null || _cardPool == null) return;
 
-        GameObject obj = Object.Instantiate(_cardPrefab, _slots[i]);
+        GameObject obj = _cardPool.Get();
+        obj.transform.SetParent(_slots[i]);
         obj.transform.localPosition = Vector3.zero;
         var visual = obj.GetComponent<CardVisual>();
         if (visual == null)
             visual = obj.AddComponent<CardVisual>();
+        // 풀에서 재활용된 오브젝트라면 이전 카드가 남긴 선택 하이라이트/이동 애니메이션 상태를 먼저 지운다.
+        visual.ResetForReuse();
+        visual.SetPopupManager(_popupManager);
         _hand[i].SetVisual(visual);
         _hand[i].SetFace(_isHandVisualized);
         _hand[i].RefreshDisplay(_characterManager, _characterManager.GetQueue());
@@ -89,7 +100,7 @@ public class HandManager
             _hand[i] = null;
             if (_cardObjects[i] != null)
             {
-                Object.Destroy(_cardObjects[i]);
+                _cardPool?.Release(_cardObjects[i]);
                 _cardObjects[i] = null;
             }
         }
@@ -104,7 +115,7 @@ public class HandManager
             _hand[i] = null;
             if (_cardObjects[i] != null)
             {
-                Object.Destroy(_cardObjects[i]);
+                _cardPool?.Release(_cardObjects[i]);
                 _cardObjects[i] = null;
             }
         }
@@ -124,7 +135,7 @@ public class HandManager
         else if (previous != -1)
             SoundManager.Instance?.Play(EffectSound.Unselect);
 
-        RefreshSelection();
+        ApplySelection(previous, _selectedIndex);
     }
 
     public void UnselectCard()
@@ -139,8 +150,9 @@ public class HandManager
     // (UseCard 사운드와 겹쳐 Unselect까지 같이 울리는 것을 막는다.)
     private void ClearSelection()
     {
+        int previous = _selectedIndex;
         _selectedIndex = -1;
-        RefreshSelection();
+        ApplySelection(previous, _selectedIndex);
     }
 
     public CardInstance[] GetHand() => _hand;
@@ -176,9 +188,17 @@ public class HandManager
         return false;
     }
 
-    private void RefreshSelection()
+    // CardVisual.SetSelected가 select될 때마다 곧장 popupManager.Show를 부르므로, 전체 슬롯을 훑으며
+    // i==_selectedIndex로 매번 다시 세팅하면(예전 방식) 방금 선택으로 켠 것 뒤에 이어지는 다른 슬롯의
+    // deselect 호출이 Show(null)로 덮어써버렸다 — 그래서 손패 맨 마지막 슬롯을 고를 때만 팝업이 남고
+    // 나머지는 선택해도 안 뜨는 것처럼 보였다. previous만 deselect하고 current만 select하는 딱 두
+    // 번(이 순서)으로 끝내야 한다.
+    private void ApplySelection(int previous, int current)
     {
-        for (int i = 0; i < HandSize; i++)
-            _hand[i]?.SetSelected(i == _selectedIndex);
+        if (previous == current) return;
+        if (previous >= 0 && previous < HandSize)
+            _hand[previous]?.SetSelected(false);
+        if (current >= 0 && current < HandSize)
+            _hand[current]?.SetSelected(true);
     }
 }

@@ -8,6 +8,19 @@ public class Effect
    [SerializeField] protected int _magnitude;
     private int _effectPriority;
 
+    // true인 동안 이 인스턴스의 magnitude는 턴 경과(OnTurnStarted/OnTurnEnded)나 조건 충족
+    // (OnApplyingOther/OnUsingOther 등에서의 소모형 감소)으로 줄어들 수 없다. 큐에 카드가 머무는
+    // 동안 OnEnterQueue가 기본 제공하는 continuous 효과에 붙는 표시로, 카드 자신의 큐 잔류가
+    // 수명을 관리하므로 독립적인 턴 감소 로직과 충돌하지 않게 막는 용도다.
+    public bool IsInfinite { get; set; }
+
+    // 이 EffectType이 원리상 어떤 방식으로 발동할 수 있는지(능력) — 실제로 어느 쪽으로 쓸지는
+    // 카드마다 CardEffect.GetAppliedCategory()가 고른다. Instant(카드 쿨타임이 다 됐을 때 한 번,
+    // 기존 동작), Continuous(카드가 큐에 머무는 동안만, OnEnterQueue/OnExitQueue) 비트를 조합한다.
+    // 기본은 Instant만 — Attack/EnergyHeal/AddDump처럼 일회성 부수효과가 있는 타입은 Continuous로
+    // 재해석하면 안 되므로(무엇을 "되돌릴지" 정의할 수 없다) 명시적으로 override한 타입만 확장한다.
+    public virtual EffectCategory SupportedCategories => EffectCategory.Instant;
+
     public Effect(EffectType effectType, int magnitude, int effectPriority = 0)
     {
         _effectType = effectType;
@@ -117,7 +130,10 @@ public class Effect
         }
         foreach (var existing in subject.GetEffects())
         {
-            if (existing.GetEffectType() == _effectType)
+            // IsInfinite인 인스턴스는 continuous 몫(카드가 큐에 머무는 동안만 사는 별도 풀)이므로
+            // 절대 합치지 않는다 — 합치면 instant 몫이 그 풀의 IsInfinite에 묻어가 감소가 막히고,
+            // 나중에 OnExitQueue가 되돌릴 때 instant 몫까지 깎아가게 된다.
+            if (existing.GetEffectType() == _effectType && !existing.IsInfinite)
             {
                 existing.AddMagnitude(_magnitude);
                 PlayApplySound();
@@ -130,6 +146,49 @@ public class Effect
     }
     public virtual void OnApplyingOther(CharacterManager subject, CardEffect effect, bool actualUse) { }
     public virtual void OnAppliedOther(CharacterManager subject, CardEffect effect, bool actualUse) { }
+
+    // Continuous/Mix 효과의 기본 동작: 카드가 큐에 들어가는 순간(CardInstance.EnterQueue) 대상에게
+    // 이 효과를 부여한다. OnApply를 재사용하지 않는다 — instant 몫(IsInfinite==false)과 절대 합치면
+    // 안 되기 때문에, 여기서는 처음부터 IsInfinite인 기존 인스턴스만 찾아 합산하고, 없으면 새
+    // continuous 풀을 만든다. 그래서 같은 타입이라도 instant 스택과 continuous 스택은 항상 별개
+    // 인스턴스로 공존한다: instant 쪽은 자기 자신의 턴 감소 로직으로만 줄고, continuous 쪽은 이
+    // 카드(들)가 큐에 머무는 동안의 magnitude 합만큼만 존재하다가 OnExitQueue로 정확히 되돌아간다.
+    // 방어(DefendEffect)처럼 큐 카드 자신의 잔여 magnitude로 방어도를 관리하는 특수 케이스는 이
+    // 기본 동작을 오버라이드해서 쓰지 않는다.
+    public virtual void OnEnterQueue(CharacterManager subject, CardInstance self, CardEffect cardEffect)
+    {
+        CharacterManager target = cardEffect.GetTarget(subject);
+
+        foreach (Effect existing in target.GetEffects())
+        {
+            if (existing.GetEffectType() != GetEffectType() || !existing.IsInfinite) continue;
+            existing.AddMagnitude(_magnitude);
+            PlayApplySound();
+            return;
+        }
+
+        IsInfinite = true;
+        target.AddEffect(this);
+        PlayApplySound();
+    }
+
+    // OnEnterQueue가 부여한 magnitude만큼(grantedMagnitude) continuous 풀(IsInfinite인 인스턴스)에서만
+    // 되돌린다 — instant 풀은 IsInfinite가 아니므로 여기서 절대 건드리지 않는다. 카드가 큐를 떠날 때
+    // (재생되어 CardInstance.ExitQueue가 호출될 때) 실행된다. 남은 magnitude가 0 이하가 되면
+    // 효과 자체를 제거한다.
+    public virtual void OnExitQueue(CharacterManager subject, CardInstance self, CardEffect cardEffect, int grantedMagnitude)
+    {
+        CharacterManager target = cardEffect.GetTarget(subject);
+
+        foreach (Effect existing in target.GetEffects())
+        {
+            if (existing.GetEffectType() != GetEffectType() || !existing.IsInfinite) continue;
+            existing.AddMagnitude(-grantedMagnitude);
+            if (existing.GetMagnitude() <= 0)
+                target.RemoveEffectInstance(existing);
+            return;
+        }
+    }
 
     // 이 Effect가 실제로 획득/발동될 때 SoundManager로 재생할 EffectSound.
     // 기본은 TargetPolarity(Positive→Buff, 그 외→Debuff)를 따르되, 고유한 사운드가 있는 타입은

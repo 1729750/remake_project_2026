@@ -22,6 +22,7 @@ public class MainMenuManager : MonoBehaviour
     [Header("Scene")]
     [SerializeField] private string startSceneName;
     [SerializeField] private string battleSceneName;
+    [SerializeField] private string tutorialSceneName = "Tutorial";
 
     [Header("Panels")]
     [SerializeField] private GameObject settingsPanel;
@@ -79,7 +80,8 @@ public class MainMenuManager : MonoBehaviour
             {
                 { "Left", OnInputLeft },
                 { "Right", OnInputRight },
-                { "Select", OnInputSelect }
+                { "Select", OnInputSelect },
+                { "Tutorial", OnInputTutorial }
             };
 
         PlayerInputManager.Instance.Load("Select", bindings);
@@ -149,6 +151,22 @@ public class MainMenuManager : MonoBehaviour
             return;
 
         SelectCurrentMenu();
+    }
+
+
+    // ============================================
+    // [추가 - Input System]
+    // Select / Tutorial(T) 입력 — 메뉴 선택과 무관하게 항상 튜토리얼로 진입한다.
+    // ============================================
+
+    private void OnInputTutorial()
+    {
+        if (settingsPanel != null &&
+            settingsPanel.activeSelf)
+            return;
+
+        if (!string.IsNullOrEmpty(tutorialSceneName))
+            SceneManager.LoadScene(tutorialSceneName);
     }
 
 

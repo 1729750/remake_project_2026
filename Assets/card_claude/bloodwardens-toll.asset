@@ -19,10 +19,12 @@ MonoBehaviour:
       _effectType: 18
       _magnitude: 1
     _target: 0
+    appliedCategory: 1
   - _effect:
       _effectType: 0
       _magnitude: 40
     _target: 1
+    appliedCategory: 1
   sprite: {fileID: -4370921467039419905, guid: 5c7f7bdb41c579b419d45aa82fd788b6, type: 3}
   spriteBackground: {fileID: 21300000, guid: 9e9cc24594fadf446bdaca6f3f76ed7b, type: 3}
   cardType: 0

@@ -8,10 +8,12 @@ public class QueueManager
     private GameObject[] _cardObjects = new GameObject[QueueSize];
 
     private Transform[] _slots;
+    private readonly GameObjectPool _cardPool;
 
-    public QueueManager(GameObject slotsRoot)
+    public QueueManager(GameObject slotsRoot, GameObjectPool cardPool)
     {
         _slots = BuildSlots(slotsRoot);
+        _cardPool = cardPool;
     }
 
     private static Transform[] BuildSlots(GameObject root)
@@ -77,7 +79,7 @@ public class QueueManager
         for (int i = 0; i < QueueSize; i++)
         {
             _queue[i] = null;
-            DestroyCardVisual(i);
+            ReleaseCardVisual(i);
         }
     }
 
@@ -109,7 +111,7 @@ public class QueueManager
             {
                 characterManager.PlayCard(_queue[i]);
                 _queue[i] = null;
-                DestroyCardVisual(i);
+                ReleaseCardVisual(i);
                 i = 0;
             }
         }
@@ -135,11 +137,11 @@ public class QueueManager
         MoveVisualsToSlots();
     }
 
-    private void DestroyCardVisual(int index)
+    private void ReleaseCardVisual(int index)
     {
         if (_cardObjects[index] != null)
         {
-            Object.Destroy(_cardObjects[index]);
+            _cardPool?.Release(_cardObjects[index]);
             _cardObjects[index] = null;
         }
     }
