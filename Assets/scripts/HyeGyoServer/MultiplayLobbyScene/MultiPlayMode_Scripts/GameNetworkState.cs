@@ -2,9 +2,21 @@ using System;
 using Unity.Netcode;
 using UnityEngine;
 
+public enum MultiMatchState : byte
+{
+    WaitingForPlayers,
+    BattleStarting,
+    Battle,
+    BattleFinished
+}
+
 public sealed class GameNetworkState : NetworkBehaviour
 {
     public const ulong UnassignedClientId = ulong.MaxValue;
+
+    // =========================
+    // Player Mapping
+    // =========================
 
     public NetworkVariable<ulong> Player0ClientId = new(
         UnassignedClientId,
@@ -18,6 +30,10 @@ public sealed class GameNetworkState : NetworkBehaviour
         NetworkVariableWritePermission.Server
     );
 
+    // =========================
+    // Battle State
+    // =========================
+
     public NetworkVariable<int> Player0Health = new(
         0,
         NetworkVariableReadPermission.Everyone,
@@ -30,6 +46,18 @@ public sealed class GameNetworkState : NetworkBehaviour
         NetworkVariableWritePermission.Server
     );
 
+    public NetworkVariable<MultiMatchState> MatchState = new(
+        MultiMatchState.WaitingForPlayers,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
+    public NetworkVariable<ulong> WinnerClientId = new(
+        UnassignedClientId,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
     public event Action StateChanged;
 
     public bool PlayersAssigned =>
@@ -38,31 +66,34 @@ public sealed class GameNetworkState : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        Player0ClientId.OnValueChanged += HandleClientIdChanged;
-        Player1ClientId.OnValueChanged += HandleClientIdChanged;
+        Player0ClientId.OnValueChanged += HandleULongChanged;
+        Player1ClientId.OnValueChanged += HandleULongChanged;
 
-        Player0Health.OnValueChanged += HandleHealthChanged;
-        Player1Health.OnValueChanged += HandleHealthChanged;
+        Player0Health.OnValueChanged += HandleIntChanged;
+        Player1Health.OnValueChanged += HandleIntChanged;
 
-        // Client는 이 시점에 초기 NetworkVariable 값을 이미 읽을 수 있다.
+        MatchState.OnValueChanged += HandleMatchStateChanged;
+        WinnerClientId.OnValueChanged += HandleULongChanged;
+
         StateChanged?.Invoke();
 
         Debug.Log(
-            $"[GameNetworkState] OnNetworkSpawn\n" +
+            "[GameNetworkState] Spawn\n" +
             $"IsServer: {IsServer}\n" +
-            $"LocalClientId: {NetworkManager.Singleton.LocalClientId}\n" +
-            $"Player0: {Player0ClientId.Value}\n" +
-            $"Player1: {Player1ClientId.Value}"
+            $"LocalClientId: {NetworkManager.Singleton.LocalClientId}"
         );
     }
 
     public override void OnNetworkDespawn()
     {
-        Player0ClientId.OnValueChanged -= HandleClientIdChanged;
-        Player1ClientId.OnValueChanged -= HandleClientIdChanged;
+        Player0ClientId.OnValueChanged -= HandleULongChanged;
+        Player1ClientId.OnValueChanged -= HandleULongChanged;
 
-        Player0Health.OnValueChanged -= HandleHealthChanged;
-        Player1Health.OnValueChanged -= HandleHealthChanged;
+        Player0Health.OnValueChanged -= HandleIntChanged;
+        Player1Health.OnValueChanged -= HandleIntChanged;
+
+        MatchState.OnValueChanged -= HandleMatchStateChanged;
+        WinnerClientId.OnValueChanged -= HandleULongChanged;
     }
 
     public void InitializePlayersServer(
@@ -73,7 +104,7 @@ public sealed class GameNetworkState : NetworkBehaviour
         if (!IsServer)
         {
             Debug.LogWarning(
-                "[GameNetworkState] InitializePlayersServer는 Server만 호출할 수 있습니다."
+                "[GameNetworkState] Server만 Player를 초기화할 수 있습니다."
             );
             return;
         }
@@ -81,7 +112,7 @@ public sealed class GameNetworkState : NetworkBehaviour
         if (PlayersAssigned)
         {
             Debug.LogWarning(
-                "[GameNetworkState] Player0 / Player1은 이미 확정되어 있습니다."
+                "[GameNetworkState] Player0/Player1은 이미 확정됐습니다."
             );
             return;
         }
@@ -92,49 +123,78 @@ public sealed class GameNetworkState : NetworkBehaviour
         Player0Health.Value = initialHealth;
         Player1Health.Value = initialHealth;
 
+        WinnerClientId.Value = UnassignedClientId;
+        MatchState.Value = MultiMatchState.WaitingForPlayers;
+
         Debug.Log(
-            $"[GameNetworkState] 플레이어 확정\n" +
-            $"Player0ClientId: {player0ClientId}\n" +
-            $"Player1ClientId: {player1ClientId}\n" +
-            $"InitialHealth: {initialHealth}"
+            "[GameNetworkState] Player Mapping 완료\n" +
+            $"Player0: {player0ClientId}\n" +
+            $"Player1: {player1ClientId}\n" +
+            $"HP: {initialHealth}"
         );
     }
 
-    public void SetHealthServer(ulong clientId, int newHealth)
+    public void SetHealthServer(
+        ulong clientId,
+        int health)
     {
         if (!IsServer)
-        {
-            Debug.LogWarning(
-                "[GameNetworkState] HP 변경은 Server만 가능합니다."
-            );
             return;
-        }
 
-        newHealth = Mathf.Max(0, newHealth);
+        health = Mathf.Max(0, health);
 
         if (clientId == Player0ClientId.Value)
         {
-            Player0Health.Value = newHealth;
+            Player0Health.Value = health;
             return;
         }
 
         if (clientId == Player1ClientId.Value)
         {
-            Player1Health.Value = newHealth;
+            Player1Health.Value = health;
             return;
         }
 
         Debug.LogWarning(
-            $"[GameNetworkState] 등록되지 않은 ClientId입니다: {clientId}"
+            $"[GameNetworkState] 등록되지 않은 ClientId: {clientId}"
         );
     }
 
-    private void HandleClientIdChanged(ulong previousValue, ulong newValue)
+    public void SetMatchStateServer(
+        MultiMatchState state)
+    {
+        if (!IsServer)
+            return;
+
+        MatchState.Value = state;
+    }
+
+    public void SetWinnerServer(
+        ulong clientId)
+    {
+        if (!IsServer)
+            return;
+
+        WinnerClientId.Value = clientId;
+    }
+
+    private void HandleULongChanged(
+        ulong previousValue,
+        ulong newValue)
     {
         StateChanged?.Invoke();
     }
 
-    private void HandleHealthChanged(int previousValue, int newValue)
+    private void HandleIntChanged(
+        int previousValue,
+        int newValue)
+    {
+        StateChanged?.Invoke();
+    }
+
+    private void HandleMatchStateChanged(
+        MultiMatchState previousValue,
+        MultiMatchState newValue)
     {
         StateChanged?.Invoke();
     }
