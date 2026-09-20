@@ -177,6 +177,58 @@ public class CharacterManager_Multi : MonoBehaviour
         SyncPublicStateServer();
     }
 
+    // MultiPlayMode 통합 테스트용 초기화 진입점.
+    // BattleManager_Multi가 Server에서 호출하며, Inspector의 Start Deck을
+    // 런타임용으로 복제한 뒤 기존 CharacterInit 흐름을 그대로 사용한다.
+    // 추후 실제 플레이어별 네트워크 덱이 연결되면 이 메서드의 deck source만 교체하면 된다.
+    public void InitializeConfiguredCharacterServer()
+    {
+        if (!IsServerAuthority)
+            return;
+
+        // CharacterInit은 Hand/Queue manager가 준비되어 있다고 가정하므로
+        // BattleManager 쪽 호출 순서와 무관하게 여기서 한 번 방어적으로 보장한다.
+        if (_handManager == null ||
+            _queueManager == null ||
+            _effects == null ||
+            _deck == null)
+        {
+            Init();
+        }
+
+        CardDefinition[] configuredDeck = startDeck;
+
+        if (configuredDeck == null || configuredDeck.Length == 0)
+        {
+            Debug.LogWarning(
+                $"[CharacterManager_Multi:{gameObject.name}] Start Deck이 비어 있습니다."
+            );
+
+            CharacterInit(Array.Empty<CardDefinition>(), _maxHealth);
+            return;
+        }
+
+        CardDefinition[] runtimeDeck =
+            new CardDefinition[configuredDeck.Length];
+
+        for (int i = 0; i < configuredDeck.Length; i++)
+        {
+            CardDefinition source = configuredDeck[i];
+
+            runtimeDeck[i] =
+                source != null
+                    ? Instantiate(source)
+                    : null;
+        }
+
+        CharacterInit(runtimeDeck, _maxHealth);
+
+        Debug.Log(
+            $"[CharacterManager_Multi:{gameObject.name}] Configured character initialized. " +
+            $"ClientId={_representedClientId}, DeckCount={runtimeDeck.Length}, MaxHP={_maxHealth}"
+        );
+    }
+
     private void ShuffleDeck()
     {
         if (!IsServerAuthority ||

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using System.Reflection;
 
 // Multi 전용 CardVisual.
 // Single CardVisual과 프리팹 구조는 동일하게 유지한다.
@@ -135,8 +136,19 @@ public class CardVisual_Multi : MonoBehaviour
 
         if (_spriteBackground != null)
         {
-            _spriteBackground.sprite =
-                def.GetSpriteBackground();
+            // CardDefinition 버전에 GetSpriteBackground()가 없는 프로젝트도 호환.
+            MethodInfo getter = typeof(CardDefinition).GetMethod(
+                "GetSpriteBackground",
+                BindingFlags.Public | BindingFlags.Instance,
+                null,
+                System.Type.EmptyTypes,
+                null);
+
+            if (getter != null &&
+                getter.Invoke(def, null) is Sprite backgroundSprite)
+            {
+                _spriteBackground.sprite = backgroundSprite;
+            }
         }
 
         CardEffect[] effects =
