@@ -19,6 +19,7 @@ public class CooldownToCost:Effect
     // (큐에 있던 자신이 아니라 새로 사용되는 카드 쪽). 큐에 있던 카드가 새 카드 사용에 반응할 때 쓴다.
     public override void OnUsingOther(CharacterManager subject, CardInstance cardInstance, bool actualUse)
     {
+        if (cardInstance.IsContinuousCard()) return;
         int cooldown = cardInstance.GetCooldown();
         cardInstance.AddCost(cooldown-1);
         cardInstance.ChangeCooldownLeft(-cooldown+1);

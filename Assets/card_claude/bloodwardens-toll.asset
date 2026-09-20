@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a8cc5b9a2688154ab7153dacfb3a7fc, type: 3}
   m_Name: bloodwardens-toll
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
-  cooldown: 10
+  cooldown: 50
   cost: 4
   _effects:
   - _effect:
@@ -22,7 +22,7 @@ MonoBehaviour:
     appliedCategory: 1
   - _effect:
       _effectType: 0
-      _magnitude: 40
+      _magnitude: 60
     _target: 1
     appliedCategory: 1
   sprite: {fileID: -4370921467039419905, guid: 5c7f7bdb41c579b419d45aa82fd788b6, type: 3}

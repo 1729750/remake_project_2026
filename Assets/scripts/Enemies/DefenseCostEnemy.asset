@@ -24,3 +24,4 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
     - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
     - {fileID: 11400000, guid: f38c189ec00642e0b41978b1b8a2f08d, type: 2}
+  enemyAI: {fileID: 11400000, guid: 2f7a91c4d8e34b5aa6c3e0f1b9d84a12, type: 2}

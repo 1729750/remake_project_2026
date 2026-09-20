@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 // 고정 위치 팝업 표시자. 예전엔 Card/RewardDisplay/EnemyDisplay 프리팹마다 PopupDisplay + 고정
@@ -22,6 +23,10 @@ public class PopupManager : MonoBehaviour
     // 스스로 찾으면 애초에 잘못 연결할 수가 없다.
     private PopupComponent popupComponent;
 
+    // "현재 페이지/전체 페이지"(예: 2/5)를 보여주는 텍스트. 인스펙터에서 연결하거나, 비워두면 자식 중
+    // 이름이 "PageText"인 TMP_Text를 찾아 쓴다. 페이지가 0개면 빈 문자열이 된다.
+    [SerializeField] private TMP_Text pageText;
+
     private readonly List<(Sprite icon, string text)> _entries = new List<(Sprite, string)>();
     private int _pageIndex;
 
@@ -29,6 +34,51 @@ public class PopupManager : MonoBehaviour
     {
         popupComponent = GetComponentInChildren<PopupComponent>(true);
         if (popupComponent != null) popupComponent.gameObject.SetActive(false);
+
+        if (pageText == null)
+        {
+            foreach (TMP_Text text in GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (text.name != "PageText") continue;
+                pageText = text;
+                break;
+            }
+        }
+        if (pageText == null) pageText = CreatePageText();
+        RefreshPageText();
+    }
+
+    // 프리팹/씬 어디에도 PageText가 없을 때 쓰는 폴백. 팝업 배경 스프라이트의 우하단 안쪽에 붙이고,
+    // 폰트/머티리얼은 기존 "Text"에서 복사해 화면 전체가 같은 룩을 유지하게 한다. 팝업의 자식이라
+    // 팝업이 꺼지면 같이 꺼진다.
+    private TMP_Text CreatePageText()
+    {
+        if (popupComponent == null) return null;
+
+        Transform template = popupComponent.transform.Find("Text");
+        var go = new GameObject("PageText");
+        go.transform.SetParent(popupComponent.transform, false);
+
+        var text = go.AddComponent<TextMeshPro>();
+        if (template != null && template.TryGetComponent(out TMP_Text source))
+        {
+            text.font = source.font;
+            text.fontSharedMaterial = source.fontSharedMaterial;
+            text.color = source.color;
+        }
+        text.fontSize = 2;
+        text.alignment = TextAlignmentOptions.BottomRight;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+
+        var background = popupComponent.GetComponent<SpriteRenderer>();
+        if (background != null && background.sprite != null)
+        {
+            Bounds bounds = background.sprite.bounds;
+            go.transform.localPosition = new Vector3(bounds.max.x - 0.1f, bounds.min.y + 0.1f, 0f);
+        }
+        text.rectTransform.sizeDelta = new Vector2(2f, 0.5f);
+        text.rectTransform.pivot = new Vector2(1f, 0f);
+        return text;
     }
 
     // Select/Battle 등 화면별 입력 context(PlayerInputManager의 메인 스택)와 별개로 항상 폴링되어야
@@ -70,6 +120,7 @@ public class PopupManager : MonoBehaviour
         if (_entries.Count == 0)
         {
             if (popupComponent != null) popupComponent.gameObject.SetActive(false);
+            RefreshPageText();
             return;
         }
 
@@ -92,8 +143,15 @@ public class PopupManager : MonoBehaviour
         RefreshCurrentPage();
     }
 
+    private void RefreshPageText()
+    {
+        if (pageText == null) return;
+        pageText.text = _entries.Count == 0 ? string.Empty : $"{_pageIndex + 1}/{_entries.Count}";
+    }
+
     private void RefreshCurrentPage()
     {
+        RefreshPageText();
         if (popupComponent == null || _entries.Count == 0) return;
         (Sprite icon, string text) = _entries[_pageIndex];
         popupComponent.SetEffect(icon, text);

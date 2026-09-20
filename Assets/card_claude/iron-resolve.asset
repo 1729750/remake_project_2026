@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: iron-resolve
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cooldown: 1
-  cost: 1
+  cost: 2
   _effects:
   - _effect:
       _effectType: 5
