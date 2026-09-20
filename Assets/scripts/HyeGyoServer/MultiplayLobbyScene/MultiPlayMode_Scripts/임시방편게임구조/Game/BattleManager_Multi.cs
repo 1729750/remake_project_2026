@@ -7,25 +7,16 @@ public sealed class BattleManager_Multi : NetworkBehaviour
 {
     public static BattleManager_Multi Instance { get; private set; }
 
-    // =========================================================
-    // Network
-    // =========================================================
-
     [Header("Network")]
     [SerializeField]
     private GameNetworkState gameNetworkState;
 
-    // =========================================================
-    // 기존 BattleManager와 동일한 Inspector 구조
-    // =========================================================
-
     [Header("Battle View")]
+    [SerializeField]
+    private CharacterManager_Multi playerCharacterManager;
 
     [SerializeField]
-    private CharacterManager playerCharacterManager;
-
-    [SerializeField]
-    private CharacterManager enemyCharacterManager;
+    private CharacterManager_Multi enemyCharacterManager;
 
     [SerializeField]
     private TextMeshPro turnText;
@@ -40,77 +31,20 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     private List<EffectEmoji> effectEmojis =
         new List<EffectEmoji>();
 
-    // =========================================================
-    // 기존 BattleManager와 동일한 Runtime 필드
-    // =========================================================
-
     private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
-
     private float _startElapsed;
 
-    private static Dictionary<EffectType, Sprite> _emojiCache;
+    private static Dictionary<EffectType, Sprite>
+        _emojiCache;
 
     private int _startTickCount;
-
     private bool _nextTurnEndIsFirst = true;
-
-    // Multi 전용
     private bool _battleStarted;
 
-    // =========================================================
-    // State
-    // =========================================================
-
     public BattleState CurrentState { get; private set; }
-
     public bool BattleStarted => _battleStarted;
-
     public GameNetworkState NetworkState => gameNetworkState;
-
-    // Local 화면의 Player / Enemy ClientId
-    public ulong LocalPlayerClientId
-    {
-        get
-        {
-            if (NetworkManager.Singleton == null)
-                return ulong.MaxValue;
-
-            return NetworkManager.Singleton.LocalClientId;
-        }
-    }
-
-    public ulong EnemyClientId
-    {
-        get
-        {
-            if (gameNetworkState == null ||
-                !gameNetworkState.PlayersAssigned)
-            {
-                return ulong.MaxValue;
-            }
-
-            ulong localId = LocalPlayerClientId;
-
-            if (localId ==
-                gameNetworkState.Player0ClientId.Value)
-            {
-                return gameNetworkState.Player1ClientId.Value;
-            }
-
-            if (localId ==
-                gameNetworkState.Player1ClientId.Value)
-            {
-                return gameNetworkState.Player0ClientId.Value;
-            }
-
-            return ulong.MaxValue;
-        }
-    }
-
-    // =========================================================
-    // Awake
-    // =========================================================
 
     private void Awake()
     {
@@ -124,56 +58,43 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         Instance = this;
     }
 
-    // =========================================================
-    // Network Spawn
-    // =========================================================
-
     public override void OnNetworkSpawn()
     {
-        Debug.Log(
-            "[BattleManager_Multi] OnNetworkSpawn\n" +
-            $"IsServer: {IsServer}\n" +
-            $"IsClient: {IsClient}\n" +
-            $"LocalClientId: {NetworkManager.Singleton.LocalClientId}"
-        );
+        if (gameNetworkState != null)
+        {
+            gameNetworkState.StateChanged +=
+                HandleNetworkStateChanged;
+        }
+
+        Init();
+        TryBindLocalViews();
     }
 
-    // =========================================================
-    // Single의 Init()와 같은 위치
-    // =========================================================
+    public override void OnNetworkDespawn()
+    {
+        if (gameNetworkState != null)
+        {
+            gameNetworkState.StateChanged -=
+                HandleNetworkStateChanged;
+        }
+    }
 
     public void Init()
     {
-        /*
-         * 중요:
-         *
-         * Single에서는 여기서
-         *
-         * playerCharacterManager.Init();
-         * enemyCharacterManager.Init();
-         *
-         * 을 실행했지만,
-         *
-         * CharacterManager 내부가 아직
-         * Single 판정 + View가 섞여있는지 확인하지 않았기 때문에
-         * Multi에서는 지금 당장 호출하지 않는다.
-         *
-         * CharacterManager_Multi를 만들 때 다시 연결한다.
-         */
+        playerCharacterManager?.Init();
+        enemyCharacterManager?.Init();
 
         if (_turnTimerOverlay != null)
-        {
             Destroy(_turnTimerOverlay.gameObject);
-        }
 
         if (turnText != null)
         {
-            var overlayGO =
-                new GameObject("TurnTimerOverlay_Multi");
+            GameObject overlayGO =
+                new GameObject(
+                    "TurnTimerOverlay_Multi");
 
             overlayGO.transform.SetParent(
-                turnText.transform.parent
-            );
+                turnText.transform.parent);
 
             overlayGO.transform.localPosition =
                 Vector3.zero;
@@ -185,59 +106,58 @@ public sealed class BattleManager_Multi : NetworkBehaviour
             overlayGO.AddComponent<MeshRenderer>();
 
             _turnTimerOverlay =
-                overlayGO.AddComponent<TurnTimerOverlay>();
-
-            /*
-             * TurnManager는 실제 판정을 Server가 담당한다.
-             *
-             * 따라서 Server에서만 생성한다.
-             */
-            if (IsServer)
-            {
-                _turnManager =
-                    new TurnManager(
-                        turnDuration,
-                        _turnTimerOverlay,
-                        turnText
-                    );
-
-                _turnManager.OnTurnStarted +=
-                    OnTurnStarted;
-
-                _turnManager.OnTurnEnded +=
-                    OnTurnEnded;
-            }
+                overlayGO.AddComponent<
+                    TurnTimerOverlay>();
         }
 
-        Debug.Log(
-            "[BattleManager_Multi] Init 완료"
-        );
+        if (IsServer)
+        {
+            _turnManager =
+                new TurnManager(
+                    turnDuration,
+                    _turnTimerOverlay,
+                    turnText);
+
+            _turnManager.OnTurnStarted +=
+                OnTurnStarted;
+
+            _turnManager.OnTurnEnded +=
+                OnTurnEnded;
+        }
     }
 
-    // =========================================================
-    // 기존 GameManager_Multi가 호출하는 진입점
-    // =========================================================
-
-    public void InitializeBattleServer()
+    private void TryBindLocalViews()
     {
-        if (!IsServer)
+        if (gameNetworkState == null ||
+            !gameNetworkState.PlayersAssigned ||
+            NetworkManager.Singleton == null)
         {
-            Debug.LogWarning(
-                "[BattleManager_Multi] " +
-                "Server만 Battle을 시작할 수 있습니다."
-            );
-
             return;
         }
 
-        StartBattleServer();
+        ulong localId =
+            NetworkManager.Singleton.LocalClientId;
+
+        ulong opponentId =
+            gameNetworkState.GetOpponentClientId(
+                localId);
+
+        if (opponentId ==
+            GameNetworkState.UnassignedClientId)
+        {
+            return;
+        }
+
+        playerCharacterManager?.BindClientId(
+            localId,
+            true);
+
+        enemyCharacterManager?.BindClientId(
+            opponentId,
+            false);
     }
 
-    // =========================================================
-    // Single의 StartBattle() 위치
-    // =========================================================
-
-    private void StartBattleServer()
+    public void InitializeBattleServer()
     {
         if (!IsServer)
             return;
@@ -245,32 +165,15 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         if (_battleStarted)
             return;
 
-        if (gameNetworkState == null)
+        if (gameNetworkState == null ||
+            !gameNetworkState.PlayersAssigned)
         {
-            Debug.LogError(
-                "[BattleManager_Multi] " +
-                "GameNetworkState가 없습니다."
-            );
-
             return;
         }
 
-        if (!gameNetworkState.PlayersAssigned)
-        {
-            Debug.LogWarning(
-                "[BattleManager_Multi] " +
-                "Player0 / Player1 확정 전입니다."
-            );
-
-            return;
-        }
+        TryBindLocalViews();
 
         _battleStarted = true;
-
-        if (_turnManager == null)
-        {
-            Init();
-        }
 
         _turnManager?.Reset();
 
@@ -280,25 +183,13 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         _turnTimerOverlay?.SetFill(0f);
 
         SetState(
-            BattleState.BattleStarting
-        );
+            BattleState.BattleStarting);
 
         gameNetworkState.SetMatchStateServer(
-            MultiMatchState.BattleStarting
-        );
+            MultiMatchState.BattleStarting);
 
-        Debug.Log(
-            "[BattleManager_Multi] StartBattle\n" +
-            $"Player0: {gameNetworkState.Player0ClientId.Value}\n" +
-            $"Player1: {gameNetworkState.Player1ClientId.Value}\n" +
-            $"Player0 HP: {gameNetworkState.Player0Health.Value}\n" +
-            $"Player1 HP: {gameNetworkState.Player1Health.Value}"
-        );
+        UpdateStartCountdownText();
     }
-
-    // =========================================================
-    // Single의 UpdateStartCountdownText()
-    // =========================================================
 
     private void UpdateStartCountdownText()
     {
@@ -308,18 +199,13 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         int remaining =
             Mathf.CeilToInt(
                 Mathf.Max(
-                    startDelay - _startElapsed,
-                    0f
-                )
-            );
+                    startDelay -
+                    _startElapsed,
+                    0f));
 
         turnText.text =
             $"{remaining}";
     }
-
-    // =========================================================
-    // Single의 UnpackCardCollection()
-    // =========================================================
 
     public static List<CardDefinition>
         UnpackCardCollection(
@@ -331,61 +217,48 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         if (collection == null)
             return result;
 
-        foreach (var def in collection.GetCards())
+        foreach (
+            CardDefinition def
+            in collection.GetCards())
         {
             if (def != null)
-            {
                 result.Add(
-                    Instantiate(def)
-                );
-            }
+                    Instantiate(def));
         }
 
         return result;
     }
 
-    // =========================================================
-    // Single의 Tick()
-    //
-    // 차이:
-    // 실제 Turn 진행은 Server만 한다.
-    // =========================================================
-
     public void Tick(float deltaTime)
     {
-        if (!IsServer)
+        if (!IsServer ||
+            !_battleStarted)
+        {
             return;
-
-        if (!_battleStarted)
-            return;
+        }
 
         if (CurrentState ==
             BattleState.BattleStarting)
         {
-            _startElapsed += deltaTime;
+            _startElapsed +=
+                deltaTime;
 
             _turnTimerOverlay?.SetFill(
                 Mathf.Clamp01(
                     _startElapsed /
-                    startDelay
-                )
-            );
+                    startDelay));
 
             int desiredTicks =
                 Mathf.Min(
                     Mathf.FloorToInt(
-                        _startElapsed
-                    ) + 1,
+                        _startElapsed) + 1,
                     Mathf.FloorToInt(
-                        startDelay
-                    )
-                );
+                        startDelay));
 
             while (_startTickCount <
                    desiredTicks)
             {
                 _startTickCount++;
-
                 PlayAlternatingTurnEnd();
             }
 
@@ -403,14 +276,9 @@ public sealed class BattleManager_Multi : NetworkBehaviour
             BattleState.Turn)
         {
             _turnManager?.Tick(
-                deltaTime
-            );
+                deltaTime);
         }
     }
-
-    // =========================================================
-    // Single의 SetState()
-    // =========================================================
 
     private void SetState(
         BattleState state)
@@ -418,37 +286,23 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         CurrentState = state;
     }
 
-    // =========================================================
-    // Single의 OnBattleStarted()
-    // =========================================================
-
     private void OnBattleStarted()
     {
         if (!IsServer)
             return;
 
-        gameNetworkState.SetMatchStateServer(
-            MultiMatchState.Battle
-        );
+        gameNetworkState
+            .SetMatchStateServer(
+                MultiMatchState.Battle);
 
         SoundManager.Instance?.Play(
-            EffectSound.BattleStart
-        );
+            EffectSound.BattleStart);
 
         SoundManager.Instance?.Play(
-            BgmName.BattleBGM
-        );
+            BgmName.BattleBGM);
 
         _turnManager?.StartTurn();
-
-        Debug.Log(
-            "[BattleManager_Multi] Battle Started"
-        );
     }
-
-    // =========================================================
-    // Single의 OnTurnStarted()
-    // =========================================================
 
     private void OnTurnStarted()
     {
@@ -456,36 +310,25 @@ public sealed class BattleManager_Multi : NetworkBehaviour
             return;
 
         SetState(
-            BattleState.TurnStart
-        );
+            BattleState.TurnStart);
 
-        Debug.Log(
-            $"[BattleManager_Multi] " +
-            $"Turn {_turnManager.GetCurrentTurn()} Started"
-        );
+        if (_turnManager != null)
+        {
+            gameNetworkState
+                .SetCurrentTurnServer(
+                    _turnManager
+                        .GetCurrentTurn());
+        }
 
-        /*
-         * Single:
-         *
-         * playerCharacterManager.OnTurnStart();
-         * enemyCharacterManager.OnTurnStart();
-         *
-         * ↓
-         *
-         * Multi에서는 CharacterManager_Multi 작업 후
-         * Server 판정용 코드로 교체한다.
-         *
-         * 지금은 호출하지 않는다.
-         */
+        playerCharacterManager
+            ?.OnTurnStart();
+
+        enemyCharacterManager
+            ?.OnTurnStart();
 
         SetState(
-            BattleState.Turn
-        );
+            BattleState.Turn);
     }
-
-    // =========================================================
-    // Single의 OnTurnEnded()
-    // =========================================================
 
     private void OnTurnEnded()
     {
@@ -493,25 +336,15 @@ public sealed class BattleManager_Multi : NetworkBehaviour
             return;
 
         SetState(
-            BattleState.TurnEnd
-        );
-
-        Debug.Log(
-            $"[BattleManager_Multi] " +
-            $"Turn {_turnManager.GetCurrentTurn()} Ended"
-        );
+            BattleState.TurnEnd);
 
         PlayAlternatingTurnEnd();
 
-        /*
-         * Single:
-         *
-         * playerCharacterManager.OnTurnEnd();
-         * enemyCharacterManager.OnTurnEnd();
-         *
-         * 이것도 CharacterManager_Multi에서
-         * Network 구조로 교체 예정.
-         */
+        playerCharacterManager
+            ?.OnTurnEnd();
+
+        enemyCharacterManager
+            ?.OnTurnEnd();
 
         if (CurrentState !=
             BattleState.BattleFinish)
@@ -520,159 +353,128 @@ public sealed class BattleManager_Multi : NetworkBehaviour
         }
     }
 
-    // =========================================================
-    // Single의 PlayAlternatingTurnEnd()
-    // =========================================================
-
     private void PlayAlternatingTurnEnd()
     {
-        /*
-         * 현재는 Host에서만 실행된다.
-         *
-         * 나중에는
-         * Network Event / RPC를 이용해
-         * Host + Client 양쪽에서 같은 효과음을 재생하도록 변경한다.
-         */
-
+        // 현재는 Server/Host에서 실제 판정과 함께 재생.
+        // Client 사운드 동기화는 별도 RPC 단계에서 추가한다.
         SoundManager.Instance?.Play(
             _nextTurnEndIsFirst
                 ? EffectSound.TurnEnd1
-                : EffectSound.TurnEnd2
-        );
+                : EffectSound.TurnEnd2);
 
         _nextTurnEndIsFirst =
             !_nextTurnEndIsFirst;
     }
 
-    // =========================================================
-    // Multi 실제 Damage
-    // =========================================================
+    public void RequestSelectCard(int index)
+    {
+        if (NetworkManager.Singleton == null)
+            return;
+
+        if (IsServer)
+        {
+            ExecuteSelectCardServer(
+                NetworkManager.Singleton
+                    .LocalClientId,
+                index);
+
+            return;
+        }
+
+        RequestSelectCardServerRpc(index);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestSelectCardServerRpc(
+        int index,
+        ServerRpcParams rpcParams = default)
+    {
+        ExecuteSelectCardServer(
+            rpcParams.Receive.SenderClientId,
+            index);
+    }
+
+    private void ExecuteSelectCardServer(
+        ulong senderClientId,
+        int index)
+    {
+        if (!IsServer ||
+            CurrentState != BattleState.Turn)
+        {
+            return;
+        }
+
+        CharacterManager_Multi character =
+            GetCharacterByClientId(
+                senderClientId);
+
+        character?.SelectCardServer(
+            index);
+    }
 
     public void ApplyDamageServer(
         ulong targetClientId,
         int damage)
     {
-        if (!IsServer)
-            return;
-
-        if (!_battleStarted)
-            return;
-
-        if (damage <= 0)
-            return;
-
-        int currentHealth;
-
-        if (targetClientId ==
-            gameNetworkState.Player0ClientId.Value)
+        if (!IsServer ||
+            !_battleStarted ||
+            damage <= 0)
         {
-            currentHealth =
-                gameNetworkState.Player0Health.Value;
-        }
-        else if (
-            targetClientId ==
-            gameNetworkState.Player1ClientId.Value)
-        {
-            currentHealth =
-                gameNetworkState.Player1Health.Value;
-        }
-        else
-        {
-            Debug.LogWarning(
-                "[BattleManager_Multi] " +
-                $"잘못된 ClientId: {targetClientId}"
-            );
-
             return;
         }
 
-        int nextHealth =
-            Mathf.Max(
-                0,
-                currentHealth - damage
-            );
+        CharacterManager_Multi target =
+            GetCharacterByClientId(
+                targetClientId);
 
-        gameNetworkState.SetHealthServer(
-            targetClientId,
-            nextHealth
-        );
-
-        Debug.Log(
-            "[BattleManager_Multi] Damage\n" +
-            $"Target: {targetClientId}\n" +
-            $"Damage: {damage}\n" +
-            $"HP: {currentHealth} -> {nextHealth}"
-        );
-
-        if (nextHealth <= 0)
-        {
-            FinishBattleServer(
-                targetClientId
-            );
-        }
+        target?.Attacked(damage);
     }
 
-    // =========================================================
-    // Single의 NotifyDefeat() 대응
-    // =========================================================
-
-    private void FinishBattleServer(
-        ulong loserClientId)
+    public void NotifyDefeat(
+        CharacterManager_Multi loser)
     {
-        if (!IsServer)
-            return;
-
-        if (CurrentState ==
-            BattleState.BattleFinish)
+        if (!IsServer ||
+            loser == null ||
+            CurrentState ==
+                BattleState.BattleFinish)
         {
             return;
         }
 
         SetState(
-            BattleState.BattleFinish
-        );
+            BattleState.BattleFinish);
 
         _nextTurnEndIsFirst = true;
 
-        ulong winnerClientId;
+        playerCharacterManager
+            ?.ClearHandAndQueue();
 
-        if (loserClientId ==
-            gameNetworkState.Player0ClientId.Value)
-        {
-            winnerClientId =
-                gameNetworkState.Player1ClientId.Value;
-        }
-        else
-        {
-            winnerClientId =
-                gameNetworkState.Player0ClientId.Value;
-        }
-
-        gameNetworkState.SetWinnerServer(
-            winnerClientId
-        );
-
-        gameNetworkState.SetMatchStateServer(
-            MultiMatchState.BattleFinished
-        );
-
-        _battleStarted = false;
+        enemyCharacterManager
+            ?.ClearHandAndQueue();
 
         SoundManager.Instance?.StopBgm();
 
-        Debug.Log(
-            "[BattleManager_Multi] Battle Finished\n" +
-            $"Winner: {winnerClientId}\n" +
-            $"Loser: {loserClientId}"
-        );
+        ulong loserClientId =
+            loser.RepresentedClientId;
+
+        ulong winnerClientId =
+            gameNetworkState
+                .GetOpponentClientId(
+                    loserClientId);
+
+        gameNetworkState.SetWinnerServer(
+            winnerClientId);
+
+        gameNetworkState
+            .SetMatchStateServer(
+                MultiMatchState
+                    .BattleFinished);
+
+        _battleStarted = false;
     }
 
-    // =========================================================
-    // Single의 GetOpponent()와 같은 View 함수
-    // =========================================================
-
-    public CharacterManager GetOpponent(
-        CharacterManager user)
+    public CharacterManager_Multi GetOpponent(
+        CharacterManager_Multi user)
     {
         return user ==
                playerCharacterManager
@@ -680,37 +482,38 @@ public sealed class BattleManager_Multi : NetworkBehaviour
             : playerCharacterManager;
     }
 
-    // =========================================================
-    // Network 기준 상대 찾기
-    // =========================================================
+    public CharacterManager_Multi
+        GetCharacterByClientId(
+            ulong clientId)
+    {
+        if (playerCharacterManager != null &&
+            playerCharacterManager
+                .RepresentedClientId ==
+            clientId)
+        {
+            return playerCharacterManager;
+        }
+
+        if (enemyCharacterManager != null &&
+            enemyCharacterManager
+                .RepresentedClientId ==
+            clientId)
+        {
+            return enemyCharacterManager;
+        }
+
+        return null;
+    }
 
     public ulong GetOpponentClientId(
         ulong clientId)
     {
-        if (gameNetworkState == null ||
-            !gameNetworkState.PlayersAssigned)
-        {
-            return ulong.MaxValue;
-        }
-
-        if (clientId ==
-            gameNetworkState.Player0ClientId.Value)
-        {
-            return gameNetworkState.Player1ClientId.Value;
-        }
-
-        if (clientId ==
-            gameNetworkState.Player1ClientId.Value)
-        {
-            return gameNetworkState.Player0ClientId.Value;
-        }
-
-        return ulong.MaxValue;
+        return gameNetworkState != null
+            ? gameNetworkState
+                .GetOpponentClientId(clientId)
+            : GameNetworkState
+                .UnassignedClientId;
     }
-
-    // =========================================================
-    // Single의 GetEmoji()
-    // =========================================================
 
     public static Sprite GetEmoji(
         EffectType effectType)
@@ -720,50 +523,54 @@ public sealed class BattleManager_Multi : NetworkBehaviour
             _emojiCache =
                 new Dictionary<
                     EffectType,
-                    Sprite
-                >();
+                    Sprite>();
 
             if (Instance == null)
                 return null;
 
             foreach (
-                var entry in
-                Instance.effectEmojis)
+                EffectEmoji entry
+                in Instance.effectEmojis)
             {
                 _emojiCache[
-                    entry.effectType
-                ] = entry.sprite;
+                    entry.effectType] =
+                    entry.sprite;
             }
         }
 
         _emojiCache.TryGetValue(
             effectType,
-            out var sprite
-        );
+            out Sprite sprite);
 
         return sprite;
     }
 
-    // =========================================================
-    // Single의 Update()
-    //
-    // Single:
-    // GameManager.Instance.GetGameState()
-    //
-    // Multi:
-    // Server + _battleStarted를 기준으로 한다.
-    // =========================================================
+    private void HandleNetworkStateChanged()
+    {
+        TryBindLocalViews();
+
+        if (!IsServer &&
+            turnText != null &&
+            gameNetworkState != null &&
+            gameNetworkState.MatchState.Value ==
+                MultiMatchState.Battle)
+        {
+            turnText.text =
+                gameNetworkState
+                    .CurrentTurnNumber
+                    .Value
+                    .ToString();
+        }
+    }
 
     private void Update()
     {
-        if (!IsServer)
+        if (!IsServer ||
+            !_battleStarted)
+        {
             return;
+        }
 
-        if (!_battleStarted)
-            return;
-
-        Tick(
-            Time.deltaTime
-        );
+        Tick(Time.deltaTime);
     }
 }

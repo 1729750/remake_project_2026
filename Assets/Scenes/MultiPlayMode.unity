@@ -492,12 +492,57 @@ MonoBehaviour:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 18446744073709551615
+  Player0MaxHealth:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 100
+  Player1MaxHealth:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 100
   Player0Health:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
   Player1Health:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  Player0Defense:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  Player1Defense:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  Player0Cost:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  Player1Cost:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  Player0Guard:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  Player1Guard:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  CurrentTurnNumber:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
@@ -1318,7 +1363,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e514a4a7d2e8b5945b799133d54bdef1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerManager
-  characterManager: {fileID: 1900544483}
+  characterManager: {fileID: 0}
   maxHealth: 100
   deck:
   - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
@@ -2929,8 +2974,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f508334bf125ce47b5e26e8e69e1319, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager
-  playerCharacterManager: {fileID: 1900544483}
-  enemyCharacterManager: {fileID: 2076682903}
+  playerCharacterManager: {fileID: 0}
+  enemyCharacterManager: {fileID: 0}
   turnText: {fileID: 1895152206}
   turnDuration: 1
   startDelay: 3
@@ -3034,8 +3079,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager_Multi
   ShowTopMostFoldoutHeaderGroup: 1
   gameNetworkState: {fileID: 43848199}
-  playerCharacterManager: {fileID: 1900544483}
-  enemyCharacterManager: {fileID: 2076682903}
+  playerCharacterManager: {fileID: 0}
+  enemyCharacterManager: {fileID: 0}
   turnText: {fileID: 1895152206}
   turnDuration: 1
   startDelay: 3
@@ -4704,7 +4749,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 25429942}
-  - {fileID: 2076682902}
+  - {fileID: 1533461077}
   - {fileID: 19310951}
   - {fileID: 282753775}
   - {fileID: 2098708659}
@@ -5695,6 +5740,73 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8063017431280850933, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
   m_PrefabInstance: {fileID: 1135925056}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1533461076
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1533461077}
+  - component: {fileID: 1533461078}
+  m_Layer: 0
+  m_Name: CharacterManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1533461077
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1533461076}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1312835011}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1533461078
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1533461076}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d89048843f3e8c468d292884285db44, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterManager
+  startDeck:
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+  - {fileID: 11400000, guid: 194265b917c1f494b886aae7d8e52985, type: 2}
+  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  - {fileID: 11400000, guid: d8282a6efacc94948870bdc623775219, type: 2}
+  queueRoots: {fileID: 977913906}
+  isHandVisualized: 0
+  handsRoot: {fileID: 2098708658}
+  hpBar: {fileID: 1740255577}
+  shrinkRight: 0
+  playerControlled: 0
+  costText: {fileID: 1597749340}
+  effectList: {fileID: 769539712}
+  defenseText: {fileID: 1121280546}
+  defenseIndicator: {fileID: 488539929}
+  defenseIndicatorRestPosition:
+  - {fileID: 1007066763}
+  - {fileID: 2118538213}
+  defenseIndicatorMoveDuration: 0.3
 --- !u!1 &1597749338
 GameObject:
   m_ObjectHideFlags: 0
@@ -6587,7 +6699,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1900544482}
-  - component: {fileID: 1900544483}
+  - component: {fileID: 1900544484}
   m_Layer: 0
   m_Name: CharacterManager
   m_TagString: Untagged
@@ -6610,7 +6722,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 550371443}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1900544483
+--- !u!114 &1900544484
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6944,7 +7056,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1990682881}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd70d85d1a621a34fbf22a475a3cd896, type: 3}
   m_Name: 
@@ -7205,72 +7317,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d8164d610507d7e42ae34de252ad9d9b, type: 3}
---- !u!1 &2076682901
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2076682902}
-  - component: {fileID: 2076682903}
-  m_Layer: 0
-  m_Name: EnemyCharacterManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2076682902
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2076682901}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1312835011}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2076682903
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2076682901}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d89048843f3e8c468d292884285db44, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterManager
-  startDeck:
-  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
-  - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
-  - {fileID: 11400000, guid: b6f12a9d57055c9459cedcfdb93442fc, type: 2}
-  - {fileID: 11400000, guid: b6f12a9d57055c9459cedcfdb93442fc, type: 2}
-  - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
-  queueRoots: {fileID: 977913906}
-  isHandVisualized: 0
-  handsRoot: {fileID: 2098708658}
-  hpBar: {fileID: 1740255577}
-  shrinkRight: 1
-  playerControlled: 0
-  costText: {fileID: 1255012159}
-  effectList: {fileID: 910664241}
-  defenseText: {fileID: 1884688786}
-  defenseIndicator: {fileID: 25429940}
-  defenseIndicatorRestPosition:
-  - {fileID: 911800115}
-  - {fileID: 2118538213}
-  defenseIndicatorMoveDuration: 0.3
 --- !u!1 &2098708658
 GameObject:
   m_ObjectHideFlags: 0
