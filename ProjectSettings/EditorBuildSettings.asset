@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: "Assets/Scenes/\uC61B\uB0A0\uAEBC/HyeGyoServerTest.unity"
     guid: ef3ecbcc0b6553d4f85ef43ef1025a7a
+  - enabled: 1
+    path: Assets/Scenes/MultiPlayMode.unity
+    guid: de4dcc1f4fdf6a945a9af9cccf279419
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
