@@ -26,6 +26,9 @@ public class RewardManager : MonoBehaviour
     // 카드 획득 후보 풀. RewardCard()가 매번 이 중 3개를 중복 없이 랜덤으로 뽑아 보여준다.
     // GameManager.GenerateRandomEnemy도 GetRewardCards()로 이 풀을 그대로 가져다 쓴다.
     [SerializeField] private CardDefinition[] rewardCards;
+    // 보상 화면(카드 획득/삭제/강화) 전용 팝업 인스턴스. 이 화면에서 만드는 CardVisual/RewardDisplay/
+    // DeckDisplay에 전부 이 인스턴스를 넘긴다(씬 전역 static Instance 대신).
+    [SerializeField] private PopupManager popupManager;
 
     public CardDefinition[] GetRewardCards() => rewardCards;
 
@@ -44,6 +47,15 @@ public class RewardManager : MonoBehaviour
         .ToArray();
     // cost:cooldown 분배가 1:2 경향을 띄도록, 예산 1당 이 확률로 cooldown 쪽에 배분한다.
     private const float CooldownAllocationChance = 2f / 3f;
+    // Instant/Continuous를 둘 다 지원하는 effectType이 강화 후보로 뽑혔을 때, 이 확률로 Continuous를
+    // 고른다(나머지는 Instant). 한쪽만 지원하면 이 확률과 무관하게 그 하나로 고정된다.
+    private const float ContinuousChance = 0.2f;
+    // Continuous는 카드가 큐에 머무는 동안만 발동하는 반쪽짜리 효과라, 같은 magnitude라도 Instant보다
+    // 훨씬 약하다 — 그 보상으로 cost/cooldown 감소 예산을 5배로 쳐준다.
+    private const int ContinuousBudgetMultiplier = 5;
+    // RollFeasibleEnhanceOption가 "덱의 카드 중 하나 이상에 대입 가능한 옵션"이 나올 때까지 다시
+    // 굴리는 시도 횟수 상한. 덱이 비어 있는 등 정상적으로 불가능한 상황에서 무한 루프를 막는다.
+    private const int MaxFeasibleRollAttempts = 100;
 
     private CardUpgrade[] _enhanceOptions;
     private RewardDisplay[] _enhanceDisplays;
@@ -73,7 +85,7 @@ public class RewardManager : MonoBehaviour
         if (_rewardDisplays == null) return;
 
         _rewardDisplaySelectedIndex = 0;
-        RefreshRewardDisplaySelection();
+        _rewardDisplays[_rewardDisplaySelectedIndex].SetSelected(true);
 
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
@@ -94,6 +106,7 @@ public class RewardManager : MonoBehaviour
         for (int i = 0; i < labels.Length; i++)
         {
             displays[i] = Instantiate(_rewardDisplayPrefab, transform).GetComponent<RewardDisplay>();
+            displays[i].SetPopupManager(popupManager);
             displays[i].Init(labels[i],rewardSprites[i]);
         }
 
@@ -112,9 +125,16 @@ public class RewardManager : MonoBehaviour
         int count = _rewardDisplays.Length;
         int previous = _rewardDisplaySelectedIndex;
         _rewardDisplaySelectedIndex = ((_rewardDisplaySelectedIndex + delta) % count + count) % count;
-        RefreshRewardDisplaySelection();
-        if (_rewardDisplaySelectedIndex != previous)
-            PlayMoveSelectSound();
+        if (_rewardDisplaySelectedIndex == previous) return;
+
+        // 팝업을 띄우는 RewardDisplay.SetSelected가 select될 때마다 곧장 Show를 부르므로, 전체를
+        // 훑으며 i==selectedIndex로 매번 다시 세팅하면(예전 방식) 방금 selected로 켠 것 뒤에 다른
+        // 항목의 deselect 호출이 뒤이어 실행되며 Show(null)로 덮어써버렸다 — 그래서 마지막 인덱스를
+        // 고를 때만 팝업이 남고 나머지는 select해도 안 뜨는 것처럼 보였다. deselect(예전)→select(새)
+        // 딱 두 번만, 이 순서로 불러야 한다.
+        _rewardDisplays[previous].SetSelected(false);
+        _rewardDisplays[_rewardDisplaySelectedIndex].SetSelected(true);
+        PlayMoveSelectSound();
     }
 
     // 왼쪽부터 순서대로 카드 획득/삭제/강화에 대응한다.
@@ -135,12 +155,6 @@ public class RewardManager : MonoBehaviour
             foreach (RewardDisplay display in _rewardDisplays)
                 if (display != null) Destroy(display.gameObject);
         _rewardDisplays = null;
-    }
-
-    private void RefreshRewardDisplaySelection()
-    {
-        for (int i = 0; i < _rewardDisplays.Length; i++)
-            _rewardDisplays[i].SetSelected(i == _rewardDisplaySelectedIndex);
     }
 
     // RewardDisplay 왼쪽 패널: 카드 획득.
@@ -172,7 +186,7 @@ public class RewardManager : MonoBehaviour
         PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
-        DeckDisplay deckDisplay = GameManager.SummonDeck();
+        DeckDisplay deckDisplay = GameManager.SummonDeck(null, popupManager);
 
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
@@ -197,9 +211,10 @@ public class RewardManager : MonoBehaviour
         PlayerInputManager.Instance.Unload();
         ClearRewardDisplay();
 
+        List<CardDefinition> deck = PlayerManager.Instance.GetDeck();
         CardUpgrade[] options = new CardUpgrade[3];
         for (int i = 0; i < options.Length; i++)
-            options[i] = RollEnhanceOption();
+            options[i] = RollFeasibleEnhanceOption(deck);
 
         SelectEnhance(options);
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
@@ -221,7 +236,7 @@ public class RewardManager : MonoBehaviour
         return RollEnhanceOption(effectType);
     }
 
-    // effectType을 고정한 채(무작위로 고르지 않고) magnitude/target/cost·cooldown delta만 새로 굴린다.
+    // effectType을 고정한 채(무작위로 고르지 않고) magnitude/target/카테고리/cost·cooldown delta만 새로 굴린다.
     // CharacterScaler.ScaleBoss처럼 강화할 effectType을 먼저 정해야 하는 호출부가 쓴다.
     public static CardUpgrade RollEnhanceOption(EffectType effectType)
     {
@@ -232,11 +247,43 @@ public class RewardManager : MonoBehaviour
         EffectTarget target = ResolveEnhanceTarget(effect.TargetPolarity, magnitude);
         CardEffect cardEffect = new CardEffect(effect, target);
 
+        // Instant/Continuous 둘 다 되는 타입은 80/20으로 하나를 고르고, 한쪽만 되는 타입은 그걸로
+        // 고정한다 — CardEffect에 명시적으로 남겨둬야 CanEnhance/CardDefinition.AddEffect가 어느
+        // cardType 카드에 붙을 수 있는지 판단할 수 있다.
+        EffectCategory appliedCategory = RollAppliedCategory(effect.SupportedCategories);
+        cardEffect.SetAppliedCategory(appliedCategory);
+
         int priceMagnitude = effect.DoesntUseMagnitude ? 1 : magnitude;
         int budget = Mathf.FloorToInt(priceInfo.price * (float)priceMagnitude);
+        // Continuous는 카드가 큐에 머무는 동안만 발동하는 반쪽짜리 효과라 같은 magnitude라도 Instant보다
+        // 약하므로, 그 보상으로 cost/cooldown 감소 예산을 5배로 쳐준다.
+        if (appliedCategory == EffectCategory.Continuous)
+            budget *= ContinuousBudgetMultiplier;
         (int costUnits, int cooldownUnits) = DistributeBudget(budget);
 
         return new CardUpgrade(cardEffect, costUnits, cooldownUnits);
+    }
+
+    // supported가 둘 다 켜져 있으면 ContinuousChance 확률로 Continuous, 아니면 Instant. 하나만
+    // 지원하면(단일 비트) 그 값 그대로 고정해서 돌려준다.
+    private static EffectCategory RollAppliedCategory(EffectCategory supported)
+    {
+        if (supported == (EffectCategory.Instant | EffectCategory.Continuous))
+            return UnityEngine.Random.value < ContinuousChance ? EffectCategory.Continuous : EffectCategory.Instant;
+        return supported;
+    }
+
+    // 덱의 카드 중 하나 이상에 CanEnhance를 통과하는 옵션이 나올 때까지 RollEnhanceOption()을 다시
+    // 굴린다 — Continuous 옵션은 Continuous(또는 Mix) 카드에만, Instant 옵션은 Instant(또는 Mix)
+    // 카드에만 붙을 수 있으므로, 지금 덱 구성상 애초에 어디에도 못 붙는 옵션을 플레이어에게 보여주지
+    // 않기 위함이다. 시도 횟수는 MaxFeasibleRollAttempts로 상한을 둔다(덱이 비정상적인 극단적
+    // 상황에서도 무한 루프에 빠지지 않도록 하는 방어용 — 마지막 시도 결과를 그냥 반환한다).
+    private static CardUpgrade RollFeasibleEnhanceOption(List<CardDefinition> deck)
+    {
+        CardUpgrade option = RollEnhanceOption();
+        for (int attempt = 1; attempt < MaxFeasibleRollAttempts && !deck.Any(def => CanEnhance(def, option)); attempt++)
+            option = RollEnhanceOption();
+        return option;
     }
 
     // source에서 최대 count개를 중복 없이 랜덤으로 뽑아 반환한다. source가 count보다 작으면 전부 반환한다.
@@ -304,23 +351,40 @@ public class RewardManager : MonoBehaviour
     }
 
     // option을 def에 강화로 적용해도 되는지: effect가 3개 미만이면 항상 가능(새 슬롯에 추가),
-    // 3개 이상이면 이미 같은 EffectType을 갖고 있어 병합(AddMagnitude)될 때만 가능하다.
+    // 3개 이상이면 같은 EffectType+같은 appliedCategory인 기존 효과가 있어 병합(AddMagnitude)될
+    // 때만 가능하다(CardDefinition.UpgradeEffect가 실제로 병합하는 기준과 반드시 일치해야 한다).
     // 단, magnitude를 안 쓰는 효과(Disposable/Preserve/DivideCooldown류)는 이미 가진 카드에 또
-    // 얹어봐야 의미가 없으므로 effect 개수와 무관하게 아예 제외한다.
+    // 얹어봐야 의미가 없으므로 병합 대상이 있으면 아예 제외한다.
+    // 그리고 CardDefinition.AddEffect/TryReconcileCardType과 동일하게, option의 appliedCategory와
+    // def의 cardType이 서로 맞아야 한다(Continuous는 Continuous/Mix 카드에만, Instant는 Instant/Mix
+    // 카드에만) — 안 맞으면 애초에 AddEffect가 거부할 옵션이므로 여기서 미리 걸러낸다.
+    // Continuous는 Instant와 달리 같은 타입끼리 magnitude를 합쳐 중첩할 수 없다 — 이미 같은 타입의
+    // continuous 효과가 있으면 슬롯 여유와 무관하게 그 카드엔 아예 적용할 수 없다.
     // ShowEnhanceDeckSelection(DeckDisplay 필터)과 GameManager.GenerateRandomEnemy(무작위 적 생성)가
     // 전부 이 판정을 공유하므로 public.
     public static bool CanEnhance(CardDefinition def, CardUpgrade option)
     {
-        EffectType upgradeType = option.effect.GetEffect().GetEffectType();
-        bool alreadyHasEffect = def.GetEffects().Any(effect => effect.GetEffect().GetEffectType() == upgradeType);
+        EffectCategory appliedCategory = option.effect.GetAppliedCategory();
+        CardType requiredCardType = appliedCategory == EffectCategory.Continuous ? CardType.Continuous : CardType.Instant;
+        if (def.GetCardType() != CardType.Mix && def.GetCardType() != requiredCardType)
+            return false;
 
-        if (option.effect.GetEffect().DoesntUseMagnitude && alreadyHasEffect)
+        EffectType upgradeType = option.effect.GetEffect().GetEffectType();
+
+        if (appliedCategory == EffectCategory.Continuous && def.GetEffects().Any(effect =>
+                effect.GetEffect().GetEffectType() == upgradeType && effect.GetAppliedCategory() == EffectCategory.Continuous))
+            return false;
+
+        bool hasMergeTarget = def.GetEffects().Any(effect =>
+            effect.GetEffect().GetEffectType() == upgradeType && effect.GetAppliedCategory() == appliedCategory);
+
+        if (option.effect.GetEffect().DoesntUseMagnitude && hasMergeTarget)
             return false;
 
         if (def.GetEffects().Length < 3)
             return true;
 
-        return alreadyHasEffect;
+        return hasMergeTarget;
     }
 
     // 강화 후보 선택 확정: DeckDisplay를 띄워 강화할 카드를 고르게 한다.
@@ -329,7 +393,7 @@ public class RewardManager : MonoBehaviour
         CardUpgrade option = ConfirmEnhanceSelection();
         PlayerInputManager.Instance.Unload();
 
-        DeckDisplay deckDisplay = GameManager.SummonDeck(def => CanEnhance(def, option));
+        DeckDisplay deckDisplay = GameManager.SummonDeck(def => CanEnhance(def, option), popupManager);
         PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
         {
             ["Left"]   = () => deckDisplay.MoveSelectionHorizontal(-1),
@@ -363,7 +427,7 @@ public class RewardManager : MonoBehaviour
             _enhanceDisplays[i].SetUpgrade(options[i]);
 
         _enhanceSelectedIndex = 0;
-        RefreshEnhanceSelection();
+        _enhanceDisplays[_enhanceSelectedIndex].SetSelected(true);
     }
 
     private void MoveEnhanceSelection(int delta)
@@ -373,9 +437,13 @@ public class RewardManager : MonoBehaviour
         int count = _enhanceDisplays.Length;
         int previous = _enhanceSelectedIndex;
         _enhanceSelectedIndex = ((_enhanceSelectedIndex + delta) % count + count) % count;
-        RefreshEnhanceSelection();
-        if (_enhanceSelectedIndex != previous)
-            PlayMoveSelectSound();
+        if (_enhanceSelectedIndex == previous) return;
+
+        // MoveRewardDisplaySelection과 같은 이유 — 전체를 훑으며 다시 세팅하지 않고 예전/새 인덱스만
+        // deselect→select 순서로 건드린다.
+        _enhanceDisplays[previous].SetSelected(false);
+        _enhanceDisplays[_enhanceSelectedIndex].SetSelected(true);
+        PlayMoveSelectSound();
     }
 
     // 강화 후보 선택을 확정하고, 표시해뒀던 RewardDisplay 3개를 정리한다.
@@ -390,12 +458,6 @@ public class RewardManager : MonoBehaviour
         _enhanceOptions = null;
 
         return selected;
-    }
-
-    private void RefreshEnhanceSelection()
-    {
-        for (int i = 0; i < _enhanceDisplays.Length; i++)
-            _enhanceDisplays[i].SetSelected(i == _enhanceSelectedIndex);
     }
 
     // rewardCards에 맞는 카드 오브젝트를 만들어 transform의 직속 자식으로 그대로 넣는다.
@@ -416,6 +478,7 @@ public class RewardManager : MonoBehaviour
             var visual = obj.GetComponent<CardVisual>();
             if (visual == null)
                 visual = obj.AddComponent<CardVisual>();
+            visual.SetPopupManager(popupManager);
 
             // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다
             var instance = new CardInstance(cardOptions[i], null);
@@ -435,7 +498,7 @@ public class RewardManager : MonoBehaviour
         }
 
         _rewardCardSelectedIndex = 0;
-        RefreshRewardCardSelection();
+        _rewardCardInstances[_rewardCardSelectedIndex]?.SetSelected(true);
     }
 
     private void MoveRewardCardSelection(int delta)
@@ -445,9 +508,13 @@ public class RewardManager : MonoBehaviour
         int count = _rewardCardInstances.Length;
         int previous = _rewardCardSelectedIndex;
         _rewardCardSelectedIndex = ((_rewardCardSelectedIndex + delta) % count + count) % count;
-        RefreshRewardCardSelection();
-        if (_rewardCardSelectedIndex != previous)
-            PlayMoveSelectSound();
+        if (_rewardCardSelectedIndex == previous) return;
+
+        // MoveRewardDisplaySelection과 같은 이유 — 전체를 훑으며 다시 세팅하지 않고 예전/새 인덱스만
+        // deselect→select 순서로 건드린다.
+        _rewardCardInstances[previous]?.SetSelected(false);
+        _rewardCardInstances[_rewardCardSelectedIndex]?.SetSelected(true);
+        PlayMoveSelectSound();
     }
 
     private CardDefinition ConfirmRewardCard()
@@ -464,12 +531,6 @@ public class RewardManager : MonoBehaviour
         foreach (CardInstance instance in _rewardCardInstances)
             if (instance != null && instance.GetVisual() != null) Destroy(instance.GetVisual().gameObject);
         _rewardCardInstances = null;
-    }
-
-    private void RefreshRewardCardSelection()
-    {
-        for (int i = 0; i < _rewardCardInstances.Length; i++)
-            _rewardCardInstances[i]?.SetSelected(i == _rewardCardSelectedIndex);
     }
 
     // 보상 화면(카드 획득/삭제/강화 중 무엇이든)을 완전히 닫는 공통 지점.

@@ -23,11 +23,15 @@ public class DivideCooldown : Effect
     {
         if (!actualUse || subject == null || self == null) return;
 
-        List<CardInstance> cards = new List<CardInstance> { self };
+        // Continuous 카드는 쿨다운 평준화 대상에서 제외한다.
+        List<CardInstance> cards = new List<CardInstance>();
+        if (!self.IsContinuousCard()) cards.Add(self);
         foreach (CardInstance queued in subject.GetQueue())
         {
-            if (queued != null) cards.Add(queued);
+            if (queued != null && !queued.IsContinuousCard()) cards.Add(queued);
         }
+
+        if (cards.Count == 0) return;
 
         int sum = 0;
         foreach (CardInstance card in cards)

@@ -16,7 +16,7 @@
     },
     {
       "effectType": "Weak",
-      "price": 0,
+      "price": 1.5,
       "magnitudeMin": 1,
       "magnitudeMax": 3,
       "magnitudeUnit": 1
@@ -53,12 +53,12 @@
       "effectType": "PoseBreak",
       "price": 6,
       "magnitudeMin": 1,
-      "magnitudeMax": 2,
+      "magnitudeMax": 1,
       "magnitudeUnit": 1
     },
     {
       "effectType": "EnergyHeal",
-      "price": 1.5,
+      "price": 1,
       "magnitudeMin": 2,
       "magnitudeMax": 10,
       "magnitudeUnit": 2
@@ -67,7 +67,7 @@
       "effectType": "AddDump",
       "price": 3.5,
       "magnitudeMin": 1,
-      "magnitudeMax": 3,
+      "magnitudeMax": 1,
       "magnitudeUnit": 1
     },
     {
@@ -81,14 +81,14 @@
       "effectType": "CostToCooldown",
       "price": 11,
       "magnitudeMin": 1,
-      "magnitudeMax": 2,
+      "magnitudeMax": 1,
       "magnitudeUnit": 1
     },
     {
       "effectType": "CooldownToCost",
       "price": 11,
       "magnitudeMin": 1,
-      "magnitudeMax": 2,
+      "magnitudeMax": 1,
       "magnitudeUnit": 1
     },
     {

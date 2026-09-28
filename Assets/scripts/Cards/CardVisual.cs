@@ -15,9 +15,12 @@ public class CardVisual : MonoBehaviour
     private GameObject _isUnplayable;
     private GameObject _front;
     private GameObject _back;
+    // CardType(Instant/Continuous/Mix) 순서대로 인덱싱되는 배경 스프라이트. 더 이상 카드(정의)별로
+    // 배경을 고르지 않고, cardType에 따라 일괄 적용한다 — 인스펙터에서 3개(Instant/Continuous/Mix
+    // 순서) 모두 채워야 한다.
+    [SerializeField] private Sprite[] cardTypeBackgrounds;
     private Coroutine _moveCoroutine;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
-    private PopupDisplay _popupDisplay;
 
     // SetLayer("UI")로 표시된 카드가 select된 동안에만 effect 팝업을 띄우기 위한 상태.
     // SetCardDefinition이 SetLayer/SetSelected보다 먼저 불리는 경우(DeckDisplay/RewardManager 둘 다
@@ -25,6 +28,15 @@ public class CardVisual : MonoBehaviour
     private bool _popupTrigger;
     private bool _selected;
     private List<EffectType> _pendingEffectTypes = new List<EffectType>();
+    // 이 카드를 생성한 매니저(HandManager/RewardManager/DeckDisplay)가 SetPopupManager로 넘겨준
+    // 자신의 팝업 인스턴스. 씬 전역 static Instance 대신 호출부별로 분리된 팝업을 쓰기 위함이다.
+    private PopupManager _popupManager;
+
+    public void SetPopupManager(PopupManager popupManager)
+    {
+        _popupManager = popupManager;
+        RefreshPopupVisibility();
+    }
 
     private void Awake()
     {
@@ -40,10 +52,22 @@ public class CardVisual : MonoBehaviour
         _selectHighlight.SetActive(false);
         _isUnplayable       = transform.Find("Front/IsUnplayable").gameObject;
         _isUnplayable.SetActive(false);
-        _popupDisplay       = transform.Find("PopUpDisplay").GetComponent<PopupDisplay>();
 
         // 카드 프리팹이 effect 아래에 고정 개수의 EffectDisplay 슬롯을 미리 자식으로 가지고 있다.
         _effectDisplays.AddRange(_effectArea.GetComponentsInChildren<EffectDisplay>(true));
+    }
+
+    // 풀에서 재활용된 오브젝트를 새 카드에 배정하기 직전에 호출한다. 이전 카드가 남긴 상태(선택
+    // 하이라이트, 진행 중이던 MoveTo 코루틴)가 새 카드로 새어 들어오지 않게 초기화한다 — cost/cooldown/
+    // effect/face 등은 SetVisual 이후 호출부(HandManager)가 항상 다시 채우므로 여기서 건드리지 않는다.
+    public void ResetForReuse()
+    {
+        if (_moveCoroutine != null)
+        {
+            StopCoroutine(_moveCoroutine);
+            _moveCoroutine = null;
+        }
+        SetSelected(false);
     }
 
     public void SetSelected(bool selected)
@@ -65,9 +89,8 @@ public class CardVisual : MonoBehaviour
     // RefreshEffectDisplays를 통해 갱신한다.
     public void SetCardDefinition(CardDefinition def)
     {
-       // _background.color = def.GetCardType() == CardType.Attack ? Color.red : Color.blue;
+        ApplyCardTypeBackground(def.GetCardType());
         _sprite.sprite = def.GetSprite();
-        _spriteBackground.sprite = def.GetSpriteBackground();
 
         CardEffect[] effects = def.GetEffects();
         _pendingEffectTypes = new List<EffectType>(effects.Length);
@@ -75,6 +98,15 @@ public class CardVisual : MonoBehaviour
             _pendingEffectTypes.Add(cardEffect.GetEffect().GetEffectType());
 
         RefreshPopupVisibility();
+    }
+
+    private void ApplyCardTypeBackground(CardType cardType)
+    {
+        int index = (int)cardType;
+        if (cardTypeBackgrounds == null || index < 0 || index >= cardTypeBackgrounds.Length) return;
+
+        Sprite background = cardTypeBackgrounds[index];
+        if (background != null) _spriteBackground.sprite = background;
     }
 
     // 현재 코스트로는 낼 수 없는 카드임을 나타내는 오버레이. 기본은 꺼져 있고,
@@ -123,7 +155,7 @@ public class CardVisual : MonoBehaviour
     // 셋 중 하나라도 바뀌는 지점(SetLayer/SetSelected/SetCardDefinition)에서 공통으로 호출한다.
     private void RefreshPopupVisibility()
     {
-        _popupDisplay.SetEffects(_popupTrigger && _selected ? _pendingEffectTypes : null);
+        _popupManager?.Show(_popupTrigger && _selected ? _pendingEffectTypes : null);
     }
 
     // 카드 배경(SpriteRenderer)의 월드 크기가 targetSize가 되도록 균등하지 않게(가로/세로 개별) 스케일한다.

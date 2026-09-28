@@ -13,4 +13,15 @@ MonoBehaviour:
   m_Name: BuildUpEnemy
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   maxHealth: 105
-  deck: {fileID: 11400000, guid: c9bafe30d19317f4286080f846b1c980, type: 2}
+  deck:
+    cards:
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+    - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}

@@ -15,7 +15,6 @@ public class CharacterManager: MonoBehaviour
     private List<CardInstance> _deck;
     
     private int _health;
-    private int _defense;
     private int _cost;
     private const int MaxCost = 15;
     private List<Effect> _effects;
@@ -23,9 +22,15 @@ public class CharacterManager: MonoBehaviour
     [SerializeField] private GameObject queueRoots;
     [SerializeField] private bool isHandVisualized;
     [SerializeField] private GameObject handsRoot;
+    // BattleManager가 양쪽 CharacterManager에 공통으로 물려주는 전투 화면 팝업(HandManager가 씀).
+    [SerializeField] private PopupManager handPopupManager;
     [SerializeField] private Transform hpBar;
+    [SerializeField] private TextMeshPro hpText;
     [SerializeField] private bool shrinkRight = true;
     [SerializeField] private bool playerControlled = true;
+    // playerControlled가 false일 때만 쓰인다. CharacterInit에서 enemyData(CharacterData)의
+    // EnemyAIBehavior, 없으면 BattleManager.defaultEnemyAI로 채워진다.
+    private EnemyAIBehavior enemyAI;
     [SerializeField] private TextMeshPro costText;
     [SerializeField] private RectTransform effectList;
     [SerializeField] private TextMeshPro defenseText;
@@ -35,6 +40,7 @@ public class CharacterManager: MonoBehaviour
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();
     private HandManager _handManager;
     private QueueManager _queueManager;
+    private GameObjectPool _cardPool;
     private Coroutine _defenseIndicatorCoroutine;
 
     private bool _isGuard = false;
@@ -46,12 +52,13 @@ public class CharacterManager: MonoBehaviour
     {
         tickSpeed += delta;
     }
-    public void CharacterInit(CardDefinition[] deck, int maxHealth)
+    public void CharacterInit(CardDefinition[] deck, int maxHealth, EnemyAIBehavior enemyAI = null)
     {
         _maxHealth=maxHealth;
         startDeck = deck;
         _isGuard = false;
         tickSpeed=1;
+        this.enemyAI = enemyAI;
         Clear();
 
         //덱 생성
@@ -107,6 +114,8 @@ public class CharacterManager: MonoBehaviour
         if (_cost >= 10) healEnergyAmount--;
         EnergyHeal(healEnergyAmount);
         UpdateEffectList();
+        // 방어도는 큐에 있는 카드들의 방어 효과 magnitude 합으로 매 턴 시작마다 다시 계산해 표시한다.
+        UpdateDefenseDisplay();
         // healEnergy/effect 처리가 끝난 직후, 지난 턴에 코스트/큐가 부족해 select된 채로 남아있던
         // 카드가 있으면 강제로 재시도한다 — 여전히 안 되면 HandManager.UseCard가 자연히 실패하고
         // select 상태만 남는다.
@@ -249,180 +258,53 @@ public class CharacterManager: MonoBehaviour
         }
     }
 
-    // AI(!playerControlled) 전용 카드 판단. 매 Update마다(턴 중이고 큐에 자리가 있을 때만) 자신의
-    // 손패와 상대 큐 상태를 보고 지금 낼 가치가 있는 카드가 있으면 곧장 사용한다 — 상대가 턴
-    // 도중에 카드를 새로 내면(예: 공격을 큐에 올리면) 그 다음 프레임부터 바로 반영해서 반응한다.
-    // select를 거치지 않고 바로 UseCardImmediately를 쓰는 이유: 여기서 고르는 카드는 이미
-    // "지금 코스트로 낼 수 있는지" preview까지 확인한 뒤라 실패할 일이 거의 없고, select/unselect
-    // 사운드가 매 프레임 반복 재생되는 것도 피할 수 있다.
+    // AI(!playerControlled) 전용 판단. 매 Update마다(턴 중일 때만) enemyAI에게 현재 전투 상황
+    // 스냅샷을 넘겨 행동(0~3: 손패 카드 인덱스, 4: 방어, 5: 아무것도 안 함)을 물어보고 그대로 적용한다.
+    // 상대가 턴 도중에 카드를 새로 내면(예: 공격을 큐에 올리면) 그 다음 프레임부터 바로 반영해서 반응한다.
     private void UpdateAi()
     {
         if (BattleManager.Instance == null || BattleManager.Instance.CurrentState != BattleState.Turn) return;
-        if (!_queueManager.HasFreeSlot()) return;
+        if (enemyAI == null) return;
 
-        int bestIndex = ChooseBestCardIndex();
-        if (bestIndex < 0) return;
-
-        CardInstance card = _handManager.GetHand()[bestIndex];
-        string cardName = card.GetDefinition().name;
-        if (_handManager.UseCardImmediately(bestIndex))
-            Debug.Log($"[{gameObject.name}] AI used card: {cardName}");
+        BattleSnapshot snapshot = BattleManager.Instance.BuildSnapshot(this);
+        ApplyAiAction(enemyAI.Decide(snapshot));
     }
 
-    // 지금 코스트로 낼 수 있는 손패 카드들 중 ScoreCard가 가장 높게 평가한 카드의 인덱스를 고른다.
-    // 점수가 0 이하(도움이 안 되거나 자충수인 카드밖에 없음)면 아무것도 내지 않고 다음 기회로 미룬다.
-    private int ChooseBestCardIndex()
+    // select를 거치지 않고 바로 UseCardImmediately를 쓰는 이유: enemyAI가 고르는 카드는 이미
+    // "지금 코스트로 낼 수 있는지" preview까지 확인한 뒤라 실패할 일이 거의 없고, select/unselect
+    // 사운드가 매 프레임 반복 재생되는 것도 피할 수 있다.
+    private void ApplyAiAction(int action)
     {
-        CardInstance[] hand = _handManager.GetHand();
-        int bestIndex = -1;
-        float bestScore = 0f;
-
-        for (int i = 0; i < hand.Length; i++)
+        switch (action)
         {
-            CardInstance card = hand[i];
-            if (card == null) continue;
-            if (PreviewCost(card) > _cost) continue;
-
-            float score = ScoreCard(card);
-            if (score > bestScore)
+            case EnemyAIBehavior.ActionPlayCard0:
+            case EnemyAIBehavior.ActionPlayCard1:
+            case EnemyAIBehavior.ActionPlayCard2:
+            case EnemyAIBehavior.ActionPlayCard3:
             {
-                bestScore = score;
-                bestIndex = i;
+                var hand = _handManager.GetHand();
+                if (action >= hand.Length || hand[action] == null) return;
+                _isGuard = false;
+                SetDefenseIndicatorActive(false);
+                string cardName = hand[action].GetDefinition().name;
+                if (_handManager.UseCardImmediately(action))
+                    Debug.Log($"[{gameObject.name}] AI used card: {cardName}");
+                break;
             }
+
+            case EnemyAIBehavior.ActionDefend:
+                if (!_isGuard)
+                {
+                    _isGuard = true;
+                    SetDefenseIndicatorActive(true);
+                    Debug.Log($"[{gameObject.name}] AI is guarding");
+                }
+                break;
+
+            case EnemyAIBehavior.ActionNone:
+            default:
+                break;
         }
-
-        return bestIndex;
-    }
-
-    // QueueCard가 실제로 쓰는 것과 같은 preview 경로(버프로 바뀐 실제 코스트)로 계산한다 —
-    // 원본 cost만 보면 EnergyDrain/CostToCooldown류로 실제 코스트가 달라졌을 때 판단이 어긋난다.
-    private int PreviewCost(CardInstance card)
-    {
-        CardInstance preview = card.Clone();
-        preview.ResolveUse(this, _queueManager.GetQueue(), false);
-        return preview.GetCost();
-    }
-
-    // 카드의 각 CardEffect를 CardInstance.RefreshDisplay와 동일한 경로로 미리 계산해(현재 버프
-    // 반영한 최종 magnitude) 점수를 합산한다.
-    private float ScoreCard(CardInstance card)
-    {
-        if (BattleManager.Instance == null) return 0f;
-        CharacterManager opponent = BattleManager.Instance.GetOpponent(this);
-        if (opponent == null) return 0f;
-
-        CardInstance preview = card.Clone();
-        preview.ResolveUse(this, _queueManager.GetQueue(), false);
-
-        float total = 0f;
-        foreach (CardEffect cardEffect in preview.GetEffects())
-        {
-            cardEffect.Reset();
-            Effect[] ownerEffects = GetEffectPrioritize();
-            for (int i = ownerEffects.Length - 1; i >= 0; i--)
-                ownerEffects[i].OnApplyingOther(this, cardEffect, false);
-
-            CharacterManager target = cardEffect.GetTarget(this);
-            Effect[] targetEffects = target.GetEffects();
-            for (int i = targetEffects.Length - 1; i >= 0; i--)
-                targetEffects[i].OnAppliedOther(target, cardEffect, false);
-
-            total += ScoreCardEffect(cardEffect, target, opponent);
-        }
-        return total;
-    }
-
-    // CardEffect 하나가 실제로 적용됐을 때 이 캐릭터(AI) 입장에서 얼마나 가치 있는지 점수를 매긴다.
-    // 방향(자신에게 좋은지/나쁜지)은 Effect.TargetPolarity + 실제 target이 자신인지로 정하고,
-    // 크기는 타입별 가중치(및 상황: 상대의 임박한 공격, 자신의 공격 수단 보유 여부)로 정한다.
-    private float ScoreCardEffect(CardEffect cardEffect, CharacterManager target, CharacterManager opponent)
-    {
-        EffectType type = cardEffect.GetEffect().GetEffectType();
-        int magnitude = cardEffect.GetMagnitude();
-        bool targetsSelf = target == this;
-
-        // Attack은 즉발 데미지라 처치 가능 여부까지 바로 계산할 수 있어 별도로 다룬다.
-        if (type == EffectType.Attack)
-        {
-            float value = magnitude;
-            if (magnitude >= target.GetDefense() + target.GetHealth())
-                value += 40f; // 지금 내면 상대를 처치할 수 있으면 최우선으로 취급한다.
-            return targetsSelf ? -value : value;
-        }
-
-        bool opponentAttackIncoming = OpponentHasImminentAttack(opponent);
-        bool haveAttackPressure = HasAttackPressure();
-        float importance = MagnitudeImportance(type, magnitude, opponentAttackIncoming, haveAttackPressure);
-
-        Effect runtimeEffect = Effect.Create(type, magnitude);
-        float sign = runtimeEffect.TargetPolarity switch
-        {
-            EffectTargetPolarity.Positive => targetsSelf ? 1f : -1f,
-            EffectTargetPolarity.Negative => targetsSelf ? -1f : 1f,
-            _ => 1f,
-        };
-
-        return importance * sign;
-    }
-
-    // 타입별 magnitude 1당 가중치. 상황(상대의 공격이 임박했는지/내가 공격 수단을 갖고 있는지)에
-    // 따라 방어형·시너지형 효과의 가치를 올린다.
-    private static float MagnitudeImportance(EffectType type, int magnitude, bool opponentAttackIncoming, bool haveAttackPressure)
-    {
-        switch (type)
-        {
-            case EffectType.Defend:        return magnitude * (opponentAttackIncoming ? 1.5f : 0.7f);
-            case EffectType.Guard:         return magnitude * (opponentAttackIncoming ? 6f : 1.5f);
-            case EffectType.Vulnerable:    return magnitude * (haveAttackPressure ? 8f : 2.5f);
-            case EffectType.Weak:          return magnitude * (opponentAttackIncoming ? 8f : 2.5f);
-            case EffectType.PoseBreak:     return magnitude * 6f;
-            case EffectType.Strength:      return magnitude * (haveAttackPressure ? 6f : 2f);
-            case EffectType.Harden:        return magnitude * 3f;
-            case EffectType.EnergyHeal:    return magnitude * 3f;
-            case EffectType.EnergyDrain:   return magnitude * 4f;
-            case EffectType.Burning:       return magnitude * 3f;
-            case EffectType.AddDump:       return magnitude * 2f;
-            case EffectType.Quicker:       return magnitude * 4f;
-            case EffectType.TimeSkip:      return magnitude * 3f;
-            // Preserve/Disposable/CostToCooldown/CooldownToCost/DivideCooldown/DefenseToCooldown처럼
-            // 세부 평가를 만들지 않은 나머지 타입 — 완전히 무시하지는 않도록 소폭의 기본 점수만 준다.
-            default:                       return Mathf.Max(magnitude, 1) * 2f;
-        }
-    }
-
-    // 상대 큐에 곧(2턴 이내) 발동될 Attack 카드가 있는지. PlayUpcomingAttackSoundIfNeeded와 같은
-    // 패턴이지만, 방어 카드 가치 판단에 쓰기 위해 여유를 좀 더 둔다(cooldownLeft <= 2).
-    private static bool OpponentHasImminentAttack(CharacterManager opponent)
-    {
-        foreach (CardInstance queued in opponent.GetQueue())
-        {
-            if (queued == null || queued.GetCooldownLeft() > 2) continue;
-            foreach (CardEffect cardEffect in queued.GetEffects())
-                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
-                    return true;
-        }
-        return false;
-    }
-
-    // 자신의 큐/손패에 Attack 카드가 있는지 — Strength/Vulnerable처럼 공격력에 얹는 효과가
-    // 지금 당장 써먹을 데가 있는지 판단하는 데 쓴다.
-    private bool HasAttackPressure()
-    {
-        foreach (CardInstance queued in _queueManager.GetQueue())
-        {
-            if (queued == null) continue;
-            foreach (CardEffect cardEffect in queued.GetEffects())
-                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
-                    return true;
-        }
-        foreach (CardInstance card in _handManager.GetHand())
-        {
-            if (card == null) continue;
-            foreach (CardEffect cardEffect in card.GetEffects())
-                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
-                    return true;
-        }
-        return false;
     }
 
     // 전투 종료 시(BattleManager.NotifyDefeat) 손패/큐를 덱으로 되돌리지 않고 그대로 비운다
@@ -435,7 +317,22 @@ public class CharacterManager: MonoBehaviour
 
     public int getmaxHealth() => _maxHealth;
     public int GetHealth() => _health;
-    public int GetDefense() => _defense;
+
+    // 방어도는 더 이상 하나의 누적된 필드가 아니라, 자신의 큐에 있는 카드들 중 방어 효과가 아직
+    // 남긴(소모되지 않은) magnitude의 합이다 — DefendEffect(Continuous) 참고.
+    public int GetDefense()
+    {
+        int total = 0;
+        foreach (CardInstance queued in GetQueue())
+        {
+            if (queued == null) continue;
+            foreach (CardEffect cardEffect in queued.GetEffects())
+                if (cardEffect.GetEffect().GetEffectType() == EffectType.Defend)
+                    total += queued.GetQueuedMagnitude(cardEffect);
+        }
+        return total;
+    }
+
     public int GetCost() => _cost;
     public Effect[] GetEffects() => _effects.ToArray();
     public Effect[] GetEffectPrioritize() => _effects.OrderByDescending(e => e.GetEffectPriority()).ToArray();
@@ -445,21 +342,31 @@ public class CharacterManager: MonoBehaviour
         _effects = new List<Effect>();
         _deck = new List<CardInstance>();
 
-        _queueManager = new QueueManager(queueRoots);
-        _handManager = new HandManager(this, handsRoot, isHandVisualized);
+        // 손패/큐를 오가는 카드 시각 오브젝트(Card 프리팹)를 위한 풀의 부모. 카드가 손패/큐에 없는
+        // 동안(덱에 있는 동안) 비활성 상태로 여기에 파킹된다 — TurnTimerOverlay와 같은 방식으로
+        // 씬 참조 없이 직접 만든다. 여기서 한 번만 풀을 만들고 CharacterInit(매 전투)에서는 반납만
+        // 하므로 전투가 반복돼도 Instantiate/Destroy가 쌓이지 않는다.
+        if (_cardPool == null)
+        {
+            Transform deckRoot = new GameObject("Deck").transform;
+            deckRoot.SetParent(transform);
+            _cardPool = new GameObjectPool(Resources.Load<GameObject>("Prefabs/Card"), deckRoot);
+        }
+
+        _queueManager = new QueueManager(queueRoots, _cardPool);
+        _handManager = new HandManager(this, handsRoot, isHandVisualized, handPopupManager, _cardPool);
 
         Clear();
     }
 
     // CharacterInit(전투 시작마다 호출되어 같은 CharacterManager를 재사용)에서도 불리므로,
-    // 데이터(_effects/_health/_defense/_cost)뿐 아니라 그걸 반영하는 시각 요소(HP바, 방어도 표시,
+    // 데이터(_effects/_health/_cost, 방어도는 큐가 비워지면서 자연히 0이 된다)뿐 아니라 그걸 반영하는 시각 요소(HP바, 방어도 표시,
     // effectList 아이콘, defenseIndicator)까지 전부 이전 전투의 흔적 없이 리셋해야 한다.
     public void Clear()
     {
         _effects.Clear();
         _deck = new List<CardInstance>();
         _health = _maxHealth;
-        _defense = 0;
         _cost = 0;
         UpdateHPBar();
         UpdateDefenseDisplay();
@@ -487,6 +394,9 @@ public class CharacterManager: MonoBehaviour
 
     private void UpdateHPBar()
     {
+        if (hpText != null)
+            hpText.text = $"{Mathf.Max(_health, 0)}/{_maxHealth}";
+
         if (hpBar == null) return;
         float ratio = (float)_health / _maxHealth;
         if (ratio < 0f) ratio = 0f;
@@ -502,8 +412,9 @@ public class CharacterManager: MonoBehaviour
         TakeDamage(damage);
     }
 
-    // isGuard면 Weak/Damage/Big 대신 DamageGuarded를 재생한다. 방어도가 흡수한 만큼(현재 _defense와
-    // damage 중 작은 값)이 1 이상이면 위 사운드에 더해 DamageShielded도 재생한다.
+    // isGuard면 Weak/Damage/Big 대신 DamageGuarded를 재생한다. 방어도 상쇄 여부는 이 시점에는 이미
+    // 반영이 끝난 뒤라(ApplyEffect의 ConsumeQueuedDefense가 Attacked 호출 전에 처리) 여기서는
+    // 다루지 않는다 — DamageShielded는 ConsumeQueuedDefense가 직접 재생한다.
     private void PlayDamageSound(int damage)
     {
         if (SoundManager.Instance == null) return;
@@ -524,25 +435,16 @@ public class CharacterManager: MonoBehaviour
         {
             SoundManager.Instance.Play(EffectSound.DamageBig);
         }
-
-        int shieldedAmount = Mathf.Clamp(Mathf.Min(damage, _defense), 0, damage);
-        if (shieldedAmount >= 1)
-            SoundManager.Instance.Play(EffectSound.DamageShielded);
     }
 
+    // amount는 이미 방어도 상쇄가 끝난 뒤의 순수 체력 피해다(ApplyEffect.ConsumeQueuedDefense 참고).
     public void TakeDamage(int amount)
     {
         if (amount <= 0)
             return;
-        _defense -= amount;
-        if(_defense<0)
-        {
-            _health += _defense;
-            _defense = 0;
-        }
+        _health -= amount;
         UpdateHPBar();
-        UpdateDefenseDisplay();
-        Debug.Log($"[{gameObject.name}] Took {amount} damage (HP: {_health}, DEF: {_defense})");
+        Debug.Log($"[{gameObject.name}] Took {amount} damage (HP: {_health})");
         if (_health <= 0 && BattleManager.Instance != null)
         {
             Debug.Log($"[{gameObject.name}] Defeated!");
@@ -562,15 +464,57 @@ public class CharacterManager: MonoBehaviour
         UpdateCostDisplay();
     }
     
-    public void AddDefense(int amount)
+    // 큐에 남은 방어도를 전부 소모한다(예: DefenseToCooldown처럼 방어도를 다른 것으로 바꿔쓰는 카드).
+    public void ConsumeAllDefense()
     {
-        _defense += amount;
+        foreach (CardInstance queued in GetQueue())
+        {
+            if (queued == null) continue;
+            foreach (CardEffect cardEffect in queued.GetEffects())
+            {
+                if (cardEffect.GetEffect().GetEffectType() != EffectType.Defend) continue;
+                int remaining = queued.GetQueuedMagnitude(cardEffect);
+                if (remaining > 0) queued.ConsumeQueuedMagnitude(cardEffect, remaining);
+            }
+        }
         UpdateDefenseDisplay();
+    }
+
+    // 들어오는 공격 magnitude를 자신의 큐에 있는 방어 카드들로 순서대로 상쇄한다(방어 magnitude 1당
+    // 공격 magnitude 1). 각 카드는 자기 자신의 남은 magnitude에서만 소모되므로, 이미 다 쓴 카드가
+    // 나중에 큐를 떠나며 새로 얻은 다른 카드의 방어도를 대신 앗아가는 일이 없다. 남은(상쇄 못한)
+    // 공격 magnitude를 반환한다.
+    private int ConsumeQueuedDefense(int incomingDamage)
+    {
+        int consumedTotal = 0;
+        foreach (CardInstance queued in GetQueue())
+        {
+            if (queued == null || incomingDamage <= 0) continue;
+            foreach (CardEffect cardEffect in queued.GetEffects())
+            {
+                if (incomingDamage <= 0) break;
+                if (cardEffect.GetEffect().GetEffectType() != EffectType.Defend) continue;
+
+                int consumed = queued.ConsumeQueuedMagnitude(cardEffect, incomingDamage);
+                incomingDamage -= consumed;
+                consumedTotal += consumed;
+            }
+        }
+
+        if (consumedTotal > 0)
+        {
+            SoundManager.Instance?.Play(EffectSound.DamageShielded);
+            UpdateDefenseDisplay();
+        }
+        return incomingDamage;
     }
 
     public void PlayCard(CardInstance card)
     {
         card.Play(this);
+        // Play() 안에서 ExitQueue가 카드의 남은(소모되지 않은) 방어 magnitude를 큐에서 제거할 수
+        // 있으므로(공격 한 번 못 맞고 쿨타임이 다 된 방어 카드), 여기서도 다시 반영해준다.
+        UpdateDefenseDisplay();
 
         List<CardEffect> cardEffects = card.GetEffects();
         foreach (CardEffect cardEffect in cardEffects)
@@ -597,12 +541,18 @@ public class CharacterManager: MonoBehaviour
         card.Use();
         if (!_queueManager.AddCard(card, cardObject)) return false;
 
+        card.EnterQueue(this);
+
         _cost -= card.GetCost();
         UpdateCostDisplay();
+        UpdateDefenseDisplay();
         return true;
     }
 
     public CardInstance[] GetQueue() => _queueManager.GetQueue();
+    public CardInstance[] GetHand() => _handManager.GetHand();
+    public IReadOnlyList<CardInstance> GetDeck() => _deck;
+    public bool QueueHasFreeSlot() => _queueManager.HasFreeSlot();
 
     public CardInstance DrawCard()
     {
@@ -636,17 +586,37 @@ public class CharacterManager: MonoBehaviour
         }
     }
 
+    // RemoveEffect<T>와 달리 정확히 이 인스턴스를 제거한다. Effect.OnExitQueue처럼 타입만으로는
+    // 어느 스택인지 구분할 수 없는(제네릭 타입 인자가 없는) 런타임 경로에서 쓴다.
+    public void RemoveEffectInstance(Effect effect)
+    {
+        if (_effects.Remove(effect))
+        {
+            Debug.Log($"[{gameObject.name}] Lost effect: {effect.GetEffectType()}");
+            effect.OnExpired(this);
+        }
+    }
+
     public void ApplyEffect(CardEffect cardEffect)
     {
         Debug.Log($"applying {cardEffect.GetEffect().GetEffectType()} effect");
 
-        for(int i = _effects.Count - 1; i >= 0; i--)
-        {
-            _effects[i].OnAppliedOther(this, cardEffect, true);
-        }
+        // Priority 내림차순으로 OnAppliedOther를 호출한다(OnApplyingOther가 GetEffectPrioritize를
+        // 쓰는 것과 동일한 규칙). Guard(Priority 99)가 가장 먼저 배율을 반영하고, 방어 소모
+        // (DefendEffect, Priority -1)는 이 정렬된 순회가 전부 끝난 뒤에 실행되어 항상 마지막이 된다.
+        Effect[] targetEffects = GetEffectPrioritize();
+        foreach (Effect targetEffect in targetEffects)
+            targetEffect.OnAppliedOther(this, cardEffect, true);
 
         EffectType effectType = cardEffect.GetEffect().GetEffectType();
-        Effect effect = Effect.Create(effectType, cardEffect.GetMagnitude());
+        int magnitude = cardEffect.GetMagnitude();
+
+        // 공격은 자신의 큐에 있는 방어 카드들을 순회해 상쇄한다(DefendEffect 참고) — 위 OnAppliedOther
+        // 정렬 순회 이후이므로 Guard 등 배율 계열 효과가 이미 반영된 값을 상쇄한다.
+        if (effectType == EffectType.Attack)
+            magnitude = ConsumeQueuedDefense(magnitude);
+
+        Effect effect = Effect.Create(effectType, magnitude);
         effect.OnApply(this);
     }
 
@@ -659,9 +629,10 @@ public class CharacterManager: MonoBehaviour
     private void UpdateDefenseDisplay()
     {
         if (defenseText == null) return;
-        bool show = _defense >= 1;
+        int defense = GetDefense();
+        bool show = defense >= 1;
         defenseText.transform.parent.gameObject.SetActive(show);
-        defenseText.text = _defense.ToString();
+        defenseText.text = defense.ToString();
     }
 
     // effectList 영역의 높이에 맞춰 effectDisplay(아이콘+수치)를 인스턴스화하고,

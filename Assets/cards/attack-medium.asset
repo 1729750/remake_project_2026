@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: attack-medium
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cooldown: 3
-  cost: 5
+  cost: 6
   _effects:
   - _effect:
       _effectType: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: attack-big
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cooldown: 7
-  cost: 6
+  cost: 8
   _effects:
   - _effect:
       _effectType: 0

@@ -7,10 +7,15 @@ public class CharacterData : ScriptableObject
 {
     [SerializeField] private int maxHealth = 100;
     [SerializeField] private CardCollection deck;
-    // 이후 스프라이트, AI 성향 등 캐릭터 단위 설정을 여기에 추가
+    // 비워두면 BattleManager가 자신의 defaultEnemyAI를 대신 사용한다.
+    [SerializeField] private EnemyAIBehavior enemyAI;
+    // 이후 스프라이트 등 캐릭터 단위 설정을 여기에 추가
 
     public int GetMaxHealth() => maxHealth;
     public CardCollection GetDeck() => deck;
+    public EnemyAIBehavior GetEnemyAI() => enemyAI;
+    // GenerateRandomEnemy처럼 에셋 없이 즉석에서 만들어진 CharacterData에 AI를 나중에 지정할 때 쓴다.
+    public void SetEnemyAI(EnemyAIBehavior ai) => enemyAI = ai;
 
     // 에셋이 아닌 런타임 상태(플레이어 등)를 CharacterData로 박싱할 때 사용
     public static CharacterData Create(int maxHealth, CardCollection deck)
@@ -28,6 +33,8 @@ public class CharacterData : ScriptableObject
         CardDefinition[] clonedCards = deck != null
             ? deck.GetCards().Select(card => card.Clone()).ToArray()
             : Array.Empty<CardDefinition>();
-        return Create(maxHealth, CardCollection.Create(clonedCards));
+        CharacterData clone = Create(maxHealth, CardCollection.Create(clonedCards));
+        clone.enemyAI = enemyAI;
+        return clone;
     }
 }

@@ -1,5 +1,4 @@
 using System;
-using TMPro;
 using UnityEngine;
 
 public class TurnManager
@@ -12,25 +11,17 @@ public class TurnManager
     private float _turnDuration;
     private float _elapsed;
     private TurnTimerOverlay _overlay;
-    private TextMeshPro _turnText;
 
     public bool GetIsActive() => _isActive;
     public int GetCurrentTurn() => _currentTurn;
     public float GetTurnDuration() => _turnDuration;
     public float GetElapsedRatio() => _turnDuration > 0 ? Mathf.Clamp01(_elapsed / _turnDuration) : 0f;
+    public float GetRemainingTime() => Mathf.Max(_turnDuration - _elapsed, 0f);
 
-    public TurnManager(float turnDuration, TurnTimerOverlay overlay, TextMeshPro turnText)
+    public TurnManager(float turnDuration, TurnTimerOverlay overlay)
     {
         _turnDuration = turnDuration;
         _overlay = overlay;
-        _turnText = turnText;
-        UpdateTurnText();
-    }
-
-    private void UpdateTurnText()
-    {
-        if (_turnText != null)
-            _turnText.text = $"{_currentTurn}";
     }
 
     public void StartTurn()
@@ -39,7 +30,6 @@ public class TurnManager
         _currentTurn++;
         _elapsed = 0f;
         _overlay?.SetFill(0f);
-        UpdateTurnText();
         OnTurnStarted?.Invoke();
     }
 
