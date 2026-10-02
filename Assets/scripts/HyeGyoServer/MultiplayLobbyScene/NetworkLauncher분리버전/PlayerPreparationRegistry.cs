@@ -3,54 +3,38 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
-public sealed class PlayerPreparationRegistry
-    : MonoBehaviour
+/// <summary>
+/// Server가 실제 접속 플레이어 2명의
+/// 매치 준비 데이터를 보관한다.
+///
+/// 이 데이터 자체는 Network 동기화하지 않는다.
+/// 필요한 결과만 RPC / NetworkVariable로 전달한다.
+/// </summary>
+public sealed class PlayerPreparationRegistry : MonoBehaviour
 {
-    [Header("Network")]
     [SerializeField]
     private NetworkConnectionMonitor connectionMonitor;
-
-
-    [Header("Debug")]
-    [Tooltip("실제 Client 없이 두 번째 플레이어를 임시 등록합니다.")]
-    [SerializeField]
-    private bool addDebugSecondPlayer;
-
-
-    // 실제 NGO ClientId와 구분하기 위한 테스트 전용 ID
-    public const ulong DebugClientId =
-        ulong.MaxValue - 1;
-
 
     private readonly Dictionary<
         ulong,
         PlayerPreparationData
     > players = new();
 
-
     public int Count => players.Count;
 
-    public IEnumerable<PlayerPreparationData>
-        Players => players.Values;
-
+    public IEnumerable<PlayerPreparationData> Players =>
+        players.Values;
 
     public event Action<ulong> PlayerRegistered;
-
     public event Action<ulong> PlayerRemoved;
-
 
     private void Awake()
     {
         EnsureReferences();
     }
 
-
     private void OnEnable()
     {
-        Debug.Log(
-            "[PlayerPreparationRegistry] OnEnable 실행"
-        );
-
         EnsureReferences();
 
         if (connectionMonitor == null)
@@ -69,145 +53,56 @@ public sealed class PlayerPreparationRegistry
         connectionMonitor.ClientDisconnected +=
             HandleClientDisconnected;
 
-        // 이미 접속해 있는 실제 NGO 플레이어 등록
         RegisterAlreadyConnectedPlayers();
-
-        // 개발 테스트용 가짜 두 번째 플레이어
-        TryRegisterDebugSecondPlayer();
     }
-
 
     private void OnDisable()
     {
-        if (connectionMonitor != null)
-        {
-            connectionMonitor.ClientConnected -=
-                HandleClientConnected;
+        if (connectionMonitor == null)
+            return;
 
-            connectionMonitor.ClientDisconnected -=
-                HandleClientDisconnected;
-        }
+        connectionMonitor.ClientConnected -=
+            HandleClientConnected;
 
-        RemoveDebugSecondPlayer();
+        connectionMonitor.ClientDisconnected -=
+            HandleClientDisconnected;
     }
-
 
     private void EnsureReferences()
     {
         if (connectionMonitor != null)
-        {
             return;
-        }
 
         connectionMonitor =
             FindFirstObjectByType<
                 NetworkConnectionMonitor>();
     }
 
-
-    public bool TryGetPlayer(
-        ulong clientId,
-        out PlayerPreparationData data)
-    {
-        return players.TryGetValue(
-            clientId,
-            out data
-        );
-    }
-
-
-    public bool ContainsPlayer(
-        ulong clientId)
-    {
-        return players.ContainsKey(
-            clientId
-        );
-    }
-
-
     private void HandleClientConnected(
         ulong clientId)
     {
         if (!IsServer())
-        {
             return;
-        }
 
         RegisterPlayer(clientId);
-
-            // 개발 중이라면 가짜 두 번째 플레이어도 등록
-    TryRegisterDebugSecondPlayer();
     }
-
 
     private void HandleClientDisconnected(
         ulong clientId)
     {
         if (!IsServer())
-        {
             return;
-        }
 
         RemovePlayer(clientId);
     }
 
-
-    private void RegisterPlayer(
-        ulong clientId)
-    {
-        if (players.ContainsKey(clientId))
-        {
-            return;
-        }
-
-        players.Add(
-            clientId,
-            new PlayerPreparationData(
-                clientId
-            )
-        );
-
-        Debug.Log(
-            "[PlayerPreparationRegistry] " +
-            $"준비 데이터 생성 | " +
-            $"ClientId: {clientId} | " +
-            $"Count: {players.Count}"
-        );
-
-        PlayerRegistered?.Invoke(clientId);
-    }
-
-
-    private void RemovePlayer(
-        ulong clientId)
-    {
-        if (!players.Remove(clientId))
-        {
-            return;
-        }
-
-        Debug.Log(
-            "[PlayerPreparationRegistry] " +
-            $"준비 데이터 제거 | " +
-            $"ClientId: {clientId} | " +
-            $"Count: {players.Count}"
-        );
-
-        PlayerRemoved?.Invoke(clientId);
-    }
-
-
     private void RegisterAlreadyConnectedPlayers()
     {
         if (!IsServer())
-        {
             return;
-        }
 
         if (NetworkManager.Singleton == null)
-        {
             return;
-        }
 
         foreach (
             NetworkClient client
@@ -220,51 +115,73 @@ public sealed class PlayerPreparationRegistry
         }
     }
 
-
-    private void TryRegisterDebugSecondPlayer()
+    private void RegisterPlayer(
+        ulong clientId)
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (players.ContainsKey(clientId))
+            return;
 
-        if (!addDebugSecondPlayer)
+        // 1:1 게임이므로 2명 이상 등록 금지
+        if (players.Count >= 2)
         {
+            Debug.LogWarning(
+                "[PlayerPreparationRegistry] " +
+                $"3번째 플레이어 등록 거부 | {clientId}"
+            );
+
             return;
         }
 
-        if (!IsServer())
-        {
-            return;
-        }
-
-        RegisterPlayer(
-            DebugClientId
+        players.Add(
+            clientId,
+            new PlayerPreparationData(
+                clientId
+            )
         );
 
         Debug.Log(
             "[PlayerPreparationRegistry] " +
-            "Debug 두 번째 플레이어 등록 완료"
+            $"실제 플레이어 등록 | " +
+            $"ClientId: {clientId} | " +
+            $"Count: {players.Count}/2"
         );
 
-#endif
+        PlayerRegistered?.Invoke(clientId);
     }
 
-
-    private void RemoveDebugSecondPlayer()
+    private void RemovePlayer(
+        ulong clientId)
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-
-        if (!players.ContainsKey(
-                DebugClientId))
-        {
+        if (!players.Remove(clientId))
             return;
-        }
 
-        RemovePlayer(
-            DebugClientId
+        Debug.Log(
+            "[PlayerPreparationRegistry] " +
+            $"플레이어 제거 | " +
+            $"ClientId: {clientId} | " +
+            $"Count: {players.Count}/2"
         );
 
-#endif
+        PlayerRemoved?.Invoke(clientId);
     }
 
+    public bool TryGetPlayer(
+        ulong clientId,
+        out PlayerPreparationData data)
+    {
+        return players.TryGetValue(
+            clientId,
+            out data
+        );
+    }
+
+    public bool ContainsPlayer(
+        ulong clientId)
+    {
+        return players.ContainsKey(
+            clientId
+        );
+    }
 
     private bool IsServer()
     {
