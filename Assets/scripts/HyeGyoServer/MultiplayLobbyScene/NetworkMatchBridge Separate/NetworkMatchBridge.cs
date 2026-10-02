@@ -27,6 +27,9 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
     [SerializeField]
     private MultiPreparationManager preparationManager;
 
+    [SerializeField]
+    private CardOptionGenerator cardOptionGenerator;
+
 
     // =========================================================
     // Events
@@ -535,7 +538,6 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
 
     RequestBeginPreparationRpc();
 }
-
 [Rpc(SendTo.Server)]
 private void RequestBeginPreparationRpc(
     RpcParams rpcParams = default)
@@ -548,6 +550,16 @@ private void RequestBeginPreparationRpc(
         SendRejectMessage(
             senderClientId,
             "MultiPreparationManager가 없습니다."
+        );
+
+        return;
+    }
+
+    if (cardOptionGenerator == null)
+    {
+        SendRejectMessage(
+            senderClientId,
+            "CardOptionGenerator가 없습니다."
         );
 
         return;
@@ -566,7 +578,91 @@ private void RequestBeginPreparationRpc(
         return;
     }
 
-    // 여기서 해당 Client에게만 옵션 전달
+    if (options == null ||
+        options.Length != 3)
+    {
+        SendRejectMessage(
+            senderClientId,
+            "준비 선택지가 3개가 아닙니다."
+        );
+
+        return;
+    }
+
+    PreparationOptionNetData[] netOptions =
+        new PreparationOptionNetData[3];
+
+    for (int i = 0; i < 3; i++)
+    {
+        netOptions[i] =
+            cardOptionGenerator.ToNetData(
+                options[i]
+            );
+    }
+
+    SendPreparationOptionsRpc(
+        senderClientId,
+        netOptions[0],
+        netOptions[1],
+        netOptions[2]
+    );
+}
+
+[Rpc(SendTo.ClientsAndHost)]
+private void SendPreparationOptionsRpc(
+    ulong targetClientId,
+    PreparationOptionNetData option0,
+    PreparationOptionNetData option1,
+    PreparationOptionNetData option2)
+{
+    if (NetworkManager.Singleton == null)
+    {
+        return;
+    }
+
+    // 자기에게 온 옵션만 처리
+    if (NetworkManager.Singleton.LocalClientId !=
+        targetClientId)
+    {
+        return;
+    }
+
+    if (cardOptionGenerator == null)
+    {
+        Debug.LogError(
+            "[NetworkMatchBridge] " +
+            "CardOptionGenerator가 없습니다."
+        );
+
+        return;
+    }
+
+    PreparationOption[] options =
+    {
+        cardOptionGenerator.FromNetData(
+            option0
+        ),
+
+        cardOptionGenerator.FromNetData(
+            option1
+        ),
+
+        cardOptionGenerator.FromNetData(
+            option2
+        )
+    };
+
+    Debug.Log(
+        "[NetworkMatchBridge] " +
+        $"준비 선택지 수신 | " +
+        $"LocalClientId: " +
+        $"{NetworkManager.Singleton.LocalClientId}"
+    );
+
+    MapManager_Multi.Instance
+        ?.ShowOptions(
+            options
+        );
 }
 public void RequestConfirmPreparationOption(
     int optionIndex)

@@ -438,4 +438,21 @@ private void CheckAllPlayersCompleted()
 
     return true;
 }
+public int GetRemainingChoices(
+    ulong clientId)
+{
+    int completed =
+        currentRoundByClient.TryGetValue(
+            clientId,
+            out int round)
+            ? round
+            : 0;
+
+    return Mathf.Clamp(
+        MaxRounds - completed,
+        0,
+        MaxRounds
+    );
+}
+
 }
