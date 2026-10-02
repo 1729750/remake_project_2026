@@ -104,13 +104,35 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
                 GetComponent<MatchServerController>();
         }
 
-        if (networkModeGate == null)
-        {
-            Debug.LogWarning(
-                "[NetworkMatchBridge] " +
-                "NetworkModeGate가 Inspector에 연결되어 있지 않습니다."
-            );
-        }
+if (networkModeGate == null ||
+    !networkModeGate.NetworkEnabled)
+{
+    NetworkModeGate[] gates =
+        FindObjectsByType<NetworkModeGate>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+    foreach (NetworkModeGate gate in gates)
+    {
+        if (gate == null)
+            continue;
+
+        if (!gate.NetworkEnabled)
+            continue;
+
+        networkModeGate = gate;
+
+        Debug.Log(
+            "[NetworkMatchBridge] " +
+            $"활성 NetworkModeGate 자동 연결 | " +
+            $"Name: {gate.gameObject.name} | " +
+            $"InstanceID: {gate.GetInstanceID()}"
+        );
+
+        break;
+    }
+}
     }
 
 
