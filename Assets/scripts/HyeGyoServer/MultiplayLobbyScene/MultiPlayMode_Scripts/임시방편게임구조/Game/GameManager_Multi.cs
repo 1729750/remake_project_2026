@@ -31,6 +31,10 @@ public sealed class GameManager_Multi : NetworkBehaviour
 
     public bool IsGameStarted => _gameStarted;
 
+    [Header("Preparation State")]
+[SerializeField]
+private NetworkMatchState preparationMatchState;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -171,16 +175,7 @@ private class EffectSummaryTable
         }
     }
 
-    private void Update()
-    {
-        if (!IsServer)
-            return;
 
-        if (_gameStarted)
-            return;
-
-        TryStartBattleServer();
-    }
 
 public void GameStart()
 {
@@ -226,14 +221,25 @@ public void GameStart()
             "rewardManagerObject가 Inspector에 연결되지 않았습니다."
         );
     }
+
+    if (IsServer &&
+    preparationMatchState != null)
+{
+    preparationMatchState.ServerSetPhase(
+        MatchPhase.ChoosingCard
+    );
+
+    Debug.Log(
+        "[GameManager_Multi] " +
+        "Preparation Phase → ChoosingCard"
+    );
+}
 }
 
     private void HandleNetworkStateChanged()
     {
         if (!IsServer)
             return;
-
-        TryStartBattleServer();
     }
 
     private void TryStartBattleServer()
