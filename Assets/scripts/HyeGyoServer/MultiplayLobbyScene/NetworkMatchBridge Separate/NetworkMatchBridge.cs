@@ -556,7 +556,7 @@ private void RequestBeginPreparationRpc(
         "[NetworkMatchBridge][Server] " +
         $"준비 선택지 요청 수신 | " +
         $"ClientId: {senderClientId}"
-    );s
+    );
 
     if (preparationManager == null)
     {
