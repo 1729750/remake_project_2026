@@ -60,10 +60,16 @@ public sealed class MapManager_Multi : MonoBehaviour
             preparationViewRoot.SetActive(true);
         }
 
+            Debug.Log(
+                "[MapManager_Multi] Start - 준비 화면 활성화"
+            );
+
         Debug.Log(
-            "[MapManager_Multi] Start - 준비 화면 활성화"
+            "[MapManager_Multi] " +
+            $"찾은 OptionVisual 수: " +
+            $"{(optionVisuals != null ? optionVisuals.Length : 0)}"
         );
-    }
+}
 
 
     public void SetPreparationViewActive(
