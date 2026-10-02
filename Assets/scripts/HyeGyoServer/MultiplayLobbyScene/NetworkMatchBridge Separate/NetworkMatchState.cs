@@ -9,6 +9,7 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkObject))]
 public sealed class NetworkMatchState : NetworkBehaviour
 {
+
     /// <summary>
     /// 현재 유효한 ClientId가 없음을 나타내는 값.
     /// 새 카드 선택 방식에서는 턴을 사용하지 않는다.
@@ -37,10 +38,7 @@ public sealed class NetworkMatchState : NetworkBehaviour
             );
 
 
-    private NetworkList<CardSelectionData>
-        selectedCards;
-
-
+        private NetworkList<CardSelectionData> selectedCards;
     public event Action MatchStateChanged;
 
 
