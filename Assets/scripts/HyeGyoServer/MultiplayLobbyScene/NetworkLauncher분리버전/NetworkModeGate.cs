@@ -26,14 +26,6 @@ public sealed class NetworkModeGate : MonoBehaviour
 
     public event Action<bool> NetworkEnabledChanged;
 
-    public void SetNetworkEnabled(bool enabled)
-    {
-        if (networkEnabled == enabled)
-            return;
-
-        networkEnabled = enabled;
-        NetworkEnabledChanged?.Invoke(enabled);
-    }
     private void Awake()
 {
     Debug.Log(
