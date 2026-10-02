@@ -23,35 +23,28 @@ public sealed class MapManager_Multi : MonoBehaviour
     private PreparationOptionVisual_Multi[] optionVisuals;
 
 
-    private void Awake()
+private void Awake()
+{
+    if (Instance != null &&
+        Instance != this)
     {
-        if (Instance != null &&
-            Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        Instance = this;
-
-        // 기존 MapManager 방식처럼
-        // 자식 오브젝트의 Visual들을 자동으로 찾는다.
-        optionVisuals =
-            GetComponentsInChildren<
-                PreparationOptionVisual_Multi
-            >(true);
-
-        if (preparationViewRoot != null)
-        {
-            preparationViewRoot.SetActive(true);
-        }
-
-        Debug.Log(
-            "[MapManager_Multi] Awake - 활성화\n" +
-            $"OptionVisual 자동 검색: {optionVisuals.Length}개"
-        );
+        Destroy(gameObject);
+        return;
     }
 
+    Instance = this;
+
+    FindOptionVisuals();
+
+    if (preparationViewRoot != null)
+    {
+        preparationViewRoot.SetActive(true);
+    }
+
+    Debug.Log(
+        "[MapManager_Multi] Awake - 활성화"
+    );
+}
 
     private void Start()
     {
@@ -69,6 +62,61 @@ public sealed class MapManager_Multi : MonoBehaviour
             $"찾은 OptionVisual 수: " +
             $"{(optionVisuals != null ? optionVisuals.Length : 0)}"
         );
+}
+private void FindOptionVisuals()
+{
+    string[] paths =
+    {
+        "MapSelectPanel/Panel1/EnemyDisplay",
+        "MapSelectPanel/Panel2/EnemyDisplay",
+        "MapSelectPanel/Panel3/EnemyDisplay"
+    };
+
+    optionVisuals =
+        new PreparationOptionVisual_Multi[
+            paths.Length
+        ];
+
+    for (int i = 0; i < paths.Length; i++)
+    {
+        Transform target =
+            transform.Find(
+                paths[i]
+            );
+
+        if (target == null)
+        {
+            Debug.LogError(
+                "[MapManager_Multi] " +
+                $"찾지 못함: {paths[i]}"
+            );
+
+            continue;
+        }
+
+        PreparationOptionVisual_Multi visual =
+            target.GetComponent<
+                PreparationOptionVisual_Multi
+            >();
+
+        // Inspector에서 직접 안 붙여놨어도
+        // 런타임에 자동으로 붙인다.
+        if (visual == null)
+        {
+            visual =
+                target.gameObject.AddComponent<
+                    PreparationOptionVisual_Multi
+                >();
+        }
+
+        optionVisuals[i] =
+            visual;
+
+        Debug.Log(
+            "[MapManager_Multi] " +
+            $"OptionVisual 연결 성공: {paths[i]}"
+        );
+    }
 }
 
 
