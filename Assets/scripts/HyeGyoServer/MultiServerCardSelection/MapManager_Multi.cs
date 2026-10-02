@@ -18,48 +18,53 @@ public sealed class MapManager_Multi : MonoBehaviour
     private PreparationOption[] _options;
     private int _selectedIndex;
 
-private void Awake()
-{
-    if (Instance != null &&
-        Instance != this)
+    // Inspector에 직접 넣지 않고
+    // 자식의 PreparationOptionVisual_Multi를 자동 검색
+    private PreparationOptionVisual_Multi[] optionVisuals;
+
+
+    private void Awake()
     {
-        Destroy(gameObject);
-        return;
+        if (Instance != null &&
+            Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
+        // 기존 MapManager 방식처럼
+        // 자식 오브젝트의 Visual들을 자동으로 찾는다.
+        optionVisuals =
+            GetComponentsInChildren<
+                PreparationOptionVisual_Multi
+            >(true);
+
+        if (preparationViewRoot != null)
+        {
+            preparationViewRoot.SetActive(true);
+        }
+
+        Debug.Log(
+            "[MapManager_Multi] Awake - 활성화\n" +
+            $"OptionVisual 자동 검색: {optionVisuals.Length}개"
+        );
     }
 
-    Instance = this;
 
-    // 자기 오브젝트 활성화
-    if (!gameObject.activeSelf)
+    private void Start()
     {
-        gameObject.SetActive(true);
+        if (preparationViewRoot != null)
+        {
+            preparationViewRoot.SetActive(true);
+        }
+
+        Debug.Log(
+            "[MapManager_Multi] Start - 준비 화면 활성화"
+        );
     }
 
-    // 준비 화면 루트 활성화
-    if (preparationViewRoot != null &&
-        !preparationViewRoot.activeSelf)
-    {
-        preparationViewRoot.SetActive(true);
-    }
-
-    Debug.Log(
-        "[MapManager_Multi] Awake - 활성화"
-    );
-}
-
-private void Start()
-{
-    gameObject.SetActive(true);
-
-    if (preparationViewRoot != null)
-    {
-        preparationViewRoot.SetActive(true);
-    }
-
-    Debug.Log(
-        "[MapManager_Multi] Start - 활성화"
-    );
-}
 
     public void SetPreparationViewActive(
         bool active)
@@ -83,7 +88,20 @@ private void Start()
             options.Length == 0)
         {
             Debug.LogWarning(
-                "[MapManager_Multi] 표시할 옵션이 없습니다."
+                "[MapManager_Multi] " +
+                "표시할 옵션이 없습니다."
+            );
+
+            return;
+        }
+
+        if (optionVisuals == null ||
+            optionVisuals.Length == 0)
+        {
+            Debug.LogError(
+                "[MapManager_Multi] " +
+                "PreparationOptionVisual_Multi를 " +
+                "자식에서 찾지 못했습니다."
             );
 
             return;
@@ -92,9 +110,42 @@ private void Start()
         _options = options;
         _selectedIndex = 0;
 
+        int count =
+            Mathf.Min(
+                optionVisuals.Length,
+                options.Length
+            );
+
+        for (int i = 0;
+             i < optionVisuals.Length;
+             i++)
+        {
+            bool active =
+                i < count;
+
+            if (optionVisuals[i] == null)
+                continue;
+
+            optionVisuals[i]
+                .gameObject
+                .SetActive(active);
+
+            if (active)
+            {
+                optionVisuals[i]
+                    .SetOption(
+                        options[i]
+                    );
+            }
+        }
+
+        RefreshSelectionHighlight();
+
         Debug.Log(
             "[MapManager_Multi] " +
-            $"옵션 표시 완료 | Count: {_options.Length}"
+            $"옵션 표시 완료 | " +
+            $"Options: {_options.Length} | " +
+            $"Visuals: {optionVisuals.Length}"
         );
     }
 
@@ -116,10 +167,36 @@ private void Start()
             % count + count)
             % count;
 
+        RefreshSelectionHighlight();
+
         Debug.Log(
             "[MapManager_Multi] " +
             $"현재 선택 Index: {_selectedIndex}"
         );
+    }
+
+
+    private void RefreshSelectionHighlight()
+    {
+        if (optionVisuals == null)
+            return;
+
+        for (int i = 0;
+             i < optionVisuals.Length;
+             i++)
+        {
+            if (optionVisuals[i] == null)
+                continue;
+
+            bool selected =
+                i == _selectedIndex &&
+                i < _options.Length;
+
+            optionVisuals[i]
+                .SetSelected(
+                    selected
+                );
+        }
     }
 
 
@@ -129,7 +206,8 @@ private void Start()
             _options.Length == 0)
         {
             Debug.LogWarning(
-                "[MapManager_Multi] 현재 선택지가 없습니다."
+                "[MapManager_Multi] " +
+                "현재 선택지가 없습니다."
             );
 
             return;
@@ -147,11 +225,14 @@ private void Start()
 
         Debug.Log(
             "[MapManager_Multi] " +
-            $"선택 확정 요청 | Index: {_selectedIndex}"
+            $"선택 확정 요청 | " +
+            $"Index: {_selectedIndex}"
         );
 
-        // 다음 단계에서 NetworkMatchBridge를 통해
-        // Server로 _selectedIndex 전송
+        // 다음 단계:
+        // NetworkMatchBridge
+        // → ServerRpc
+        // → 서버에서 실제 선택 적용
     }
 
 
@@ -162,10 +243,8 @@ private void Start()
             "Host / Client 모두 준비 완료"
         );
 
-        // 준비 화면 끄기
         SetPreparationViewActive(false);
 
-        // 이후 Battle 시작
         GameManager_Multi.Instance
             ?.StartBattle();
     }
