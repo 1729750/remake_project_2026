@@ -50,6 +50,27 @@ public sealed class MultiPreparationManager : MonoBehaviour
             return false;
         }
 
+        // 플레이어 2명이 준비되어 있는데
+// 아직 WaitingForPlayers라면
+// Server가 Preparation 단계로 진입시킨다.
+if (matchState != null &&
+    matchState.CurrentPhase ==
+        MatchPhase.WaitingForPlayers &&
+    preparationRegistry != null &&
+    preparationRegistry.Count == 2)
+{
+    matchState.ServerSetPhase(
+        MatchPhase.ChoosingCard
+    );
+
+    Debug.Log(
+        "[MultiPreparationManager] " +
+        "플레이어 2명 확인 → " +
+        "Preparation Phase 시작 | " +
+        "ChoosingCard"
+    );
+}
+
         if (matchState.CurrentPhase !=
             MatchPhase.ChoosingCard &&
             matchState.CurrentPhase !=
