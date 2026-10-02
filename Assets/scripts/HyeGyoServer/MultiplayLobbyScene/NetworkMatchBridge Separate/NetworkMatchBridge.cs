@@ -531,19 +531,32 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
             message.ToString()
         );
     }
-    public void RequestBeginPreparation()
+
+public void RequestBeginPreparation()
 {
     if (!CanSendNetworkRequest())
         return;
 
+    Debug.Log(
+        "[NetworkMatchBridge] " +
+        "준비 선택지 요청 전송"
+    );
+
     RequestBeginPreparationRpc();
 }
+
 [Rpc(SendTo.Server)]
 private void RequestBeginPreparationRpc(
     RpcParams rpcParams = default)
 {
     ulong senderClientId =
         rpcParams.Receive.SenderClientId;
+
+        Debug.Log(
+        "[NetworkMatchBridge][Server] " +
+        $"준비 선택지 요청 수신 | " +
+        $"ClientId: {senderClientId}"
+    );s
 
     if (preparationManager == null)
     {

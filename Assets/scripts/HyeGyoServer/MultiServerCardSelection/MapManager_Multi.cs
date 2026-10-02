@@ -18,6 +18,9 @@ public sealed class MapManager_Multi : MonoBehaviour
     private PreparationOption[] _options;
     private int _selectedIndex;
 
+    [SerializeField]
+private NetworkMatchBridge networkMatchBridge;
+
     // Inspector에 직접 넣지 않고
     // 자식의 PreparationOptionVisual_Multi를 자동 검색
     private PreparationOptionVisual_Multi[] optionVisuals;
@@ -46,22 +49,48 @@ private void Awake()
     );
 }
 
-    private void Start()
+private void Start()
+{
+    if (preparationViewRoot != null)
     {
-        if (preparationViewRoot != null)
-        {
-            preparationViewRoot.SetActive(true);
-        }
+        preparationViewRoot.SetActive(true);
+    }
 
-            Debug.Log(
-                "[MapManager_Multi] Start - 준비 화면 활성화"
-            );
+    Debug.Log(
+        "[MapManager_Multi] Start - 준비 화면 활성화"
+    );
 
-        Debug.Log(
+    Debug.Log(
+        "[MapManager_Multi] " +
+        $"찾은 OptionVisual 수: " +
+        $"{(optionVisuals != null ? optionVisuals.Length : 0)}"
+    );
+
+    if (networkMatchBridge == null)
+    {
+        networkMatchBridge =
+            FindFirstObjectByType<
+                NetworkMatchBridge
+            >();
+    }
+
+    if (networkMatchBridge == null)
+    {
+        Debug.LogError(
             "[MapManager_Multi] " +
-            $"찾은 OptionVisual 수: " +
-            $"{(optionVisuals != null ? optionVisuals.Length : 0)}"
+            "NetworkMatchBridge를 찾을 수 없습니다."
         );
+
+        return;
+    }
+
+    Debug.Log(
+        "[MapManager_Multi] " +
+        "첫 준비 선택지 요청"
+    );
+
+    networkMatchBridge
+        .RequestBeginPreparation();
 }
 private void FindOptionVisuals()
 {
