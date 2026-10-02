@@ -448,7 +448,7 @@ MonoBehaviour:
   SynchronizeTransform: 1
   <InScenePlaced>k__BackingField: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -790,6 +790,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDeckPanel
   deckDisplay: {fileID: 1302734972}
+  popupManager: {fileID: 0}
 --- !u!1 &165982144
 GameObject:
   m_ObjectHideFlags: 0
@@ -1409,7 +1410,7 @@ MonoBehaviour:
   SynchronizeTransform: 1
   <InScenePlaced>k__BackingField: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -2358,6 +2359,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
   - {fileID: 11400000, guid: ce7596a0626246bb9b31e06b87e1ace5, type: 2}
   - {fileID: 11400000, guid: 237f6ed46cf7484eaf83b6465bb9d8bf, type: 2}
+  popupManager: {fileID: 0}
 --- !u!1 &809160019
 GameObject:
   m_ObjectHideFlags: 0
@@ -3025,7 +3027,7 @@ MonoBehaviour:
   SynchronizeTransform: 1
   <InScenePlaced>k__BackingField: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -3045,6 +3047,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager_Multi
   ShowTopMostFoldoutHeaderGroup: 1
   gameNetworkState: {fileID: 43848199}
+  battleViewRoot: {fileID: 955717467}
   playerCharacterManager: {fileID: 1900544485}
   enemyCharacterManager: {fileID: 613203762}
   turnText: {fileID: 1895152206}
@@ -3204,7 +3207,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -99
+  m_SortingOrder: -98
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: bf93689ad62d3c34f90a7b98e2e49a43, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -3668,7 +3671,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1 &1199511218
 GameObject:
@@ -4491,7 +4497,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1001 &1302734970
 PrefabInstance:
@@ -5342,7 +5351,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3772517748342576180, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: f177106f83a2b6e46b0bc732053da4f5, type: 3}
 --- !u!1 &1410044621
 GameObject:
@@ -5619,7 +5631,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1474451737
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5634,6 +5646,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapManager
   opponentDeckDisplay: {fileID: 1489030682}
   trophiesManager: {fileID: 1375985783}
+  popupManager: {fileID: 0}
 --- !u!4 &1474451738
 Transform:
   m_ObjectHideFlags: 0
@@ -6980,7 +6993,7 @@ MonoBehaviour:
   SynchronizeTransform: 1
   <InScenePlaced>k__BackingField: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -7000,7 +7013,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager_Multi
   ShowTopMostFoldoutHeaderGroup: 1
   gameNetworkState: {fileID: 43848199}
-  battleManager: {fileID: 0}
+  battleManager: {fileID: 955717471}
   fadeIn: {fileID: 896569714}
 --- !u!1 &2052035366
 GameObject:

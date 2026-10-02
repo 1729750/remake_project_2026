@@ -7,6 +7,13 @@ public sealed class GameManager_Multi : NetworkBehaviour
 {
     public static GameManager_Multi Instance { get; private set; }
 
+    [Header("Initial Active Objects")]
+    [SerializeField]
+    private GameObject mapManagerObject;
+
+    [SerializeField]
+    private GameObject rewardManagerObject;
+
     [Header("Network")]
     [SerializeField]
     private GameNetworkState gameNetworkState;
@@ -180,18 +187,29 @@ private class EffectSummaryTable
         TryStartBattleServer();
     }
 
-    public void GameStart()
+public void GameStart()
+{
+    if (_initialized)
+        return;
+
+    _initialized = true;
+
+    // Play 시작 시 강제 활성화
+    if (mapManagerObject != null)
     {
-        if (_initialized)
-            return;
-
-        _initialized = true;
-
-        Debug.Log(
-            "[GameManager_Multi] GameStart - " +
-            "MapManager 없이 바로 Battle 준비"
-        );
+        mapManagerObject.SetActive(true);
     }
+
+    if (rewardManagerObject != null)
+    {
+        rewardManagerObject.SetActive(true);
+    }
+
+    Debug.Log(
+        "[GameManager_Multi] " +
+        "MapManager / RewardManager 활성화"
+    );
+}
 
     private void HandleNetworkStateChanged()
     {
