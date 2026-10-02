@@ -97,84 +97,122 @@ public sealed class MultiPreparationManager : MonoBehaviour
 
         return true;
     }
+public bool TryConfirmOption(
+    ulong clientId,
+    int optionIndex,
+    out PreparationOption[] nextOptions,
+    out int remaining,
+    out string rejectReason)
+{
+    nextOptions = null;
+    remaining = 0;
+    rejectReason = string.Empty;
 
-    public bool TryConfirmOption(
-        ulong clientId,
-        int optionIndex,
-        out string rejectReason)
+    if (!IsServer())
     {
-        rejectReason = string.Empty;
+        rejectReason =
+            "Server가 아닙니다.";
 
-        if (!IsServer())
-        {
-            rejectReason = "Server가 아닙니다.";
-            return false;
-        }
+        return false;
+    }
 
-        if (!preparationRegistry.TryGetPlayer(
-                clientId,
-                out PlayerPreparationData player))
-        {
-            rejectReason =
-                "플레이어 데이터를 찾을 수 없습니다.";
+    if (!preparationRegistry.TryGetPlayer(
+            clientId,
+            out PlayerPreparationData player))
+    {
+        rejectReason =
+            "플레이어 데이터를 찾을 수 없습니다.";
 
-            return false;
-        }
+        return false;
+    }
 
-        if (!currentOptionsByClient.TryGetValue(
-                clientId,
-                out PreparationOption[] options))
-        {
-            rejectReason =
-                "현재 선택지가 없습니다.";
+    if (!currentOptionsByClient.TryGetValue(
+            clientId,
+            out PreparationOption[] options))
+    {
+        rejectReason =
+            "현재 선택지가 없습니다.";
 
-            return false;
-        }
+        return false;
+    }
 
-        if (optionIndex < 0 ||
-            optionIndex >= options.Length)
-        {
-            rejectReason =
-                "잘못된 선택지입니다.";
+    if (optionIndex < 0 ||
+        optionIndex >= options.Length)
+    {
+        rejectReason =
+            "잘못된 선택지입니다.";
 
-            return false;
-        }
+        return false;
+    }
 
-        PreparationOption selected =
-            options[optionIndex];
+    PreparationOption selected =
+        options[optionIndex];
 
-        if (!ApplyOption(
-                player,
-                selected,
-                out rejectReason))
-        {
-            return false;
-        }
+    if (!ApplyOption(
+            player,
+            selected,
+            out rejectReason))
+    {
+        return false;
+    }
 
-        int nextRound =
-            currentRoundByClient.TryGetValue(
-                clientId,
-                out int currentRound)
-                ? currentRound + 1
-                : 1;
+    int nextRound =
+        currentRoundByClient.TryGetValue(
+            clientId,
+            out int currentRound)
+            ? currentRound + 1
+            : 1;
 
-        currentRoundByClient[clientId] =
-            nextRound;
+    currentRoundByClient[clientId] =
+        nextRound;
 
-        currentOptionsByClient.Remove(
-            clientId
+    currentOptionsByClient.Remove(
+        clientId
+    );
+
+    remaining =
+        Mathf.Max(
+            0,
+            MaxRounds - nextRound
         );
 
-        if (nextRound >= MaxRounds)
-        {
-            player.ConditionCompleted =
-                true;
+    // =========================
+    // 10회 완료
+    // =========================
+    if (nextRound >= MaxRounds)
+    {
+        player.ConditionCompleted = true;
 
-            CheckAllPlayersCompleted();
-        }
+        CheckAllPlayersCompleted();
 
         return true;
     }
+
+    // =========================
+    // 다음 선택지 3개 생성
+    // =========================
+    nextOptions =
+        cardOptionGenerator
+            .GenerateOptions(
+                player,
+                nextRound
+            );
+
+    if (nextOptions == null ||
+        nextOptions.Length != OptionCount)
+    {
+        rejectReason =
+            "다음 선택지 생성에 실패했습니다.";
+
+        return false;
+    }
+
+    currentOptionsByClient[
+        clientId
+    ] = nextOptions;
+
+    return true;
+}
 private bool ApplyOption(
     PlayerPreparationData player,
     PreparationOption option,
@@ -233,7 +271,12 @@ private bool ApplyAddCard(
         return false;
     }
 
-    player.FinalDeck.Add(card);
+    CardDefinition runtimeCard =
+        card.Clone();
+
+    player.FinalDeck.Add(
+        runtimeCard
+    );
 
     Debug.Log(
         "[MultiPreparationManager] " +
@@ -268,23 +311,31 @@ private bool ApplyAddCard(
         return true;
     }
 
-    private void CheckAllPlayersCompleted()
+private void CheckAllPlayersCompleted()
+{
+    if (preparationRegistry.Count != 2)
+        return;
+
+    foreach (
+        PlayerPreparationData player
+        in preparationRegistry.Players)
     {
-        if (preparationRegistry.Count != 2)
+        if (!player.ConditionCompleted)
             return;
-
-        foreach (
-            PlayerPreparationData player
-            in preparationRegistry.Players)
-        {
-            if (!player.ConditionCompleted)
-                return;
-        }
-
-        matchState.ServerSetPhase(
-            MatchPhase.ShowingResult
-        );
     }
+
+    Debug.Log(
+        "[MultiPreparationManager] " +
+        "두 플레이어 모두 준비 완료"
+    );
+
+    matchState.ServerSetPhase(
+        MatchPhase.ShowingResult
+    );
+
+    MapManager_Multi.Instance
+        ?.NotifyBothPlayersConfirmed();
+}
 
     private bool IsServer()
     {
@@ -292,4 +343,99 @@ private bool ApplyAddCard(
             NetworkManager.Singleton != null &&
             NetworkManager.Singleton.IsServer;
     }
+
+    public bool TrySkip(
+    ulong clientId,
+    out PreparationOption[] nextOptions,
+    out int remaining,
+    out string rejectReason)
+{
+    nextOptions = null;
+    remaining = 0;
+    rejectReason = string.Empty;
+
+    if (!IsServer())
+    {
+        rejectReason =
+            "Server가 아닙니다.";
+
+        return false;
+    }
+
+    if (!preparationRegistry.TryGetPlayer(
+            clientId,
+            out PlayerPreparationData player))
+    {
+        rejectReason =
+            "플레이어 데이터를 찾을 수 없습니다.";
+
+        return false;
+    }
+
+    int currentRound =
+        currentRoundByClient.TryGetValue(
+            clientId,
+            out int value)
+            ? value
+            : 0;
+
+    if (currentRound >= MaxRounds)
+    {
+        rejectReason =
+            "이미 준비를 완료했습니다.";
+
+        return false;
+    }
+
+    int nextRound =
+        currentRound + 1;
+
+    currentRoundByClient[
+        clientId
+    ] = nextRound;
+
+    // 기존 선택지 폐기
+    currentOptionsByClient.Remove(
+        clientId
+    );
+
+    remaining =
+        Mathf.Max(
+            0,
+            MaxRounds - nextRound
+        );
+
+    // 카드 추가/강화 없음
+
+    if (nextRound >= MaxRounds)
+    {
+        player.ConditionCompleted = true;
+
+        CheckAllPlayersCompleted();
+
+        return true;
+    }
+
+    nextOptions =
+        cardOptionGenerator
+            .GenerateOptions(
+                player,
+                nextRound
+            );
+
+    if (nextOptions == null ||
+        nextOptions.Length != OptionCount)
+    {
+        rejectReason =
+            "다음 선택지 생성에 실패했습니다.";
+
+        return false;
+    }
+
+    currentOptionsByClient[
+        clientId
+    ] = nextOptions;
+
+    return true;
+}
 }

@@ -23,6 +23,10 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
     [SerializeField]
     private NetworkMatchState matchState;
 
+    [Header("Preparation")]
+    [SerializeField]
+    private MultiPreparationManager preparationManager;
+
 
     // =========================================================
     // Events
@@ -524,4 +528,112 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
             message.ToString()
         );
     }
+    public void RequestBeginPreparation()
+{
+    if (!CanSendNetworkRequest())
+        return;
+
+    RequestBeginPreparationRpc();
+}
+
+[Rpc(SendTo.Server)]
+private void RequestBeginPreparationRpc(
+    RpcParams rpcParams = default)
+{
+    ulong senderClientId =
+        rpcParams.Receive.SenderClientId;
+
+    if (preparationManager == null)
+    {
+        SendRejectMessage(
+            senderClientId,
+            "MultiPreparationManager가 없습니다."
+        );
+
+        return;
+    }
+
+    if (!preparationManager.TryBeginForPlayer(
+            senderClientId,
+            out PreparationOption[] options,
+            out string rejectReason))
+    {
+        SendRejectMessage(
+            senderClientId,
+            rejectReason
+        );
+
+        return;
+    }
+
+    // 여기서 해당 Client에게만 옵션 전달
+}
+public void RequestConfirmPreparationOption(
+    int optionIndex)
+{
+    if (!CanSendNetworkRequest())
+        return;
+
+    RequestConfirmPreparationOptionRpc(
+        optionIndex
+    );
+}
+[Rpc(SendTo.Server)]
+private void RequestConfirmPreparationOptionRpc(
+    int optionIndex,
+    RpcParams rpcParams = default)
+{
+    ulong senderClientId =
+        rpcParams.Receive.SenderClientId;
+
+    if (!preparationManager.TryConfirmOption(
+            senderClientId,
+            optionIndex,
+            out PreparationOption[] nextOptions,
+            out int remaining,
+            out string rejectReason))
+    {
+        SendRejectMessage(
+            senderClientId,
+            rejectReason
+        );
+
+        return;
+    }
+
+    // senderClientId에게만
+    // remaining + FinalDeck + nextOptions 전달
+}
+public void RequestSkipPreparation()
+{
+    if (!CanSendNetworkRequest())
+        return;
+
+    RequestSkipPreparationRpc();}
+
+    [Rpc(SendTo.Server)]
+private void RequestSkipPreparationRpc(
+    RpcParams rpcParams = default)
+{
+    ulong senderClientId =
+        rpcParams.Receive.SenderClientId;
+
+    if (!preparationManager.TrySkip(
+            senderClientId,
+            out PreparationOption[] nextOptions,
+            out int remaining,
+            out string rejectReason))
+    {
+        SendRejectMessage(
+            senderClientId,
+            rejectReason
+        );
+
+        return;
+    }
+
+    // 해당 플레이어에게만
+    // remaining + nextOptions 전달
+}
+
 }
