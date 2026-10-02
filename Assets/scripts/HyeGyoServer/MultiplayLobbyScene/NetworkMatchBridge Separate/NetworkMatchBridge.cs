@@ -536,16 +536,46 @@ private bool CanSendNetworkRequest()
 
 public void RequestBeginPreparation()
 {
-    Debug.Log("[NetworkMatchBridge] RequestBeginPreparation 진입");
-
-    if (!CanSendNetworkRequest())
-    {    
-            Debug.LogWarning("[NetworkMatchBridge] " +"CanSendNetworkRequest 실패");
-        return;
-    }
     Debug.Log(
         "[NetworkMatchBridge] " +
-        "준비 선택지 요청 전송"
+        $"Gate Name: {(networkModeGate != null ? networkModeGate.gameObject.name : "NULL")} | " +
+        $"Gate InstanceID: {(networkModeGate != null ? networkModeGate.GetInstanceID() : -1)} | " +
+        $"NetworkEnabled: {(networkModeGate != null && networkModeGate.NetworkEnabled)}"
+    );
+
+    NetworkModeGate[] allGates =
+        FindObjectsByType<NetworkModeGate>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+    Debug.Log(
+        $"[NetworkMatchBridge] 현재 씬/런타임 NetworkModeGate 개수: {allGates.Length}"
+    );
+
+    for (int i = 0; i < allGates.Length; i++)
+    {
+        Debug.Log(
+            "[NetworkMatchBridge] " +
+            $"Gate[{i}] | " +
+            $"Name: {allGates[i].gameObject.name} | " +
+            $"InstanceID: {allGates[i].GetInstanceID()} | " +
+            $"Enabled: {allGates[i].NetworkEnabled} | " +
+            $"Active: {allGates[i].gameObject.activeInHierarchy}"
+        );
+    }
+
+    if (!CanSendNetworkRequest())
+    {
+        Debug.LogWarning(
+            "[NetworkMatchBridge] CanSendNetworkRequest 실패"
+        );
+
+        return;
+    }
+
+    Debug.Log(
+        "[NetworkMatchBridge] 준비 선택지 요청 전송"
     );
 
     RequestBeginPreparationRpc();
