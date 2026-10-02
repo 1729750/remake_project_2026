@@ -734,6 +734,13 @@ private void SendPreparationOptionsRpc(
         $"LocalClientId: " +
         $"{NetworkManager.Singleton.LocalClientId}"
     );
+    Debug.Log(
+    "[NetworkMatchBridge] " +
+    $"수신 옵션 | " +
+    $"0: {options[0].Type} | " +
+    $"1: {options[1].Type} | " +
+    $"2: {options[2].Type}"
+    );
 
     MapManager_Multi.Instance
         ?.ShowOptions(

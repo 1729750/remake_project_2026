@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class MapManager_Multi : MonoBehaviour
@@ -19,7 +21,8 @@ public sealed class MapManager_Multi : MonoBehaviour
     private int _selectedIndex;
 
     [SerializeField]
-private NetworkMatchBridge networkMatchBridge;
+    private NetworkMatchBridge networkMatchBridge;
+
 
     // Inspector에 직접 넣지 않고
     // 자식의 PreparationOptionVisual_Multi를 자동 검색
@@ -163,100 +166,124 @@ private void FindOptionVisuals()
         );
     }
 
-
-    public void ShowOptions(
-        PreparationOption[] options)
+public void ShowOptions(
+    PreparationOption[] options)
+{
+    if (options == null ||
+        options.Length == 0)
     {
-        if (options == null ||
-            options.Length == 0)
+        Debug.LogWarning(
+            "[MapManager_Multi] 표시할 옵션이 없습니다."
+        );
+
+        return;
+    }
+
+    _options = options;
+    _selectedIndex = 0;
+
+    int count =
+        Mathf.Min(
+            optionVisuals.Length,
+            options.Length
+        );
+
+    for (int i = 0;
+         i < optionVisuals.Length;
+         i++)
+    {
+        if (optionVisuals[i] == null)
+            continue;
+
+        bool active =
+            i < count;
+
+        optionVisuals[i]
+            .gameObject
+            .SetActive(active);
+
+        if (active)
         {
-            Debug.LogWarning(
-                "[MapManager_Multi] " +
-                "표시할 옵션이 없습니다."
-            );
-
-            return;
-        }
-
-        if (optionVisuals == null ||
-            optionVisuals.Length == 0)
-        {
-            Debug.LogError(
-                "[MapManager_Multi] " +
-                "PreparationOptionVisual_Multi를 " +
-                "자식에서 찾지 못했습니다."
-            );
-
-            return;
-        }
-
-        _options = options;
-        _selectedIndex = 0;
-
-        int count =
-            Mathf.Min(
-                optionVisuals.Length,
-                options.Length
-            );
-
-        for (int i = 0;
-             i < optionVisuals.Length;
-             i++)
-        {
-            bool active =
-                i < count;
-
-            if (optionVisuals[i] == null)
-                continue;
-
             optionVisuals[i]
-                .gameObject
-                .SetActive(active);
+                .SetOption(
+                    options[i]
+                );
+        }
+    }
 
-            if (active)
+    RefreshSelectionHighlight();
+
+    LoadPreparationInput();
+
+    Debug.Log(
+        "[MapManager_Multi] " +
+        $"옵션 표시 완료 | " +
+        $"Options: {_options.Length} | " +
+        $"Visuals: {optionVisuals.Length}"
+    );
+}
+private void LoadPreparationInput()
+{
+    if (PlayerInputManager.Instance == null)
+    {
+        Debug.LogError(
+            "[MapManager_Multi] " +
+            "PlayerInputManager.Instance가 없습니다."
+        );
+
+        return;
+    }
+
+    PlayerInputManager.Instance.Load(
+        "Select",
+        new Dictionary<string, Action>
+        {
+            ["Left"] = () =>
             {
-                optionVisuals[i]
-                    .SetOption(
-                        options[i]
-                    );
+                MoveSelection(-1);
+            },
+
+            ["Right"] = () =>
+            {
+                MoveSelection(1);
+            },
+
+            ["Select"] = () =>
+            {
+                ConfirmLocalPreparation();
             }
         }
+    );
 
-        RefreshSelectionHighlight();
-
-        Debug.Log(
-            "[MapManager_Multi] " +
-            $"옵션 표시 완료 | " +
-            $"Options: {_options.Length} | " +
-            $"Visuals: {optionVisuals.Length}"
-        );
-    }
-
-
-    public void MoveSelection(
-        int delta)
+    Debug.Log(
+        "[MapManager_Multi] " +
+        "Preparation 입력 로드 완료"
+    );
+}
+public void MoveSelection(
+    int delta)
+{
+    if (_options == null ||
+        _options.Length == 0)
     {
-        if (_options == null ||
-            _options.Length == 0)
-        {
-            return;
-        }
-
-        int count =
-            _options.Length;
-
-        _selectedIndex =
-            ((_selectedIndex + delta)
-            % count + count)
-            % count;
-
-        RefreshSelectionHighlight();
-
-        Debug.Log(
-            "[MapManager_Multi] " +
-            $"현재 선택 Index: {_selectedIndex}"
-        );
+        return;
     }
+
+    int count =
+        _options.Length;
+
+    _selectedIndex =
+        ((_selectedIndex + delta)
+        % count + count)
+        % count;
+
+    RefreshSelectionHighlight();
+
+    Debug.Log(
+        "[MapManager_Multi] " +
+        $"현재 선택 Index: {_selectedIndex}"
+    );
+}
 
 
     private void RefreshSelectionHighlight()
@@ -312,10 +339,10 @@ private void FindOptionVisuals()
             $"Index: {_selectedIndex}"
         );
 
-        // 다음 단계:
-        // NetworkMatchBridge
-        // → ServerRpc
-        // → 서버에서 실제 선택 적용
+    networkMatchBridge
+        .RequestConfirmPreparationOption(
+            _selectedIndex
+        );
     }
 
 
