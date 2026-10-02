@@ -35,6 +35,15 @@ public sealed class MultiPreparationManager : MonoBehaviour
         options = null;
         rejectReason = string.Empty;
 
+            Debug.Log(
+        "[MultiPreparationManager] " +
+        $"TryBeginForPlayer 시작 | " +
+        $"ClientId: {clientId} | " +
+        $"Phase: {(matchState != null ? matchState.CurrentPhase.ToString() : "NULL")} | " +
+        $"Registry: {(preparationRegistry != null ? "있음" : "NULL")} | " +
+        $"PlayerCount: {(preparationRegistry != null ? preparationRegistry.Count : -1)}"
+    );
+
         if (!IsServer())
         {
             rejectReason = "Server가 아닙니다.";
@@ -46,21 +55,37 @@ public sealed class MultiPreparationManager : MonoBehaviour
             matchState.CurrentPhase !=
             MatchPhase.ChoosingCondition)
         {
-            rejectReason =
-                "현재 준비 선택 단계가 아닙니다.";
+    rejectReason =
+        $"현재 준비 선택 단계가 아닙니다. " +
+        $"CurrentPhase: {matchState.CurrentPhase}";
+
+    Debug.LogWarning(
+        "[MultiPreparationManager] " +
+        $"준비 요청 거절 | " +
+        $"ClientId: {clientId} | " +
+        $"Reason: {rejectReason}"
+    );
+
 
             return false;
         }
 
-        if (!preparationRegistry.TryGetPlayer(
-                clientId,
-                out PlayerPreparationData player))
-        {
-            rejectReason =
-                "플레이어 준비 데이터를 찾을 수 없습니다.";
+if (!preparationRegistry.TryGetPlayer(
+        clientId,
+        out PlayerPreparationData player))
+{
+    rejectReason =
+        $"플레이어 준비 데이터를 찾을 수 없습니다. " +
+        $"ClientId: {clientId}";
 
-            return false;
-        }
+    Debug.LogWarning(
+        "[MultiPreparationManager] " +
+        $"준비 요청 거절 | " +
+        $"Reason: {rejectReason}"
+    );
+
+    return false;
+}
 
         int round =
             currentRoundByClient.TryGetValue(
