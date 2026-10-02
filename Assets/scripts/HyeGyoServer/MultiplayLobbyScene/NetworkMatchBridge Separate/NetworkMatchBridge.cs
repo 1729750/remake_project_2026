@@ -615,6 +615,11 @@ private void RequestBeginPreparationRpc(
         $"준비 선택지 요청 수신 | " +
         $"ClientId: {senderClientId}"
     );
+        Debug.Log(
+        "[NetworkMatchBridge][Server] " +
+        $"현재 Preparation Phase: " +
+        $"{(preparationManager != null ? "Manager 있음" : "Manager 없음")}"
+    );
 
     if (preparationManager == null)
     {
