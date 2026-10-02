@@ -72,5 +72,5 @@ public void SetNetworkEnabled(bool enabled)
     NetworkEnabledChanged?.Invoke(
         enabled
     );
-}s
+}
 }
