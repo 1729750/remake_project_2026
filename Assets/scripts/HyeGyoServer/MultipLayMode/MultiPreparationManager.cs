@@ -146,10 +146,12 @@ if (!preparationRegistry.TryGetPlayer(
 public bool TryConfirmOption(
     ulong clientId,
     int optionIndex,
+    out PreparationOption selectedOption,
     out PreparationOption[] nextOptions,
     out int remaining,
     out string rejectReason)
 {
+    selectedOption = default;
     nextOptions = null;
     remaining = 0;
     rejectReason = string.Empty;
@@ -191,12 +193,12 @@ public bool TryConfirmOption(
         return false;
     }
 
-    PreparationOption selected =
+    selectedOption =
         options[optionIndex];
 
     if (!ApplyOption(
             player,
-            selected,
+            selectedOption,
             out rejectReason))
     {
         return false;
@@ -372,11 +374,7 @@ private void CheckAllPlayersCompleted()
 
     Debug.Log(
         "[MultiPreparationManager] " +
-        "두 플레이어 모두 준비 완료"
-    );
-
-    matchState.ServerSetPhase(
-        MatchPhase.ShowingResult
+        "Host / Client 준비 10회 모두 완료"
     );
 
     MapManager_Multi.Instance

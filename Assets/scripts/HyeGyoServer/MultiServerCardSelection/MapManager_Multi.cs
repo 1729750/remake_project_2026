@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public sealed class MapManager_Multi : MonoBehaviour
 {
@@ -28,6 +29,23 @@ public sealed class MapManager_Multi : MonoBehaviour
     // 자식의 PreparationOptionVisual_Multi를 자동 검색
     private PreparationOptionVisual_Multi[] optionVisuals;
 
+    [Header("My Deck View")]
+    [SerializeField]
+    private DeckDisplay myDeckDisplay;
+
+    [SerializeField]
+    private TextMeshPro remainingText;
+
+    [SerializeField]
+    private float deckCardSize = 0.7f;
+
+    [SerializeField]
+    private int deckColumns = 6;
+
+    private readonly List<CardDefinition>
+        _localDeckView =
+            new List<CardDefinition>();
+
 
 private void Awake()
 {
@@ -54,6 +72,7 @@ private void Awake()
 
 private void Start()
 {
+
     if (preparationViewRoot != null)
     {
         preparationViewRoot.SetActive(true);
@@ -68,7 +87,8 @@ private void Start()
         $"찾은 OptionVisual 수: " +
         $"{(optionVisuals != null ? optionVisuals.Length : 0)}"
     );
-
+    
+    SetRemainingChoices(10);
     if (networkMatchBridge == null)
     {
         networkMatchBridge =
@@ -357,5 +377,80 @@ public void MoveSelection(
 
         GameManager_Multi.Instance
             ?.StartBattle();
+    }
+
+    public void ApplyConfirmedOptionToLocalView(
+    PreparationOption option)
+{
+    switch (option.Type)
+    {
+        case PreparationOptionType.AddCard:
+        {
+            if (option.Card != null)
+            {
+                _localDeckView.Add(
+                    option.Card
+                );
+
+                RefreshMyDeck();
+            }
+
+            break;
+        }
+
+        case PreparationOptionType.EnhanceCard:
+        {
+            // 강화 데이터가 실제 구현되면
+            // TargetCardIndex의 카드를 여기서 갱신.
+            //
+            // 현재 ApplyEnhance가 TODO라
+            // 덱 개수 자체는 변하지 않음.
+
+            RefreshMyDeck();
+
+            break;
+        }
+    }
+}
+private void RefreshMyDeck()
+{
+    if (myDeckDisplay == null)
+        return;
+
+    myDeckDisplay.SetDeck(
+        _localDeckView,
+        null,
+        deckCardSize,
+        deckColumns
+    );
+}
+    public void SetRemainingChoices(
+        int remaining)
+    {
+        if (remainingText != null)
+        {
+            remainingText.text =
+                $"{remaining}/10";
+        }
+
+        Debug.Log(
+            "[MapManager_Multi] " +
+            $"남은 준비 횟수: {remaining}/10"
+        );
+    }
+
+        public void ShowWaitingForOpponent()
+    {
+        _options = null;
+
+        if (PlayerInputManager.Instance != null)
+        {
+            PlayerInputManager.Instance.Unload();
+        }
+
+        Debug.Log(
+            "[MapManager_Multi] " +
+            "내 준비 완료 → 상대 플레이어 대기"
+        );
     }
 }

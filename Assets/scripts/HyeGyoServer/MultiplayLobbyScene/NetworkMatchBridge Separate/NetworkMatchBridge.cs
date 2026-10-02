@@ -768,6 +768,7 @@ private void RequestConfirmPreparationOptionRpc(
     if (!preparationManager.TryConfirmOption(
             senderClientId,
             optionIndex,
+            out PreparationOption selectedOption,
             out PreparationOption[] nextOptions,
             out int remaining,
             out string rejectReason))
@@ -813,6 +814,66 @@ private void RequestSkipPreparationRpc(
 
     // 해당 플레이어에게만
     // remaining + nextOptions 전달
+}
+
+[Rpc(SendTo.ClientsAndHost)]
+private void SendPreparationConfirmResultRpc(
+    ulong targetClientId,
+    PreparationOptionNetData selectedData,
+    int remaining,
+    bool hasNextOptions,
+    PreparationOptionNetData next0,
+    PreparationOptionNetData next1,
+    PreparationOptionNetData next2)
+{
+    if (NetworkManager.Singleton == null)
+        return;
+
+    if (NetworkManager.Singleton.LocalClientId !=
+        targetClientId)
+    {
+        return;
+    }
+
+    PreparationOption selected =
+        cardOptionGenerator.FromNetData(
+            selectedData
+        );
+
+    MapManager_Multi map =
+        MapManager_Multi.Instance;
+
+    if (map == null)
+        return;
+
+    // 선택된 결과를 내 화면에 반영
+    map.ApplyConfirmedOptionToLocalView(
+        selected
+    );
+
+    // 10/10 → 9/10 ...
+    map.SetRemainingChoices(
+        remaining
+    );
+
+    // 아직 10회를 안 끝냈다면 다음 선택지
+    if (hasNextOptions)
+    {
+        PreparationOption[] nextOptions =
+        {
+            cardOptionGenerator.FromNetData(next0),
+            cardOptionGenerator.FromNetData(next1),
+            cardOptionGenerator.FromNetData(next2)
+        };
+
+        map.ShowOptions(
+            nextOptions
+        );
+    }
+    else
+    {
+        map.ShowWaitingForOpponent();
+    }
 }
 
 }
