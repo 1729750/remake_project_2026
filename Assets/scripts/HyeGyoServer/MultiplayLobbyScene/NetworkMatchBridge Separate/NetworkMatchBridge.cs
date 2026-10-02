@@ -534,9 +534,13 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
 
 public void RequestBeginPreparation()
 {
-    if (!CanSendNetworkRequest())
-        return;
+    Debug.Log("[NetworkMatchBridge] RequestBeginPreparation 진입");
 
+    if (!CanSendNetworkRequest())
+    {    
+            Debug.LogWarning("[NetworkMatchBridge] " +"CanSendNetworkRequest 실패");
+        return;
+    }
     Debug.Log(
         "[NetworkMatchBridge] " +
         "준비 선택지 요청 전송"
