@@ -140,32 +140,27 @@ private class EffectSummaryTable
 }
 
     public override void OnNetworkSpawn()
+{
+    Debug.Log(
+        "[GameManager_Multi] OnNetworkSpawn 실행"
+    );
+
+    if (gameNetworkState == null)
     {
-        if (gameNetworkState == null)
-        {
-            Debug.LogError(
-                "[GameManager_Multi] GameNetworkState가 없습니다."
-            );
-            return;
-        }
-
-        gameNetworkState.StateChanged +=
-            HandleNetworkStateChanged;
-
-        GameStart();
-
-        fadeIn?.Play();
-
-        Debug.Log(
-            "[GameManager_Multi] OnNetworkSpawn\n" +
-            $"IsServer: {IsServer}\n" +
-            $"IsClient: {IsClient}\n" +
-            $"LocalClientId: {NetworkManager.Singleton.LocalClientId}"
+        Debug.LogError(
+            "[GameManager_Multi] GameNetworkState가 없습니다."
         );
 
-        if (IsServer)
-            TryStartBattleServer();
+        return;
     }
+
+    gameNetworkState.StateChanged +=
+        HandleNetworkStateChanged;
+
+    GameStart();
+
+    fadeIn?.Play();
+}
 
     public override void OnNetworkDespawn()
     {
@@ -194,21 +189,43 @@ public void GameStart()
 
     _initialized = true;
 
-    // Play 시작 시 강제 활성화
+    Debug.Log(
+        "[GameManager_Multi] GameStart 실행"
+    );
+
     if (mapManagerObject != null)
     {
         mapManagerObject.SetActive(true);
+
+        Debug.Log(
+            "[GameManager_Multi] " +
+            $"MapManager 활성화: {mapManagerObject.activeSelf}"
+        );
+    }
+    else
+    {
+        Debug.LogError(
+            "[GameManager_Multi] " +
+            "mapManagerObject가 Inspector에 연결되지 않았습니다."
+        );
     }
 
     if (rewardManagerObject != null)
     {
         rewardManagerObject.SetActive(true);
-    }
 
-    Debug.Log(
-        "[GameManager_Multi] " +
-        "MapManager / RewardManager 활성화"
-    );
+        Debug.Log(
+            "[GameManager_Multi] " +
+            $"RewardManager 활성화: {rewardManagerObject.activeSelf}"
+        );
+    }
+    else
+    {
+        Debug.LogError(
+            "[GameManager_Multi] " +
+            "rewardManagerObject가 Inspector에 연결되지 않았습니다."
+        );
+    }
 }
 
     private void HandleNetworkStateChanged()
