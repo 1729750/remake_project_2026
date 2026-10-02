@@ -442,43 +442,45 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
     // Validation
     // =========================================================
 
-    private bool CanSendNetworkRequest()
+private bool CanSendNetworkRequest()
+{
+    if (networkModeGate == null)
     {
-        if (networkModeGate == null)
-        {
-            LocalMessage?.Invoke(
-                "NetworkModeGate가 연결되어 있지 않습니다."
-            );
+        Debug.LogError(
+            "[NetworkMatchBridge] " +
+            "요청 실패: NetworkModeGate == null"
+        );
 
-            Debug.LogWarning(
-                "[NetworkMatchBridge] " +
-                "NetworkModeGate가 연결되어 있지 않습니다."
-            );
-
-            return false;
-        }
-
-        if (!networkModeGate.NetworkEnabled)
-        {
-            LocalMessage?.Invoke(
-                "네트워크 모드가 OFF 상태입니다."
-            );
-
-            return false;
-        }
-
-        if (!IsSpawned)
-        {
-            LocalMessage?.Invoke(
-                "NetworkMatchBridge가 아직 Spawn되지 않았습니다."
-            );
-
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
+    if (!networkModeGate.NetworkEnabled)
+    {
+        Debug.LogError(
+            "[NetworkMatchBridge] " +
+            "요청 실패: NetworkEnabled == false"
+        );
+
+        return false;
+    }
+
+    if (!IsSpawned)
+    {
+        Debug.LogError(
+            "[NetworkMatchBridge] " +
+            "요청 실패: IsSpawned == false"
+        );
+
+        return false;
+    }
+
+    Debug.Log(
+        "[NetworkMatchBridge] " +
+        "CanSendNetworkRequest 성공"
+    );
+
+    return true;
+}
 
     // =========================================================
     // Reject Message
