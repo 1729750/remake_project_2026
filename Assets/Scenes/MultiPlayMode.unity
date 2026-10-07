@@ -246,8 +246,10 @@ MonoBehaviour:
   preparationRegistry: {fileID: 1431684837}
   cardSelectionService: {fileID: 1770151337}
   enhanceCandidateService: {fileID: 1045152431}
+  preparationManager: {fileID: 331795911}
   gameplaySceneName: MultiPlayMode
   useSelectAndEnhance: 1
+  completeInCurrentScene: 1
 --- !u!4 &20076622
 Transform:
   m_ObjectHideFlags: 0
@@ -924,9 +926,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardOptionGenerator
   cardPool:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 6e4e4276562262248aecbc66706b5a51, type: 2}
+  - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+  - {fileID: 11400000, guid: 0f5fba19a89ce0d4ca8f9e31e19b809a, type: 2}
+  - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}
+  - {fileID: 11400000, guid: d8282a6efacc94948870bdc623775219, type: 2}
+  - {fileID: 11400000, guid: e3905ac462ed1064bb284a2c7278014d, type: 2}
+  - {fileID: 11400000, guid: b6f12a9d57055c9459cedcfdb93442fc, type: 2}
+  - {fileID: 11400000, guid: fd0cd6fd89259c64eb1a1d8b72537eb8, type: 2}
+  - {fileID: 11400000, guid: 61c2840774674e3f9c1c449ae8866cf2, type: 2}
+  - {fileID: 11400000, guid: e1875c35347d4f329d55fd6fe8f6a982, type: 2}
+  - {fileID: 11400000, guid: 487e1117532a455bbf97bb73edfd001c, type: 2}
+  - {fileID: 11400000, guid: 7b5dfdeb1ab14e0f83732438e0804218, type: 2}
+  - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+  - {fileID: 11400000, guid: 7941aedc84ff4262be4b816c332100dc, type: 2}
+  - {fileID: 11400000, guid: f42992e211d149fdaaeb501fa66b2124, type: 2}
+  - {fileID: 11400000, guid: 139a1bc889eb4b3bbfb5f23d53e2df1b, type: 2}
+  - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+  - {fileID: 11400000, guid: 6794d21a31874765a7334e396b07bc3f, type: 2}
+  - {fileID: 11400000, guid: f38c189ec00642e0b41978b1b8a2f08d, type: 2}
+  - {fileID: 11400000, guid: 1d0f4083eb82443ca4739191f210b0dc, type: 2}
+  - {fileID: 11400000, guid: 64d603a27f1e4efeb8ea6cd43ebd5dc8, type: 2}
+  - {fileID: 11400000, guid: 25c9899db6794fab9460fa5fae71efb5, type: 2}
+  - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+  - {fileID: 11400000, guid: 8ac2a13904754e5aa42070b1ac54f545, type: 2}
+  - {fileID: 11400000, guid: ccf8f9dfcc5f4a8e90a171c84d2323d5, type: 2}
+  - {fileID: 11400000, guid: fcaa4318c10e47eaa173c9aa749c997b, type: 2}
+  - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
+  - {fileID: 11400000, guid: ce7596a0626246bb9b31e06b87e1ace5, type: 2}
+  - {fileID: 11400000, guid: 237f6ed46cf7484eaf83b6465bb9d8bf, type: 2}
+  basicAttackCard: {fileID: 11400000, guid: 8dd7610fbdcd1044b97531bcd544696f, type: 2}
+  basicDefenseCard: {fileID: 11400000, guid: 70b57d5762ab6b747979534558f40d14, type: 2}
 --- !u!4 &224265909
 Transform:
   m_ObjectHideFlags: 0
@@ -2703,7 +2733,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &772567245
 Transform:
   m_ObjectHideFlags: 0
@@ -3942,8 +3972,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3839d220c034b9b4fb3977e8b66d8c10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnhanceCandidateServerService
-  matchState: {fileID: 0}
-  preparationRegistry: {fileID: 0}
+  matchState: {fileID: 806387327}
+  preparationRegistry: {fileID: 1431684837}
 --- !u!4 &1045152432
 Transform:
   m_ObjectHideFlags: 0
@@ -4344,11 +4374,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkMatchBridge
   ShowTopMostFoldoutHeaderGroup: 1
-  networkModeGate: {fileID: 1815648695}
+  networkModeGate: {fileID: 283839142}
   serverController: {fileID: 20076621}
   matchState: {fileID: 806387327}
   preparationManager: {fileID: 331795911}
   cardOptionGenerator: {fileID: 224265908}
+  cardSelectionService: {fileID: 1770151337}
+  enhanceCandidateService: {fileID: 1045152431}
 --- !u!114 &1201366209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6284,7 +6316,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1474451738
 Transform:
   m_ObjectHideFlags: 0
@@ -6845,6 +6877,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardSelectionServerService
   preparationRegistry: {fileID: 1431684837}
   matchState: {fileID: 806387327}
+  cardOptionGenerator: {fileID: 224265908}
+  preparationManager: {fileID: 331795911}
 --- !u!4 &1770151338
 Transform:
   m_ObjectHideFlags: 0
@@ -7901,7 +7935,10 @@ MonoBehaviour:
   gameNetworkState: {fileID: 43848199}
   battleManager: {fileID: 955717471}
   fadeIn: {fileID: 896569714}
-  preparationMatchState: {fileID: 0}
+  preparationMatchState: {fileID: 806387327}
+  cardSelectionService: {fileID: 1770151337}
+  preparationRegistry: {fileID: 1431684837}
+  preparationBridge: {fileID: 1201366208}
 --- !u!1 &2052035366
 GameObject:
   m_ObjectHideFlags: 0

@@ -329,16 +329,19 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     public void SetBattleViewActive(
         bool active)
     {
-        // 현재 MultiPlayMode 씬에서는 battleViewRoot가
-        // BattleManager 자신을 가리키고 있다. 이 오브젝트를 끄면
-        // NetworkObject/NetworkBehaviour까지 함께 비활성화되어
-        // 전투가 시작되지 않으므로 루트 자체는 끄지 않는다.
+        // NetworkObject가 붙은 BattleManager root 자체는 끄지 않고
+        // Player/Enemy/Turn 등 visual child만 토글한다.
         if (battleViewRoot == gameObject)
         {
-            Debug.LogWarning(
+            foreach (Transform child in transform)
+            {
+                if (child != null)
+                    child.gameObject.SetActive(active);
+            }
+
+            Debug.Log(
                 "[BattleManager_Multi] " +
-                "battleViewRoot가 BattleManager 자신을 가리킵니다. " +
-                "전투 루트 비활성화를 건너뜁니다."
+                $"Battle child views active: {active}"
             );
 
             return;

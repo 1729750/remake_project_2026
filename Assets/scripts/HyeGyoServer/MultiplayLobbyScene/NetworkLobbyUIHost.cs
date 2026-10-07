@@ -762,6 +762,18 @@ Debug.Log(
             return;
         }
 
+        // 실제 NGO 연결뿐 아니라 Host/Client 닉네임 등록도 끝난 뒤 이동한다.
+        if (hostGameManager == null ||
+            !hostGameManager.IsRoomReady)
+        {
+            Debug.Log(
+                "[NetworkLobbyUIHost] " +
+                "NGO 2명 연결 완료, 닉네임 등록 대기"
+            );
+
+            return;
+        }
+
 
         Debug.Log(
             "[NetworkLobbyUIHost] " +

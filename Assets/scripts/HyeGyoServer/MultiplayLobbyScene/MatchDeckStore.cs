@@ -13,6 +13,9 @@ public sealed class MatchDeckStore : MonoBehaviour
     private readonly Dictionary<ulong, CardDefinition[]>
         decksByClient = new();
 
+    public bool HasCompleteMatch =>
+        decksByClient.Count == 2;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)

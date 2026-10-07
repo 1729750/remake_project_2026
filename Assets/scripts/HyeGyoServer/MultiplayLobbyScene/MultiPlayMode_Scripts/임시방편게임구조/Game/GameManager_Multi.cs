@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -34,6 +35,15 @@ public sealed class GameManager_Multi : NetworkBehaviour
     [Header("Preparation State")]
     [SerializeField]
     private NetworkMatchState preparationMatchState;
+
+    [SerializeField]
+    private CardSelectionServerService cardSelectionService;
+
+    [SerializeField]
+    private PlayerPreparationRegistry preparationRegistry;
+
+    [SerializeField]
+    private NetworkMatchBridge preparationBridge;
 
     private void Awake()
     {
@@ -184,93 +194,95 @@ public void GameStart()
 
     _initialized = true;
 
+    // 기존 MapManager/RewardManager 준비 흐름은 사용하지 않는다.
+    // NetworkMatchBridge가 만드는 Single prefab 기반 선택 UI만 사용한다.
+    if (mapManagerObject != null)
+        mapManagerObject.SetActive(false);
+
+    if (rewardManagerObject != null)
+        rewardManagerObject.SetActive(false);
+
     Debug.Log(
-        "[GameManager_Multi] GameStart 실행"
+        "[GameManager_Multi] " +
+        "MultiPlayMode 카드 준비 대기"
     );
 
-    // Lobby에서 카드 준비와 FinalDeck 확정을 끝내고 온 정상 멀티 경로.
-    // MultiPlayMode 안에 남아 있는 이전 준비 UI는 다시 켜지 않는다.
-    if (MatchDeckStore.Instance != null)
-    {
-        if (mapManagerObject != null)
-            mapManagerObject.SetActive(false);
-
-        if (rewardManagerObject != null)
-            rewardManagerObject.SetActive(false);
-
-        Debug.Log(
-            "[GameManager_Multi] " +
-            "Lobby FinalDeck 사용 → 게임 씬 준비 UI 비활성화"
-        );
-
-        return;
-    }
-
-    // ==========================================
-    // 1. 서버가 먼저 Preparation Phase 설정
-    // ==========================================
     if (IsServer)
     {
-        if (preparationMatchState != null)
-        {
-            preparationMatchState.ServerSetPhase(
-                MatchPhase.ChoosingCard
-            );
-
-            Debug.Log(
-                "[GameManager_Multi] " +
-                "Preparation Phase 먼저 설정 → ChoosingCard"
-            );
-        }
-        else
-        {
-            Debug.LogError(
-                "[GameManager_Multi] " +
-                "Preparation NetworkMatchState가 없습니다."
-            );
-        }
-    }
-
-    // ==========================================
-    // 2. 그 다음 MapManager 활성화
-    // ==========================================
-    if (mapManagerObject != null)
-    {
-        mapManagerObject.SetActive(true);
-
-        Debug.Log(
-            "[GameManager_Multi] " +
-            $"MapManager 활성화: {mapManagerObject.activeSelf}"
-        );
-    }
-    else
-    {
-        Debug.LogError(
-            "[GameManager_Multi] " +
-            "mapManagerObject가 Inspector에 연결되지 않았습니다."
-        );
-    }
-
-    // ==========================================
-    // 3. RewardManager 활성화
-    // ==========================================
-    if (rewardManagerObject != null)
-    {
-        rewardManagerObject.SetActive(true);
-
-        Debug.Log(
-            "[GameManager_Multi] " +
-            $"RewardManager 활성화: {rewardManagerObject.activeSelf}"
-        );
-    }
-    else
-    {
-        Debug.LogError(
-            "[GameManager_Multi] " +
-            "rewardManagerObject가 Inspector에 연결되지 않았습니다."
+        StartCoroutine(
+            StartCardPreparationWhenReady()
         );
     }
 }
+
+private IEnumerator StartCardPreparationWhenReady()
+{
+    const int maxAttempts = 600;
+
+    for (int attempt = 0;
+         attempt < maxAttempts;
+         attempt++)
+    {
+        preparationMatchState ??=
+            FindFirstObjectByType<NetworkMatchState>();
+
+        cardSelectionService ??=
+            FindFirstObjectByType<CardSelectionServerService>();
+
+        preparationRegistry ??=
+            FindFirstObjectByType<PlayerPreparationRegistry>();
+
+        preparationBridge ??=
+            FindFirstObjectByType<NetworkMatchBridge>();
+
+        bool ready =
+            preparationMatchState != null &&
+            preparationMatchState.IsSpawned &&
+            preparationBridge != null &&
+            preparationBridge.IsSpawned &&
+            cardSelectionService != null &&
+            preparationRegistry != null &&
+            preparationRegistry.Count == 2 &&
+            gameNetworkState != null &&
+            gameNetworkState.PlayersAssigned;
+
+        if (ready)
+        {
+            if (MatchDeckStore.Instance != null &&
+                MatchDeckStore.Instance.HasCompleteMatch)
+            {
+                StartBattle();
+                yield break;
+            }
+
+            if (!cardSelectionService.TryStartCardSelection(
+                    out string rejectReason))
+            {
+                Debug.LogError(
+                    "[GameManager_Multi] " +
+                    $"카드 준비 시작 실패 | {rejectReason}"
+                );
+
+                yield break;
+            }
+
+            Debug.Log(
+                "[GameManager_Multi] " +
+                "MultiPlayMode 초기 카드 선택 시작"
+            );
+
+            yield break;
+        }
+
+        yield return null;
+    }
+
+    Debug.LogError(
+        "[GameManager_Multi] " +
+        "카드 준비 서비스 또는 플레이어 2명 준비 시간 초과"
+    );
+}
+
     private void HandleNetworkStateChanged()
     {
         if (!IsServer)
@@ -306,6 +318,13 @@ public void GameStart()
         if (!battleManager.IsSpawned)
             return;
 
+        battleManager.InitializeBattleServer();
+
+        if (!battleManager.BattleStarted)
+        {
+            return;
+        }
+
         _gameStarted = true;
 
         Debug.Log(
@@ -314,12 +333,6 @@ public void GameStart()
             $"Player0: {gameNetworkState.Player0ClientId.Value}\n" +
             $"Player1: {gameNetworkState.Player1ClientId.Value}"
         );
-
-        gameNetworkState.SetMatchStateServer(
-            MultiMatchState.BattleStarting
-        );
-
-        battleManager.InitializeBattleServer();
     }
 
     public void StartBattle()

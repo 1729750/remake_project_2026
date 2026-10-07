@@ -70,12 +70,33 @@ public sealed class PlayerPreparationRegistry : MonoBehaviour
 
     private void EnsureReferences()
     {
-        if (connectionMonitor != null)
-            return;
+        NetworkManager singleton =
+            NetworkManager.Singleton;
 
-        connectionMonitor =
-            FindFirstObjectByType<
-                NetworkConnectionMonitor>();
+        if (connectionMonitor != null &&
+            singleton != null &&
+            connectionMonitor.GetComponent<NetworkManager>() == singleton)
+        {
+            return;
+        }
+
+        foreach (NetworkConnectionMonitor monitor in
+                 FindObjectsByType<NetworkConnectionMonitor>(
+                     FindObjectsInactive.Include,
+                     FindObjectsSortMode.None))
+        {
+            if (monitor == null)
+                continue;
+
+            if (singleton == null ||
+                monitor.GetComponent<NetworkManager>() == singleton)
+            {
+                connectionMonitor = monitor;
+                return;
+            }
+        }
+
+        connectionMonitor = null;
     }
 
     private void HandleClientConnected(
