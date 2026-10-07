@@ -4381,6 +4381,7 @@ MonoBehaviour:
   cardOptionGenerator: {fileID: 224265908}
   cardSelectionService: {fileID: 1770151337}
   enhanceCandidateService: {fileID: 1045152431}
+  preparationFont: {fileID: 11400000, guid: 4257c7829f6abe148819f419ccf50a12, type: 2}
 --- !u!114 &1201366209
 MonoBehaviour:
   m_ObjectHideFlags: 0
