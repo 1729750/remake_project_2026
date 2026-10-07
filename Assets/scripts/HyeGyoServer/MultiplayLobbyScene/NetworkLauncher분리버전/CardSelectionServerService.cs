@@ -1,262 +1,151 @@
-using UnityEngine;
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using Unity.Netcode;
+using UnityEngine;
 
+/// <summary>
+/// 2명이 연결된 뒤 각 플레이어의 초기 카드 후보를 서버에서 생성하고,
+/// 선택 index를 검증해 기본 약공격/약방어가 포함된 FinalDeck을 만든다.
+/// </summary>
 public sealed class CardSelectionServerService : MonoBehaviour
 {
-    [Header("Preparation Data")]
+    private const int CandidateCount = 3;
+
     [SerializeField]
     private PlayerPreparationRegistry preparationRegistry;
 
-    [Header("Match State")]
     [SerializeField]
     private NetworkMatchState matchState;
 
+    [SerializeField]
+    private CardOptionGenerator cardOptionGenerator;
+
+    [SerializeField]
+    private MultiPreparationManager preparationManager;
+
     private Coroutine beginCardSelectionCoroutine;
-private bool cardSelectionStartRequested;
-
-    private bool isStartingCardSelection;
-
+    private bool cardSelectionStartRequested;
+    private bool allSelectionsRaised;
 
     public int RegisteredPlayerCount =>
         preparationRegistry != null
             ? preparationRegistry.Count
             : 0;
 
-
     public bool HasTwoPlayers =>
         RegisteredPlayerCount == 2;
 
+    public IEnumerable<PlayerPreparationData> Players =>
+        preparationRegistry != null
+            ? preparationRegistry.Players
+            : Array.Empty<PlayerPreparationData>();
+
+    public event Action<ulong, int, int, int>
+        InitialCandidatesReady;
+
+    public event Action<ulong, int>
+        InitialCardConfirmed;
+
+    public event Action AllInitialCardsSelected;
 
     private void Awake()
     {
         EnsureReferences();
     }
 
-
     private void OnEnable()
     {
         EnsureReferences();
 
-        if (preparationRegistry == null)
+        if (preparationRegistry != null)
         {
-            Debug.LogError(
-                "[CardSelectionServerService] " +
-                "PlayerPreparationRegistry가 없습니다."
-            );
-
-            return;
+            preparationRegistry.PlayerRemoved +=
+                HandlePlayerRemoved;
         }
-
-        preparationRegistry.PlayerRegistered +=
-            HandlePlayerRegistered;
-
-        preparationRegistry.PlayerRemoved +=
-            HandlePlayerRemoved;
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            "PlayerPreparationRegistry 연결 완료"
-        );
-
-        LogCurrentPlayers();
     }
 
-
-private void OnDisable()
-{
-    if (preparationRegistry != null)
+    private void OnDisable()
     {
-        preparationRegistry.PlayerRegistered -=
-            HandlePlayerRegistered;
-
-        preparationRegistry.PlayerRemoved -=
-            HandlePlayerRemoved;
-    }
-
-    if (beginCardSelectionCoroutine != null)
-    {
-        StopCoroutine(
-            beginCardSelectionCoroutine
-        );
-
-        beginCardSelectionCoroutine = null;
-    }
-
-    cardSelectionStartRequested = false;
-}
-
-
-    private void EnsureReferences()
-    {
-        if (preparationRegistry == null)
+        if (preparationRegistry != null)
         {
-            preparationRegistry =
-                FindFirstObjectByType<
-                    PlayerPreparationRegistry>();
+            preparationRegistry.PlayerRemoved -=
+                HandlePlayerRemoved;
         }
 
-        if (matchState == null)
+        if (beginCardSelectionCoroutine != null)
         {
-            matchState =
-                FindFirstObjectByType<
-                    NetworkMatchState>();
+            StopCoroutine(beginCardSelectionCoroutine);
+            beginCardSelectionCoroutine = null;
         }
     }
-
-
-    // ==================================================
-    // PlayerPreparationData 조회
-    // ==================================================
-
-    public bool TryGetPlayerData(
-        ulong clientId,
-        out PlayerPreparationData player)
-    {
-        player = null;
-
-        if (preparationRegistry == null)
-        {
-            Debug.LogWarning(
-                "[CardSelectionServerService] " +
-                "PlayerPreparationRegistry가 없습니다."
-            );
-
-            return false;
-        }
-
-        if (!preparationRegistry.TryGetPlayer(
-                clientId,
-                out player))
-        {
-            Debug.LogWarning(
-                "[CardSelectionServerService] " +
-                $"플레이어 데이터를 찾지 못했습니다. | " +
-                $"ClientId: {clientId}"
-            );
-
-            return false;
-        }
-
-        return true;
-    }
-
-
-    public bool TryGetOtherPlayerData(
-        ulong currentClientId,
-        out PlayerPreparationData otherPlayer)
-    {
-        otherPlayer = null;
-
-        if (preparationRegistry == null)
-        {
-            return false;
-        }
-
-        foreach (
-            PlayerPreparationData player
-            in preparationRegistry.Players)
-        {
-            if (player == null)
-            {
-                continue;
-            }
-
-            if (player.ClientId ==
-                currentClientId)
-            {
-                continue;
-            }
-
-            otherPlayer = player;
-
-            return true;
-        }
-
-        return false;
-    }
-
-
-    // ==================================================
-    // Card Selection
-    // ==================================================
-
-    /// <summary>
-    /// 현재 실제 카드 선택은 Blank 상태.
-    ///
-    /// 이후:
-    /// Server 후보 생성
-    /// → CardCandidates 저장
-    /// → Client 선택 요청
-    /// → Server 검증
-    /// 순서로 구현.
-    /// </summary>
-    public bool TryChooseCard(
-        ulong senderClientId,
-        int cardId,
-        out string rejectReason)
-    {
-        rejectReason =
-            "카드 선택 기능은 아직 연결하지 않은 상태입니다.";
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            "카드 선택 요청 수신 - 현재 Blank 처리 | " +
-            $"ClientId: {senderClientId} | " +
-            $"CardId: {cardId}"
-        );
-
-        return false;
-    }
-
-
-    // ==================================================
-    // Registry Events
-    // ==================================================
-
-    private void HandlePlayerRegistered(
-        ulong clientId)
-    {
-        if (!preparationRegistry.TryGetPlayer(
-                clientId,
-                out PlayerPreparationData player))
-        {
-            return;
-        }
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            $"준비 데이터 연결 | " +
-            $"ClientId: {clientId} | " +
-            $"Candidates: {GetCandidateCount(player)} | " +
-            $"SelectedIndex: {player.SelectedCardIndex} | " +
-            $"FinalDeck: {player.FinalDeck.Count} | " +
-            $"RegistryCount: {preparationRegistry.Count}"
-        );
-
-
-        if (preparationRegistry.Count == 2)
-        {
-            Debug.Log(
-                "[CardSelectionServerService] " +
-                "Host / Client 준비 데이터 2개 연결 완료"
-            );
-        }
-    }
-
 
     private void HandlePlayerRemoved(
         ulong clientId)
     {
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            $"플레이어 준비 데이터 연결 해제 | " +
-            $"ClientId: {clientId} | " +
-            $"RegistryCount: {preparationRegistry.Count}"
-        );
+        ResetForNewMatch();
     }
 
-        public bool TryStartCardSelection(out string rejectReason)
+    public void ResetForNewMatch()
     {
+        if (beginCardSelectionCoroutine != null)
+        {
+            StopCoroutine(beginCardSelectionCoroutine);
+            beginCardSelectionCoroutine = null;
+        }
+
+        cardSelectionStartRequested = false;
+        allSelectionsRaised = false;
+        preparationManager?.ResetState();
+
+        if (preparationRegistry != null)
+        {
+            foreach (PlayerPreparationData player
+                     in preparationRegistry.Players)
+            {
+                if (player == null)
+                    continue;
+
+                foreach (CardDefinition card in player.FinalDeck)
+                {
+                    if (card != null)
+                        Destroy(card);
+                }
+
+                player.FinalDeck.Clear();
+                player.CardCandidates = null;
+                player.SelectedCardIndex = -1;
+                player.CardSelectionCompleted = false;
+                player.ConditionCompleted = false;
+            }
+        }
+
+        if (matchState != null && matchState.IsServer)
+        {
+            matchState.ServerResetToWaiting();
+        }
+    }
+
+    private void EnsureReferences()
+    {
+        preparationRegistry ??=
+            FindFirstObjectByType<PlayerPreparationRegistry>();
+
+        matchState ??=
+            GetComponent<NetworkMatchState>();
+
+        cardOptionGenerator ??=
+            GetComponent<CardOptionGenerator>();
+
+        preparationManager ??=
+            GetComponent<MultiPreparationManager>();
+    }
+
+    public bool TryStartCardSelection(
+        out string rejectReason)
+    {
+        EnsureReferences();
+
         if (cardSelectionStartRequested)
         {
             rejectReason =
@@ -265,17 +154,15 @@ private void OnDisable()
             return false;
         }
 
-
-        if (preparationRegistry == null)
+        if (NetworkManager.Singleton == null ||
+            !NetworkManager.Singleton.IsServer)
         {
-            rejectReason =
-                "PlayerPreparationRegistry가 없습니다.";
-
+            rejectReason = "Server가 아닙니다.";
             return false;
         }
 
-
-        if (preparationRegistry.Count != 2)
+        if (preparationRegistry == null ||
+            preparationRegistry.Count != 2)
         {
             rejectReason =
                 "플레이어 2명이 준비되지 않았습니다.";
@@ -283,187 +170,190 @@ private void OnDisable()
             return false;
         }
 
+        if (matchState == null ||
+            cardOptionGenerator == null)
+        {
+            rejectReason =
+                "카드 선택 서비스 참조가 없습니다.";
+
+            return false;
+        }
 
         cardSelectionStartRequested = true;
-
-
         beginCardSelectionCoroutine =
-            StartCoroutine(
-                BeginCardSelectionWhenReady()
-            );
+            StartCoroutine(BeginCardSelectionWhenReady());
 
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            "카드 선택 시작 요청 수신"
-        );
-
-
-        rejectReason =
-            string.Empty;
-
+        rejectReason = string.Empty;
         return true;
     }
 
-
-private IEnumerator BeginCardSelectionWhenReady()
-{
-    // NetworkMatchState의 NetworkObject가
-    // Spawn될 때까지 기다린다.
-    while (true)
+    public bool TryChooseCard(
+        ulong senderClientId,
+        int candidateIndex,
+        out string rejectReason)
     {
         EnsureReferences();
+        rejectReason = string.Empty;
 
-        if (matchState != null &&
-            matchState.IsSpawned)
+        if (NetworkManager.Singleton == null ||
+            !NetworkManager.Singleton.IsServer)
         {
-            break;
+            rejectReason = "Server가 아닙니다.";
+            return false;
         }
 
-        yield return null;
-    }
+        if (matchState.CurrentPhase !=
+            MatchPhase.ChoosingCard)
+        {
+            rejectReason = "현재 초기 카드 선택 단계가 아닙니다.";
+            return false;
+        }
 
+        if (!preparationRegistry.TryGetPlayer(
+                senderClientId,
+                out PlayerPreparationData player))
+        {
+            rejectReason = "플레이어 데이터를 찾을 수 없습니다.";
+            return false;
+        }
 
-    // 기다리는 도중 플레이어가 빠졌다면 취소
-    if (preparationRegistry == null ||
-        preparationRegistry.Count != 2)
-    {
-        cardSelectionStartRequested = false;
-        beginCardSelectionCoroutine = null;
+        if (player.CardSelectionCompleted)
+        {
+            rejectReason = "이미 초기 카드를 선택했습니다.";
+            return false;
+        }
 
-        yield break;
-    }
+        CardDefinition[] candidates =
+            player.CardCandidates;
 
+        if (candidates == null ||
+            candidateIndex < 0 ||
+            candidateIndex >= candidates.Length ||
+            candidates[candidateIndex] == null)
+        {
+            rejectReason = "유효하지 않은 초기 카드 선택입니다.";
+            return false;
+        }
 
-    if (!matchState.IsServer)
-    {
-        cardSelectionStartRequested = false;
-        beginCardSelectionCoroutine = null;
+        CardDefinition selected =
+            candidates[candidateIndex];
 
-        yield break;
-    }
+        if (!cardOptionGenerator.InitializeFinalDeck(
+                player,
+                selected,
+                out rejectReason))
+        {
+            return false;
+        }
 
+        player.SelectedCardIndex = candidateIndex;
+        player.CardSelectionCompleted = true;
 
-    if (matchState.CurrentPhase ==
-        MatchPhase.WaitingForPlayers)
-    {
+        int poolIndex =
+            cardOptionGenerator.GetCardPoolIndex(selected);
+
+        InitialCardConfirmed?.Invoke(
+            senderClientId,
+            poolIndex
+        );
+
         Debug.Log(
             "[CardSelectionServerService] " +
-            "2인 준비 완료 | " +
-            $"RegistryCount: {preparationRegistry.Count}"
+            $"초기 카드 확정 | ClientId: {senderClientId} | " +
+            $"Card: {selected.name} | Deck: {player.FinalDeck.Count}"
         );
+
+        CheckAllInitialSelections();
+        return true;
+    }
+
+    private IEnumerator BeginCardSelectionWhenReady()
+    {
+        while (matchState == null ||
+               !matchState.IsSpawned)
+        {
+            EnsureReferences();
+            yield return null;
+        }
+
+        if (preparationRegistry == null ||
+            preparationRegistry.Count != 2 ||
+            !matchState.IsServer)
+        {
+            cardSelectionStartRequested = false;
+            beginCardSelectionCoroutine = null;
+            yield break;
+        }
 
         matchState.ServerBeginCardSelection();
-    }
 
-
-    beginCardSelectionCoroutine = null;
-}
-
-
-    // ==================================================
-    // Debug - 데이터 독립성 테스트
-    // ==================================================
-
-
-    [ContextMenu("Debug/Print Real Players")]
-    private void DebugPrintRealPlayers()
-    {
-        if (preparationRegistry == null)
+        foreach (PlayerPreparationData player
+                 in preparationRegistry.Players)
         {
-            Debug.LogWarning(
-                "[CardSelectionServerService] Registry가 없습니다."
-            );
-            return;
-        }
-
-       Debug.Log(
-            $"[CardSelectionServerService] " +
-            $"실제 등록 플레이어 수: {preparationRegistry.Count}"
-        );
-
-        foreach (
-            PlayerPreparationData player
-            in preparationRegistry.Players)
-         {
-            if (player == null)
-                continue;
-
-            Debug.Log(
-                $"[CardSelectionServerService] " +
-                $"ClientId: {player.ClientId} | " +
-                $"SelectedIndex: {player.SelectedCardIndex} | " +
-                $"FinalDeck: {player.FinalDeck.Count} | " +
-                $"CardCompleted: {player.CardSelectionCompleted}"
+            CardDefinition[] candidates =
+                cardOptionGenerator.GenerateInitialCandidates(
+                    CandidateCount
                 );
+
+            if (candidates.Length != CandidateCount)
+            {
+                Debug.LogError(
+                    "[CardSelectionServerService] " +
+                    "초기 카드 후보를 3개 만들 수 없습니다."
+                );
+
+                cardSelectionStartRequested = false;
+                beginCardSelectionCoroutine = null;
+                yield break;
             }
-        
-    }
 
+            player.CardCandidates = candidates;
+            player.SelectedCardIndex = -1;
+            player.CardSelectionCompleted = false;
+            player.ConditionCompleted = false;
+            player.FinalDeck.Clear();
 
-    // ==================================================
-    // Debug - 현재 데이터 출력
-    // ==================================================
-
-    [ContextMenu(
-        "Debug/Print Player Preparation Data")]
-    private void LogCurrentPlayers()
-    {
-        if (preparationRegistry == null)
-        {
-            Debug.LogWarning(
-                "[CardSelectionServerService] " +
-                "Registry가 없습니다."
+            InitialCandidatesReady?.Invoke(
+                player.ClientId,
+                cardOptionGenerator.GetCardPoolIndex(candidates[0]),
+                cardOptionGenerator.GetCardPoolIndex(candidates[1]),
+                cardOptionGenerator.GetCardPoolIndex(candidates[2])
             );
-
-            return;
         }
-
 
         Debug.Log(
             "[CardSelectionServerService] " +
-            $"현재 준비 데이터 수: " +
-            $"{preparationRegistry.Count}"
+            "양쪽 초기 카드 후보 생성/전송 완료"
         );
 
-
-        foreach (
-            PlayerPreparationData player
-            in preparationRegistry.Players)
-        {
-            if (player == null)
-            {
-                continue;
-            }
-
-            Debug.Log(
-                "[CardSelectionServerService] " +
-                $"Player | " +
-                $"ClientId: {player.ClientId} | " +
-                $"Candidates: " +
-                $"{GetCandidateCount(player)} | " +
-                $"SelectedIndex: " +
-                $"{player.SelectedCardIndex} | " +
-                $"CardCompleted: " +
-                $"{player.CardSelectionCompleted} | " +
-                $"FinalDeck: " +
-                $"{player.FinalDeck.Count} | " +
-                $"ConditionCompleted: " +
-                $"{player.ConditionCompleted}"
-            );
-        }
+        beginCardSelectionCoroutine = null;
     }
 
-
-    private int GetCandidateCount(
-        PlayerPreparationData player)
+    private void CheckAllInitialSelections()
     {
-        if (player == null ||
-            player.CardCandidates == null)
+        if (allSelectionsRaised ||
+            preparationRegistry == null ||
+            preparationRegistry.Count != 2)
         {
-            return 0;
+            return;
         }
 
-        return player.CardCandidates.Length;
+        foreach (PlayerPreparationData player
+                 in preparationRegistry.Players)
+        {
+            if (player == null ||
+                !player.CardSelectionCompleted)
+            {
+                return;
+            }
+        }
+
+        allSelectionsRaised = true;
+
+        matchState.ServerSetPhase(
+            MatchPhase.ChoosingCondition
+        );
+
+        AllInitialCardsSelected?.Invoke();
     }
 }

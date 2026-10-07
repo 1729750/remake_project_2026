@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 
@@ -53,13 +54,60 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
     public EntryMode SelectedMode { get; private set; }
         = EntryMode.None;
 
+    /// <summary>
+    /// Client Join Code 입력을 Enter나 포커스 이동으로
+    /// 완료했을 때 발생한다. Host는 Panel 진입 즉시 방을 생성한다.
+    /// </summary>
+    public event Action ConfirmRequested;
+
     // =========================================================
     // Unity
     // =========================================================
 
     private void Awake()
     {
+        if (joinCodeInput != null)
+        {
+            joinCodeInput.onEndEdit.AddListener(
+                HandleConfirmEndEdit
+            );
+        }
+
         ShowModeSelection();
+    }
+
+    private void OnDestroy()
+    {
+        if (joinCodeInput != null)
+        {
+            joinCodeInput.onEndEdit.RemoveListener(
+                HandleConfirmEndEdit
+            );
+        }
+    }
+
+    private void HandleConfirmEndEdit(
+        string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        Debug.Log(
+            "[LobbyEntryFormUI] " +
+            $"입력 완료 → Confirm 요청 | Mode: {SelectedMode}"
+        );
+
+        Submit();
+    }
+
+    /// <summary>
+    /// UI Button에서도 직접 연결할 수 있는 공용 Submit 진입점.
+    /// </summary>
+    public void Submit()
+    {
+        ConfirmRequested?.Invoke();
     }
 
     // =========================================================
@@ -83,6 +131,11 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
 
         ClearHostInput();
 
+        if (hostNicknameInput != null)
+        {
+            hostNicknameInput.ActivateInputField();
+        }
+
         Debug.Log(
             "[LobbyEntryFormUI] Host 모드 선택"
         );
@@ -104,6 +157,11 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
         );
 
         ClearClientInput();
+
+        if (clientNicknameInput != null)
+        {
+            clientNicknameInput.ActivateInputField();
+        }
 
         Debug.Log(
             "[LobbyEntryFormUI] Client 모드 선택"
@@ -206,6 +264,22 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
         {
             clientPanel.SetActive(showClient);
         }
+    }
+
+    /// <summary>
+    /// 네트워크 카드 준비가 시작되면 기존 로비 패널을 모두 숨긴다.
+    /// 카드/덱 선택 UI는 별도 MultiplayerPreparationView가 표시한다.
+    /// </summary>
+    public void HideForPreparation()
+    {
+        if (modeSelectionPanel != null)
+            modeSelectionPanel.SetActive(false);
+
+        if (hostPanel != null)
+            hostPanel.SetActive(false);
+
+        if (clientPanel != null)
+            clientPanel.SetActive(false);
     }
 
     // =========================================================

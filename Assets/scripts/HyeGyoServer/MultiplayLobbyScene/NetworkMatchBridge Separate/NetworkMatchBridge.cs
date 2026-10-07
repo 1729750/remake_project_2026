@@ -4,51 +4,52 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Client/UI 요청을 Server로 전달하는 중계 전용 클래스.
-/// 상태 저장과 게임 판정은 다른 클래스가 담당한다.
+/// Lobby 카드 준비 UI 요청을 서버 서비스로 전달하고,
+/// 각 플레이어에게 필요한 후보/결과만 targeted RPC로 돌려준다.
 /// </summary>
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(NetworkMatchState))]
 public sealed class NetworkMatchBridge : NetworkBehaviour
 {
-    [Header("Network Mode")]
     [SerializeField]
     private NetworkModeGate networkModeGate;
 
-    [Header("Server Logic")]
     [SerializeField]
     private MatchServerController serverController;
 
-    [Header("Shared State")]
     [SerializeField]
     private NetworkMatchState matchState;
 
-    [Header("Preparation")]
     [SerializeField]
     private MultiPreparationManager preparationManager;
 
     [SerializeField]
     private CardOptionGenerator cardOptionGenerator;
 
+    [SerializeField]
+    private CardSelectionServerService cardSelectionService;
 
-    // =========================================================
-    // Events
-    // =========================================================
+    [SerializeField]
+    private EnhanceCandidateServerService enhanceCandidateService;
 
     public event Action<string> LocalMessage;
-
-    /// <summary>
-    /// Server에서 생성한 강화 후보가
-    /// 이 Local Client에게 도착했을 때 발생한다.
-    /// Reward_Multi가 구독한다.
-    /// </summary>
     public event Action<EnhanceOptionNetData[]>
         EnhanceCandidatesReceived;
 
+    public event Action<CardDefinition[]>
+        InitialCardCandidatesReceived;
 
-    // =========================================================
-    // State Read
-    // =========================================================
+    public event Action<CardDefinition>
+        InitialCardConfirmedReceived;
+
+    public event Action<PreparationOption[]>
+        PreparationOptionsReceived;
+
+    public event Action<PreparationOption, int, PreparationOption[]>
+        PreparationResultReceived;
+
+    public event Action<int, PreparationOption[]>
+        PreparationSkippedReceived;
 
     public bool IsMultiGameMode =>
         networkModeGate != null &&
@@ -62,13 +63,12 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
     public ulong CurrentTurnClientId =>
         matchState != null
             ? matchState.CurrentTurnClientId
-            : 0;
+            : NetworkMatchState.NoClientId;
 
     public int SelectedCardCount =>
         matchState != null
             ? matchState.SelectedCardCount
             : 0;
-
 
     public event Action MatchStateChanged
     {
@@ -77,7 +77,6 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
             if (matchState != null)
                 matchState.MatchStateChanged += value;
         }
-
         remove
         {
             if (matchState != null)
@@ -85,363 +84,539 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
         }
     }
 
-
-    // =========================================================
-    // Unity
-    // =========================================================
-
     private void Awake()
     {
-        if (matchState == null)
+        matchState ??= GetComponent<NetworkMatchState>();
+        serverController ??= GetComponent<MatchServerController>();
+        preparationManager ??= GetComponent<MultiPreparationManager>();
+        cardOptionGenerator ??= GetComponent<CardOptionGenerator>();
+        cardSelectionService ??= GetComponent<CardSelectionServerService>();
+        enhanceCandidateService ??=
+            GetComponent<EnhanceCandidateServerService>();
+
+        if (networkModeGate == null ||
+            !networkModeGate.NetworkEnabled)
         {
-            matchState =
-                GetComponent<NetworkMatchState>();
+            foreach (NetworkModeGate gate in
+                     FindObjectsByType<NetworkModeGate>(
+                         FindObjectsInactive.Include,
+                         FindObjectsSortMode.None))
+            {
+                if (gate != null && gate.NetworkEnabled)
+                {
+                    networkModeGate = gate;
+                    break;
+                }
+            }
         }
 
-        if (serverController == null)
+        MultiplayerPreparationUI ui =
+            GetComponent<MultiplayerPreparationUI>();
+
+        if (ui == null)
         {
-            serverController =
-                GetComponent<MatchServerController>();
+            ui = gameObject.AddComponent<MultiplayerPreparationUI>();
         }
 
-if (networkModeGate == null ||
-    !networkModeGate.NetworkEnabled)
-{
-    NetworkModeGate[] gates =
-        FindObjectsByType<NetworkModeGate>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
+        ui.Initialize(this, cardOptionGenerator);
+    }
 
-    foreach (NetworkModeGate gate in gates)
+    public override void OnNetworkSpawn()
     {
-        if (gate == null)
-            continue;
+        if (!IsServer || cardSelectionService == null)
+            return;
 
-        if (!gate.NetworkEnabled)
-            continue;
+        cardSelectionService.InitialCandidatesReady +=
+            HandleInitialCandidatesReady;
 
-        networkModeGate = gate;
+        cardSelectionService.InitialCardConfirmed +=
+            HandleInitialCardConfirmed;
 
-        Debug.Log(
-            "[NetworkMatchBridge] " +
-            $"활성 NetworkModeGate 자동 연결 | " +
-            $"Name: {gate.gameObject.name} | " +
-            $"InstanceID: {gate.GetInstanceID()}"
-        );
-
-        break;
-    }
-}
+        cardSelectionService.AllInitialCardsSelected +=
+            HandleAllInitialCardsSelected;
     }
 
+    public override void OnNetworkDespawn()
+    {
+        if (cardSelectionService == null)
+            return;
 
-    // =========================================================
-    // Match Start
-    // =========================================================
+        cardSelectionService.InitialCandidatesReady -=
+            HandleInitialCandidatesReady;
+
+        cardSelectionService.InitialCardConfirmed -=
+            HandleInitialCardConfirmed;
+
+        cardSelectionService.AllInitialCardsSelected -=
+            HandleAllInitialCardsSelected;
+    }
 
     public void RequestStartMatch()
     {
-        if (!CanSendNetworkRequest())
-            return;
-
-        RequestStartMatchRpc();
+        if (CanSendNetworkRequest())
+            RequestStartMatchRpc();
     }
-
 
     [Rpc(SendTo.Server)]
     private void RequestStartMatchRpc(
         RpcParams rpcParams = default)
     {
-        ulong senderClientId =
+        ulong sender =
             rpcParams.Receive.SenderClientId;
 
         if (serverController == null)
         {
-            SendRejectMessage(
-                senderClientId,
-                "MatchServerController가 연결되어 있지 않습니다."
-            );
-
+            SendRejectMessage(sender, "게임 시작 서비스가 없습니다.");
             return;
         }
 
         if (!serverController.TryStartMatch(
-                senderClientId,
+                sender,
                 out string rejectReason))
         {
-            SendRejectMessage(
-                senderClientId,
-                rejectReason
-            );
+            SendRejectMessage(sender, rejectReason);
         }
     }
 
-
     // =========================================================
-    // Card Selection
+    // Initial card
     // =========================================================
 
     public void RequestChooseCard(
-        int cardId)
+        int candidateIndex)
     {
-        if (!CanSendNetworkRequest())
-            return;
-
-        RequestChooseCardRpc(
-            cardId
-        );
+        if (CanSendNetworkRequest())
+            RequestChooseCardRpc(candidateIndex);
     }
-
 
     [Rpc(SendTo.Server)]
     private void RequestChooseCardRpc(
-        int cardId,
+        int candidateIndex,
         RpcParams rpcParams = default)
     {
-        ulong senderClientId =
+        ulong sender =
             rpcParams.Receive.SenderClientId;
 
-        if (serverController == null)
+        if (cardSelectionService == null)
         {
-            SendRejectMessage(
-                senderClientId,
-                "MatchServerController가 연결되어 있지 않습니다."
-            );
-
+            SendRejectMessage(sender, "초기 카드 선택 서비스가 없습니다.");
             return;
         }
 
-        if (!serverController.TryChooseCard(
-                senderClientId,
-                cardId,
+        if (!cardSelectionService.TryChooseCard(
+                sender,
+                candidateIndex,
                 out string rejectReason))
         {
-            SendRejectMessage(
-                senderClientId,
-                rejectReason
+            SendRejectMessage(sender, rejectReason);
+        }
+    }
+
+    private void HandleInitialCandidatesReady(
+        ulong targetClientId,
+        int card0,
+        int card1,
+        int card2)
+    {
+        SendInitialCardCandidatesRpc(
+            card0,
+            card1,
+            card2,
+            RpcTarget.Single(
+                targetClientId,
+                RpcTargetUse.Temp
+            )
+        );
+    }
+
+    [Rpc(SendTo.SpecifiedInParams)]
+    private void SendInitialCardCandidatesRpc(
+        int card0,
+        int card1,
+        int card2,
+        RpcParams rpcParams = default)
+    {
+        CardDefinition[] cards =
+        {
+            cardOptionGenerator?.GetCardByPoolIndex(card0),
+            cardOptionGenerator?.GetCardByPoolIndex(card1),
+            cardOptionGenerator?.GetCardByPoolIndex(card2)
+        };
+
+        InitialCardCandidatesReceived?.Invoke(cards);
+    }
+
+    private void HandleInitialCardConfirmed(
+        ulong targetClientId,
+        int cardPoolIndex)
+    {
+        SendInitialCardConfirmedRpc(
+            cardPoolIndex,
+            RpcTarget.Single(
+                targetClientId,
+                RpcTargetUse.Temp
+            )
+        );
+    }
+
+    [Rpc(SendTo.SpecifiedInParams)]
+    private void SendInitialCardConfirmedRpc(
+        int cardPoolIndex,
+        RpcParams rpcParams = default)
+    {
+        InitialCardConfirmedReceived?.Invoke(
+            cardOptionGenerator?.GetCardByPoolIndex(
+                cardPoolIndex
+            )
+        );
+    }
+
+    private void HandleAllInitialCardsSelected()
+    {
+        if (!IsServer ||
+            preparationManager == null ||
+            cardSelectionService == null)
+        {
+            return;
+        }
+
+        foreach (PlayerPreparationData player
+                 in cardSelectionService.Players)
+        {
+            if (!preparationManager.TryBeginForPlayer(
+                    player.ClientId,
+                    out PreparationOption[] options,
+                    out string rejectReason))
+            {
+                SendRejectMessage(
+                    player.ClientId,
+                    rejectReason
+                );
+
+                continue;
+            }
+
+            SendPreparationOptions(
+                player.ClientId,
+                options
             );
         }
     }
 
-
     // =========================================================
-    // Enhance Candidates
+    // Ten preparation rounds
     // =========================================================
 
-    /// <summary>
-    /// Host / Client UI에서 강화 후보 3개를 요청한다.
-    /// 실제 랜덤 생성은 Server가 수행한다.
-    /// </summary>
-    public void RequestEnhanceCandidates()
+    public void RequestBeginPreparation()
     {
-        if (!CanSendNetworkRequest())
-            return;
-
-        Debug.Log(
-            "[NetworkMatchBridge] " +
-            "강화 후보 요청 전송"
-        );
-
-        RequestEnhanceCandidatesRpc();
+        if (CanSendNetworkRequest())
+            RequestBeginPreparationRpc();
     }
 
+    [Rpc(SendTo.Server)]
+    private void RequestBeginPreparationRpc(
+        RpcParams rpcParams = default)
+    {
+        ulong sender =
+            rpcParams.Receive.SenderClientId;
 
-    /// <summary>
-    /// Client → Server
-    ///
-    /// 실제 요청을 보낸 ClientId는
-    /// 사용자가 직접 보내지 않고 NGO에서 가져온다.
-    /// </summary>
+        if (preparationManager == null)
+        {
+            SendRejectMessage(sender, "준비 서비스가 없습니다.");
+            return;
+        }
+
+        if (!preparationManager.TryBeginForPlayer(
+                sender,
+                out PreparationOption[] options,
+                out string rejectReason))
+        {
+            SendRejectMessage(sender, rejectReason);
+            return;
+        }
+
+        SendPreparationOptions(sender, options);
+    }
+
+    public void RequestConfirmPreparationOption(
+        int optionIndex)
+    {
+        if (CanSendNetworkRequest())
+            RequestConfirmPreparationOptionRpc(optionIndex);
+    }
+
+    [Rpc(SendTo.Server)]
+    private void RequestConfirmPreparationOptionRpc(
+        int optionIndex,
+        RpcParams rpcParams = default)
+    {
+        ulong sender =
+            rpcParams.Receive.SenderClientId;
+
+        if (preparationManager == null)
+        {
+            SendRejectMessage(sender, "준비 선택 서비스가 없습니다.");
+            return;
+        }
+
+        if (!preparationManager.TryConfirmOption(
+                sender,
+                optionIndex,
+                out PreparationOption selected,
+                out PreparationOption[] next,
+                out int remaining,
+                out string rejectReason))
+        {
+            SendRejectMessage(sender, rejectReason);
+            return;
+        }
+
+        SendPreparationResult(
+            sender,
+            selected,
+            remaining,
+            next
+        );
+    }
+
+    public void RequestSkipPreparation()
+    {
+        if (CanSendNetworkRequest())
+            RequestSkipPreparationRpc();
+    }
+
+    [Rpc(SendTo.Server)]
+    private void RequestSkipPreparationRpc(
+        RpcParams rpcParams = default)
+    {
+        ulong sender =
+            rpcParams.Receive.SenderClientId;
+
+        if (preparationManager == null)
+        {
+            SendRejectMessage(sender, "준비 Skip 서비스가 없습니다.");
+            return;
+        }
+
+        if (!preparationManager.TrySkip(
+                sender,
+                out PreparationOption[] next,
+                out int remaining,
+                out string rejectReason))
+        {
+            SendRejectMessage(sender, rejectReason);
+            return;
+        }
+
+        SendPreparationSkippedRpc(
+            remaining,
+            next != null,
+            ToNetData(next, 0),
+            ToNetData(next, 1),
+            ToNetData(next, 2),
+            RpcTarget.Single(sender, RpcTargetUse.Temp)
+        );
+    }
+
+    private void SendPreparationOptions(
+        ulong targetClientId,
+        PreparationOption[] options)
+    {
+        if (options == null || options.Length != 3)
+        {
+            SendRejectMessage(
+                targetClientId,
+                "준비 선택지가 3개가 아닙니다."
+            );
+
+            return;
+        }
+
+        SendPreparationOptionsRpc(
+            cardOptionGenerator.ToNetData(options[0]),
+            cardOptionGenerator.ToNetData(options[1]),
+            cardOptionGenerator.ToNetData(options[2]),
+            RpcTarget.Single(
+                targetClientId,
+                RpcTargetUse.Temp
+            )
+        );
+    }
+
+    [Rpc(SendTo.SpecifiedInParams)]
+    private void SendPreparationOptionsRpc(
+        PreparationOptionNetData option0,
+        PreparationOptionNetData option1,
+        PreparationOptionNetData option2,
+        RpcParams rpcParams = default)
+    {
+        PreparationOptionsReceived?.Invoke(
+            new[]
+            {
+                cardOptionGenerator.FromNetData(option0),
+                cardOptionGenerator.FromNetData(option1),
+                cardOptionGenerator.FromNetData(option2)
+            }
+        );
+    }
+
+    private void SendPreparationResult(
+        ulong targetClientId,
+        PreparationOption selected,
+        int remaining,
+        PreparationOption[] next)
+    {
+        SendPreparationResultRpc(
+            cardOptionGenerator.ToNetData(selected),
+            remaining,
+            next != null,
+            ToNetData(next, 0),
+            ToNetData(next, 1),
+            ToNetData(next, 2),
+            RpcTarget.Single(
+                targetClientId,
+                RpcTargetUse.Temp
+            )
+        );
+    }
+
+    [Rpc(SendTo.SpecifiedInParams)]
+    private void SendPreparationResultRpc(
+        PreparationOptionNetData selected,
+        int remaining,
+        bool hasNext,
+        PreparationOptionNetData next0,
+        PreparationOptionNetData next1,
+        PreparationOptionNetData next2,
+        RpcParams rpcParams = default)
+    {
+        PreparationResultReceived?.Invoke(
+            cardOptionGenerator.FromNetData(selected),
+            remaining,
+            hasNext
+                ? new[]
+                {
+                    cardOptionGenerator.FromNetData(next0),
+                    cardOptionGenerator.FromNetData(next1),
+                    cardOptionGenerator.FromNetData(next2)
+                }
+                : null
+        );
+    }
+
+    [Rpc(SendTo.SpecifiedInParams)]
+    private void SendPreparationSkippedRpc(
+        int remaining,
+        bool hasNext,
+        PreparationOptionNetData next0,
+        PreparationOptionNetData next1,
+        PreparationOptionNetData next2,
+        RpcParams rpcParams = default)
+    {
+        PreparationSkippedReceived?.Invoke(
+            remaining,
+            hasNext
+                ? new[]
+                {
+                    cardOptionGenerator.FromNetData(next0),
+                    cardOptionGenerator.FromNetData(next1),
+                    cardOptionGenerator.FromNetData(next2)
+                }
+                : null
+        );
+    }
+
+    private PreparationOptionNetData ToNetData(
+        PreparationOption[] options,
+        int index)
+    {
+        return options != null &&
+               index >= 0 &&
+               index < options.Length
+            ? cardOptionGenerator.ToNetData(options[index])
+            : default;
+    }
+
+    // =========================================================
+    // Legacy enhance API (kept for existing scene buttons)
+    // =========================================================
+
+    public void RequestEnhanceCandidates()
+    {
+        if (CanSendNetworkRequest())
+            RequestEnhanceCandidatesRpc();
+    }
+
     [Rpc(SendTo.Server)]
     private void RequestEnhanceCandidatesRpc(
         RpcParams rpcParams = default)
     {
-        ulong senderClientId =
+        ulong sender =
             rpcParams.Receive.SenderClientId;
-
-        Debug.Log(
-            "[NetworkMatchBridge][Server] " +
-            $"강화 후보 요청 수신 | " +
-            $"ClientId: {senderClientId}"
-        );
 
         if (serverController == null)
         {
-            SendRejectMessage(
-                senderClientId,
-                "MatchServerController가 연결되어 있지 않습니다."
-            );
-
+            SendRejectMessage(sender, "강화 후보 서비스가 없습니다.");
             return;
         }
 
-        if (!serverController
-                .TryCreateEnhanceCandidates(
-                    senderClientId,
-                    out EnhanceOptionNetData[] options,
-                    out string rejectReason))
+        if (!serverController.TryCreateEnhanceCandidates(
+                sender,
+                out EnhanceOptionNetData[] options,
+                out string rejectReason) ||
+            options == null || options.Length != 3)
         {
-            SendRejectMessage(
-                senderClientId,
-                rejectReason
-            );
-
+            SendRejectMessage(sender, rejectReason);
             return;
         }
 
-        // 현재 1차 구현에서는 후보가 정확히 3개여야 한다.
-        if (options == null ||
-            options.Length != 3)
-        {
-            SendRejectMessage(
-                senderClientId,
-                "강화 후보 생성 개수가 올바르지 않습니다."
-            );
-
-            return;
-        }
-
-        // Server → ClientsAndHost
-        //
-        // 후보 데이터는 모두에게 RPC 자체는 전송되지만
-        // targetClientId와 일치하는 Local Client만 처리한다.
         SendEnhanceCandidatesRpc(
-            senderClientId,
-            options[0],
-            options[1],
-            options[2]
+            options[0], options[1], options[2],
+            RpcTarget.Single(sender, RpcTargetUse.Temp)
         );
     }
 
-
-    /// <summary>
-    /// Server → 해당 Host/Client
-    ///
-    /// MatchServerController가 생성한 후보 3개를
-    /// Reward_Multi 쪽으로 전달한다.
-    /// </summary>
-    [Rpc(SendTo.ClientsAndHost)]
+    [Rpc(SendTo.SpecifiedInParams)]
     private void SendEnhanceCandidatesRpc(
-        ulong targetClientId,
         EnhanceOptionNetData option0,
         EnhanceOptionNetData option1,
-        EnhanceOptionNetData option2)
+        EnhanceOptionNetData option2,
+        RpcParams rpcParams = default)
     {
-        if (NetworkManager.Singleton == null)
-            return;
-
-        // 자기에게 온 데이터가 아니면 무시
-        if (NetworkManager.Singleton.LocalClientId !=
-            targetClientId)
-        {
-            return;
-        }
-
-        EnhanceOptionNetData[] options =
-        {
-            option0,
-            option1,
-            option2
-        };
-
-        Debug.Log(
-            "[NetworkMatchBridge] " +
-            $"강화 후보 수신 완료 | " +
-            $"LocalClientId: " +
-            $"{NetworkManager.Singleton.LocalClientId}"
-        );
-
         EnhanceCandidatesReceived?.Invoke(
-            options
+            new[] { option0, option1, option2 }
         );
     }
 
-
-    // =========================================================
-    // Enhance Confirm
-    // =========================================================
-
-    /// <summary>
-    /// Reward_Multi에서 선택한 후보 index만 Server에 전달한다.
-    ///
-    /// CardUpgrade 자체를 보내지 않는다.
-    /// </summary>
     public void RequestConfirmEnhanceCandidate(
         int selectedIndex)
     {
-        if (!CanSendNetworkRequest())
-            return;
-
-        Debug.Log(
-            "[NetworkMatchBridge] " +
-            $"강화 후보 선택 전송 | " +
-            $"Index: {selectedIndex}"
-        );
-
-        RequestConfirmEnhanceCandidateRpc(
-            selectedIndex
-        );
+        if (CanSendNetworkRequest())
+            RequestConfirmEnhanceCandidateRpc(selectedIndex);
     }
 
-
-    /// <summary>
-    /// Client → Server
-    ///
-    /// Server가 이전에 해당 ClientId에게 발급해둔
-    /// CardUpgrade[]에서 selectedIndex를 다시 찾아 검증한다.
-    /// </summary>
     [Rpc(SendTo.Server)]
     private void RequestConfirmEnhanceCandidateRpc(
         int selectedIndex,
         RpcParams rpcParams = default)
     {
-        ulong senderClientId =
+        ulong sender =
             rpcParams.Receive.SenderClientId;
-
-        Debug.Log(
-            "[NetworkMatchBridge][Server] " +
-            $"강화 후보 선택 수신 | " +
-            $"ClientId: {senderClientId} | " +
-            $"Index: {selectedIndex}"
-        );
 
         if (serverController == null)
         {
-            SendRejectMessage(
-                senderClientId,
-                "MatchServerController가 연결되어 있지 않습니다."
-            );
-
+            SendRejectMessage(sender, "강화 확정 서비스가 없습니다.");
             return;
         }
 
-        if (!serverController
-                .TryConfirmEnhanceCandidate(
-                    senderClientId,
-                    selectedIndex,
-                    out string rejectReason))
+        if (!serverController.TryConfirmEnhanceCandidate(
+                sender,
+                selectedIndex,
+                out string rejectReason))
         {
-            SendRejectMessage(
-                senderClientId,
-                rejectReason
-            );
-
-            return;
+            SendRejectMessage(sender, rejectReason);
         }
-
-        Debug.Log(
-            "[NetworkMatchBridge][Server] " +
-            $"강화 후보 선택 검증 완료 | " +
-            $"ClientId: {senderClientId} | " +
-            $"Index: {selectedIndex}"
-        );
     }
-
-
-    // =========================================================
-    // Backward-compatible State Read
-    // =========================================================
 
     public bool TryGetSelectedCard(
         ulong clientId,
@@ -459,54 +634,22 @@ if (networkModeGate == null ||
         );
     }
 
-
-    // =========================================================
-    // Validation
-    // =========================================================
-
-private bool CanSendNetworkRequest()
-{
-    if (networkModeGate == null)
+    private bool CanSendNetworkRequest()
     {
-        Debug.LogError(
-            "[NetworkMatchBridge] " +
-            "요청 실패: NetworkModeGate == null"
-        );
+        if (networkModeGate == null ||
+            !networkModeGate.NetworkEnabled ||
+            !IsSpawned)
+        {
+            Debug.LogWarning(
+                "[NetworkMatchBridge] " +
+                "네트워크 요청을 보낼 준비가 되지 않았습니다."
+            );
 
-        return false;
+            return false;
+        }
+
+        return true;
     }
-
-    if (!networkModeGate.NetworkEnabled)
-    {
-        Debug.LogError(
-            "[NetworkMatchBridge] " +
-            "요청 실패: NetworkEnabled == false"
-        );
-
-        return false;
-    }
-
-    if (!IsSpawned)
-    {
-        Debug.LogError(
-            "[NetworkMatchBridge] " +
-            "요청 실패: IsSpawned == false"
-        );
-
-        return false;
-    }
-
-    Debug.Log(
-        "[NetworkMatchBridge] " +
-        "CanSendNetworkRequest 성공"
-    );
-
-    return true;
-}
-
-    // =========================================================
-    // Reject Message
-    // =========================================================
 
     private void SendRejectMessage(
         ulong targetClientId,
@@ -515,365 +658,28 @@ private bool CanSendNetworkRequest()
         if (!IsServer)
             return;
 
-        Debug.LogWarning(
-            "[NetworkMatchBridge][Server] " +
-            $"요청 거절 | " +
-            $"ClientId: {targetClientId} | " +
-            $"Reason: {message}"
-        );
-
         RejectRequestRpc(
-            targetClientId,
             new FixedString128Bytes(
-                message
+                string.IsNullOrWhiteSpace(message)
+                    ? "요청이 거절되었습니다."
+                    : message
+            ),
+            RpcTarget.Single(
+                targetClientId,
+                RpcTargetUse.Temp
             )
         );
     }
 
-
-    [Rpc(SendTo.ClientsAndHost)]
+    [Rpc(SendTo.SpecifiedInParams)]
     private void RejectRequestRpc(
-        ulong targetClientId,
-        FixedString128Bytes message)
-    {
-        if (NetworkManager.Singleton == null)
-            return;
-
-        if (NetworkManager.Singleton.LocalClientId !=
-            targetClientId)
-        {
-            return;
-        }
-
-        Debug.LogWarning(
-            "[NetworkMatchBridge] " +
-            $"Server 요청 거절 | " +
-            $"{message}"
-        );
-
-        LocalMessage?.Invoke(
-            message.ToString()
-        );
-    }
-
-public void RequestBeginPreparation()
-{
-    Debug.Log(
-        "[NetworkMatchBridge] " +
-        $"Gate Name: {(networkModeGate != null ? networkModeGate.gameObject.name : "NULL")} | " +
-        $"Gate InstanceID: {(networkModeGate != null ? networkModeGate.GetInstanceID() : -1)} | " +
-        $"NetworkEnabled: {(networkModeGate != null && networkModeGate.NetworkEnabled)}"
-    );
-
-    NetworkModeGate[] allGates =
-        FindObjectsByType<NetworkModeGate>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
-
-    Debug.Log(
-        $"[NetworkMatchBridge] 현재 씬/런타임 NetworkModeGate 개수: {allGates.Length}"
-    );
-
-    for (int i = 0; i < allGates.Length; i++)
-    {
-        Debug.Log(
-            "[NetworkMatchBridge] " +
-            $"Gate[{i}] | " +
-            $"Name: {allGates[i].gameObject.name} | " +
-            $"InstanceID: {allGates[i].GetInstanceID()} | " +
-            $"Enabled: {allGates[i].NetworkEnabled} | " +
-            $"Active: {allGates[i].gameObject.activeInHierarchy}"
-        );
-    }
-
-    if (!CanSendNetworkRequest())
+        FixedString128Bytes message,
+        RpcParams rpcParams = default)
     {
         Debug.LogWarning(
-            "[NetworkMatchBridge] CanSendNetworkRequest 실패"
+            $"[NetworkMatchBridge] Server 요청 거절 | {message}"
         );
 
-        return;
+        LocalMessage?.Invoke(message.ToString());
     }
-
-    Debug.Log(
-        "[NetworkMatchBridge] 준비 선택지 요청 전송"
-    );
-
-    RequestBeginPreparationRpc();
-}
-
-[Rpc(SendTo.Server)]
-private void RequestBeginPreparationRpc(
-    RpcParams rpcParams = default)
-{
-    ulong senderClientId =
-        rpcParams.Receive.SenderClientId;
-
-        Debug.Log(
-        "[NetworkMatchBridge][Server] " +
-        $"준비 선택지 요청 수신 | " +
-        $"ClientId: {senderClientId}"
-    );
-        Debug.Log(
-        "[NetworkMatchBridge][Server] " +
-        $"현재 Preparation Phase: " +
-        $"{(preparationManager != null ? "Manager 있음" : "Manager 없음")}"
-    );
-
-    if (preparationManager == null)
-    {
-        SendRejectMessage(
-            senderClientId,
-            "MultiPreparationManager가 없습니다."
-        );
-
-        return;
-    }
-
-    if (cardOptionGenerator == null)
-    {
-        SendRejectMessage(
-            senderClientId,
-            "CardOptionGenerator가 없습니다."
-        );
-
-        return;
-    }
-
-    if (!preparationManager.TryBeginForPlayer(
-            senderClientId,
-            out PreparationOption[] options,
-            out string rejectReason))
-    {
-        SendRejectMessage(
-            senderClientId,
-            rejectReason
-        );
-
-        return;
-    }
-
-    if (options == null ||
-        options.Length != 3)
-    {
-        SendRejectMessage(
-            senderClientId,
-            "준비 선택지가 3개가 아닙니다."
-        );
-
-        return;
-    }
-
-    PreparationOptionNetData[] netOptions =
-        new PreparationOptionNetData[3];
-
-    for (int i = 0; i < 3; i++)
-    {
-        netOptions[i] =
-            cardOptionGenerator.ToNetData(
-                options[i]
-            );
-    }
-
-    SendPreparationOptionsRpc(
-        senderClientId,
-        netOptions[0],
-        netOptions[1],
-        netOptions[2]
-    );
-}
-
-[Rpc(SendTo.ClientsAndHost)]
-private void SendPreparationOptionsRpc(
-    ulong targetClientId,
-    PreparationOptionNetData option0,
-    PreparationOptionNetData option1,
-    PreparationOptionNetData option2)
-{
-    if (NetworkManager.Singleton == null)
-    {
-        return;
-    }
-
-    // 자기에게 온 옵션만 처리
-    if (NetworkManager.Singleton.LocalClientId !=
-        targetClientId)
-    {
-        return;
-    }
-
-    if (cardOptionGenerator == null)
-    {
-        Debug.LogError(
-            "[NetworkMatchBridge] " +
-            "CardOptionGenerator가 없습니다."
-        );
-
-        return;
-    }
-
-    PreparationOption[] options =
-    {
-        cardOptionGenerator.FromNetData(
-            option0
-        ),
-
-        cardOptionGenerator.FromNetData(
-            option1
-        ),
-
-        cardOptionGenerator.FromNetData(
-            option2
-        )
-    };
-
-    Debug.Log(
-        "[NetworkMatchBridge] " +
-        $"준비 선택지 수신 | " +
-        $"LocalClientId: " +
-        $"{NetworkManager.Singleton.LocalClientId}"
-    );
-    Debug.Log(
-    "[NetworkMatchBridge] " +
-    $"수신 옵션 | " +
-    $"0: {options[0].Type} | " +
-    $"1: {options[1].Type} | " +
-    $"2: {options[2].Type}"
-    );
-
-    MapManager_Multi.Instance
-        ?.ShowOptions(
-            options
-        );
-}
-public void RequestConfirmPreparationOption(
-    int optionIndex)
-{
-    if (!CanSendNetworkRequest())
-        return;
-
-    RequestConfirmPreparationOptionRpc(
-        optionIndex
-    );
-}
-[Rpc(SendTo.Server)]
-private void RequestConfirmPreparationOptionRpc(
-    int optionIndex,
-    RpcParams rpcParams = default)
-{
-    ulong senderClientId =
-        rpcParams.Receive.SenderClientId;
-
-    if (!preparationManager.TryConfirmOption(
-            senderClientId,
-            optionIndex,
-            out PreparationOption selectedOption,
-            out PreparationOption[] nextOptions,
-            out int remaining,
-            out string rejectReason))
-    {
-        SendRejectMessage(
-            senderClientId,
-            rejectReason
-        );
-
-        return;
-    }
-
-    // senderClientId에게만
-    // remaining + FinalDeck + nextOptions 전달
-}
-public void RequestSkipPreparation()
-{
-    if (!CanSendNetworkRequest())
-        return;
-
-    RequestSkipPreparationRpc();}
-
-    [Rpc(SendTo.Server)]
-private void RequestSkipPreparationRpc(
-    RpcParams rpcParams = default)
-{
-    ulong senderClientId =
-        rpcParams.Receive.SenderClientId;
-
-    if (!preparationManager.TrySkip(
-            senderClientId,
-            out PreparationOption[] nextOptions,
-            out int remaining,
-            out string rejectReason))
-    {
-        SendRejectMessage(
-            senderClientId,
-            rejectReason
-        );
-
-        return;
-    }
-
-    // 해당 플레이어에게만
-    // remaining + nextOptions 전달
-}
-
-[Rpc(SendTo.ClientsAndHost)]
-private void SendPreparationConfirmResultRpc(
-    ulong targetClientId,
-    PreparationOptionNetData selectedData,
-    int remaining,
-    bool hasNextOptions,
-    PreparationOptionNetData next0,
-    PreparationOptionNetData next1,
-    PreparationOptionNetData next2)
-{
-    if (NetworkManager.Singleton == null)
-        return;
-
-    if (NetworkManager.Singleton.LocalClientId !=
-        targetClientId)
-    {
-        return;
-    }
-
-    PreparationOption selected =
-        cardOptionGenerator.FromNetData(
-            selectedData
-        );
-
-    MapManager_Multi map =
-        MapManager_Multi.Instance;
-
-    if (map == null)
-        return;
-
-    // 선택된 결과를 내 화면에 반영
-    map.ApplyConfirmedOptionToLocalView(
-        selected
-    );
-
-    // 10/10 → 9/10 ...
-    map.SetRemainingChoices(
-        remaining
-    );
-
-    // 아직 10회를 안 끝냈다면 다음 선택지
-    if (hasNextOptions)
-    {
-        PreparationOption[] nextOptions =
-        {
-            cardOptionGenerator.FromNetData(next0),
-            cardOptionGenerator.FromNetData(next1),
-            cardOptionGenerator.FromNetData(next2)
-        };
-
-        map.ShowOptions(
-            nextOptions
-        );
-    }
-    else
-    {
-        map.ShowWaitingForOpponent();
-    }
-}
-
 }
