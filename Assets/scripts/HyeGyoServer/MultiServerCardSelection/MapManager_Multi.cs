@@ -34,13 +34,20 @@ public sealed class MapManager_Multi : MonoBehaviour
     private DeckDisplay myDeckDisplay;
 
     [SerializeField]
-    private TextMeshPro remainingText;
-
-    [SerializeField]
     private float deckCardSize = 0.7f;
 
     [SerializeField]
     private int deckColumns = 6;
+
+    [Header("My Deck Display")]
+     [SerializeField]
+    private TextMeshPro remainingText;
+
+    [SerializeField]
+    private float myDeckCardSize = 0.7f;
+
+    [SerializeField]
+    private int myDeckColumns = 6;
 
     private readonly List<CardDefinition>
         _localDeckView =
@@ -379,7 +386,7 @@ public void MoveSelection(
             ?.StartBattle();
     }
 
-    public void ApplyConfirmedOptionToLocalView(
+public void ApplyConfirmedOptionToLocalView(
     PreparationOption option)
 {
     switch (option.Type)
@@ -392,7 +399,9 @@ public void MoveSelection(
                     option.Card
                 );
 
-                RefreshMyDeck();
+                RefreshMyDeck(
+                    _localDeckView
+                );
             }
 
             break;
@@ -400,44 +409,54 @@ public void MoveSelection(
 
         case PreparationOptionType.EnhanceCard:
         {
-            // 강화 데이터가 실제 구현되면
-            // TargetCardIndex의 카드를 여기서 갱신.
-            //
-            // 현재 ApplyEnhance가 TODO라
-            // 덱 개수 자체는 변하지 않음.
-
-            RefreshMyDeck();
+            // 현재는 강화 표시 로직이 아직 미완성
+            // 그래도 현재 덱을 다시 그리도록 함
+            RefreshMyDeck(
+                _localDeckView
+            );
 
             break;
         }
     }
 }
-private void RefreshMyDeck()
+public void RefreshMyDeck(
+    List<CardDefinition> deck)
 {
     if (myDeckDisplay == null)
+    {
+        Debug.LogError(
+            "[MapManager_Multi] myDeckDisplay가 없습니다."
+        );
+
         return;
+    }
+
+    if (!myDeckDisplay.gameObject.activeSelf)
+    {
+        myDeckDisplay.gameObject.SetActive(true);
+    }
 
     myDeckDisplay.SetDeck(
-        _localDeckView,
+        deck,
         null,
-        deckCardSize,
-        deckColumns
+        myDeckCardSize,
+        myDeckColumns
+    );
+
+    Debug.Log(
+        "[MapManager_Multi] " +
+        $"내 덱 갱신 | Count: {(deck != null ? deck.Count : 0)}"
     );
 }
-    public void SetRemainingChoices(
-        int remaining)
+public void SetRemainingChoices(
+    int remaining)
+{
+    if (remainingText != null)
     {
-        if (remainingText != null)
-        {
-            remainingText.text =
-                $"{remaining}/10";
-        }
-
-        Debug.Log(
-            "[MapManager_Multi] " +
-            $"남은 준비 횟수: {remaining}/10"
-        );
+        remainingText.text =
+            $"{remaining}/10";
     }
+}
 
         public void ShowWaitingForOpponent()
     {
