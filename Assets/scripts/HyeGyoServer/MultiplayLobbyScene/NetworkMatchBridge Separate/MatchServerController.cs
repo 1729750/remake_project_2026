@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -31,6 +32,10 @@ public sealed class MatchServerController
     private EnhanceCandidateServerService
         enhanceCandidateService;
 
+    [SerializeField]
+    private MultiPreparationManager
+        preparationManager;
+
 
     [Header("Flow")]
 
@@ -41,6 +46,8 @@ public sealed class MatchServerController
     [InspectorName("셀렉 & 강화 사용")]
     [SerializeField]
     private bool useSelectAndEnhance = true;
+
+    private bool sceneLoadRequested;
 
     
     private void Awake()
@@ -70,6 +77,88 @@ public sealed class MatchServerController
             enhanceCandidateService =
                 GetComponent<
                     EnhanceCandidateServerService>();
+        }
+
+        if (preparationManager == null)
+        {
+            preparationManager =
+                GetComponent<MultiPreparationManager>();
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (preparationManager == null)
+        {
+            preparationManager =
+                GetComponent<MultiPreparationManager>();
+        }
+
+        if (preparationManager != null)
+        {
+            preparationManager.AllPlayersCompleted +=
+                HandleAllPlayersCompleted;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (preparationManager != null)
+        {
+            preparationManager.AllPlayersCompleted -=
+                HandleAllPlayersCompleted;
+        }
+    }
+
+    private void HandleAllPlayersCompleted()
+    {
+        if (sceneLoadRequested)
+            return;
+
+        MatchDeckStore store =
+            MatchDeckStore.EnsureOn(
+                NetworkManager.Singleton != null
+                    ? NetworkManager.Singleton.gameObject
+                    : null
+            );
+
+        if (store == null)
+        {
+            Debug.LogError(
+                "[MatchServerController] FinalDeck 저장소가 없습니다."
+            );
+            return;
+        }
+
+        if (!store.Capture(
+                preparationRegistry,
+                out string captureRejectReason))
+        {
+            Debug.LogError(
+                "[MatchServerController] " +
+                $"FinalDeck 저장 실패 | {captureRejectReason}"
+            );
+
+            return;
+        }
+
+        StartCoroutine(
+            LoadGameplayAfterFinalResponse()
+        );
+    }
+
+    private IEnumerator LoadGameplayAfterFinalResponse()
+    {
+        // 마지막 선택 결과 RPC가 전송 큐에 들어간 뒤 씬을 이동한다.
+        yield return null;
+
+        if (!TryLoadGameplayScene(
+                out string loadRejectReason))
+        {
+            Debug.LogError(
+                "[MatchServerController] " +
+                $"준비 완료 후 씬 이동 실패 | {loadRejectReason}"
+            );
         }
     }
 
@@ -271,6 +360,12 @@ public bool TryStartMatch(
     private bool TryLoadGameplayScene(
         out string rejectReason)
     {
+        if (sceneLoadRequested)
+        {
+            rejectReason = "게임 Scene 이동이 이미 요청되었습니다.";
+            return false;
+        }
+
         NetworkManager networkManager =
             NetworkManager.Singleton;
 
@@ -346,6 +441,8 @@ public bool TryStartMatch(
             return false;
         }
 
+
+        sceneLoadRequested = true;
 
         Debug.Log(
             "[MatchServerController] " +

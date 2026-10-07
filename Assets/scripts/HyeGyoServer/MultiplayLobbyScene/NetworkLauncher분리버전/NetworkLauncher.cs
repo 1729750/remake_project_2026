@@ -105,6 +105,8 @@ public sealed class NetworkLauncher : MonoBehaviour
     {
         EnsureReferences();
 
+        MatchDeckStore.EnsureOn(gameObject);
+
         modeGate.SetNetworkEnabled(true);
 
        statusHub.SetStatus(
@@ -183,6 +185,9 @@ public sealed class NetworkLauncher : MonoBehaviour
     /// <summary>Host 방 생성 Button용.</summary>
     public async void CreateSession()
     {
+        MatchDeckStore.EnsureOn(gameObject)
+            ?.Clear();
+
         bool created =
             await sessionService.CreateSessionAsync();
 
@@ -201,6 +206,12 @@ public sealed class NetworkLauncher : MonoBehaviour
     /// <summary>현재 Session 나가기.</summary>
     public async void LeaveSession()
     {
-        await sessionService.LeaveSessionAsync();
+        bool left =
+            await sessionService.LeaveSessionAsync();
+
+        if (left)
+        {
+            MatchDeckStore.Instance?.Clear();
+        }
     }
 }

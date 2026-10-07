@@ -266,6 +266,22 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 네트워크 카드 준비가 시작되면 기존 로비 패널을 모두 숨긴다.
+    /// 카드/덱 선택 UI는 별도 MultiplayerPreparationView가 표시한다.
+    /// </summary>
+    public void HideForPreparation()
+    {
+        if (modeSelectionPanel != null)
+            modeSelectionPanel.SetActive(false);
+
+        if (hostPanel != null)
+            hostPanel.SetActive(false);
+
+        if (clientPanel != null)
+            clientPanel.SetActive(false);
+    }
+
     // =========================================================
     // Clear Input
     // =========================================================

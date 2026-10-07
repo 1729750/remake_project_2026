@@ -106,12 +106,18 @@ public class CardInstance_Multi
 
             Effect sourceEffect = source.GetEffect();
 
-            _effects.Add(
+            CardEffect_Multi runtimeEffect =
                 new CardEffect_Multi(
                     Effect_Multi.Create(
                         sourceEffect.GetEffectType(),
                         sourceEffect.GetMagnitude()),
-                    source.GetEffectTarget()));
+                    source.GetEffectTarget());
+
+            runtimeEffect.SetAppliedCategory(
+                source.GetAppliedCategory()
+            );
+
+            _effects.Add(runtimeEffect);
         }
     }
 
@@ -351,12 +357,18 @@ public class CardInstance_Multi
         {
             Effect_Multi effect = cardEffect.GetEffect();
 
-            clone._effects.Add(
+            CardEffect_Multi clonedEffect =
                 new CardEffect_Multi(
                     Effect_Multi.Create(
                         effect.GetEffectType(),
                         effect.GetMagnitude()),
-                    cardEffect.GetEffectTarget()));
+                    cardEffect.GetEffectTarget());
+
+            clonedEffect.SetAppliedCategory(
+                cardEffect.GetAppliedCategory()
+            );
+
+            clone._effects.Add(clonedEffect);
         }
 
         return clone;

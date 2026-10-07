@@ -188,6 +188,24 @@ public void GameStart()
         "[GameManager_Multi] GameStart 실행"
     );
 
+    // Lobby에서 카드 준비와 FinalDeck 확정을 끝내고 온 정상 멀티 경로.
+    // MultiPlayMode 안에 남아 있는 이전 준비 UI는 다시 켜지 않는다.
+    if (MatchDeckStore.Instance != null)
+    {
+        if (mapManagerObject != null)
+            mapManagerObject.SetActive(false);
+
+        if (rewardManagerObject != null)
+            rewardManagerObject.SetActive(false);
+
+        Debug.Log(
+            "[GameManager_Multi] " +
+            "Lobby FinalDeck 사용 → 게임 씬 준비 UI 비활성화"
+        );
+
+        return;
+    }
+
     // ==========================================
     // 1. 서버가 먼저 Preparation Phase 설정
     // ==========================================

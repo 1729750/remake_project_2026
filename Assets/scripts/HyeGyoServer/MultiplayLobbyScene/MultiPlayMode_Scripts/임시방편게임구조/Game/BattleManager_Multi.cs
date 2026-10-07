@@ -204,14 +204,28 @@ public sealed class BattleManager_Multi : NetworkBehaviour
 
         TryBindLocalViews();
 
-        // 현재 단계에서는
-        // Inspector Start Deck 사용.
-        // 나중에 FinalDeck 연동으로 교체.
-        playerCharacterManager
-            ?.InitializeConfiguredCharacterServer();
+        if (MatchDeckStore.Instance != null)
+        {
+            if (!TryInitializeFinalDecksServer())
+            {
+                Debug.LogError(
+                    "[BattleManager_Multi] " +
+                    "FinalDeck 초기화 실패로 전투 시작을 중단합니다."
+                );
 
-        enemyCharacterManager
-            ?.InitializeConfiguredCharacterServer();
+                return;
+            }
+        }
+        else
+        {
+            // MultiPlayMode Scene을 직접 실행한 개발 테스트에서만
+            // Inspector Start Deck을 fallback으로 사용한다.
+            playerCharacterManager
+                ?.InitializeConfiguredCharacterServer();
+
+            enemyCharacterManager
+                ?.InitializeConfiguredCharacterServer();
+        }
 
         _battleStarted = true;
 
@@ -240,6 +254,75 @@ public sealed class BattleManager_Multi : NetworkBehaviour
             ?.StopBgm();
 
         UpdateStartCountdownText();
+    }
+
+
+    private bool TryInitializeFinalDecksServer()
+    {
+        MatchDeckStore store =
+            MatchDeckStore.Instance;
+
+        if (store == null ||
+            playerCharacterManager == null ||
+            enemyCharacterManager == null)
+        {
+            return false;
+        }
+
+        ulong playerClientId =
+            playerCharacterManager.RepresentedClientId;
+
+        ulong enemyClientId =
+            enemyCharacterManager.RepresentedClientId;
+
+        if (!store.TryCreateDeck(
+                playerClientId,
+                out CardDefinition[] playerDeck))
+        {
+            Debug.LogError(
+                "[BattleManager_Multi] " +
+                $"Player FinalDeck을 찾지 못했습니다: {playerClientId}"
+            );
+
+            return false;
+        }
+
+        if (!store.TryCreateDeck(
+                enemyClientId,
+                out CardDefinition[] enemyDeck))
+        {
+            foreach (CardDefinition card in playerDeck)
+            {
+                if (card != null)
+                    Destroy(card);
+            }
+
+            Debug.LogError(
+                "[BattleManager_Multi] " +
+                $"Enemy FinalDeck을 찾지 못했습니다: {enemyClientId}"
+            );
+
+            return false;
+        }
+
+        playerCharacterManager.CharacterInit(
+            playerDeck,
+            playerCharacterManager.getmaxHealth()
+        );
+
+        enemyCharacterManager.CharacterInit(
+            enemyDeck,
+            enemyCharacterManager.getmaxHealth()
+        );
+
+        Debug.Log(
+            "[BattleManager_Multi] " +
+            $"FinalDeck 전투 연결 완료 | " +
+            $"Player({playerClientId}): {playerDeck.Length} | " +
+            $"Enemy({enemyClientId}): {enemyDeck.Length}"
+        );
+
+        return true;
     }
 
 
