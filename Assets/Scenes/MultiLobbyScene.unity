@@ -1007,7 +1007,7 @@ MonoBehaviour:
   cardSelectionService: {fileID: 178852481}
   enhanceCandidateService: {fileID: 178852480}
   gameplaySceneName: MultiPlayMode
-  useSelectAndEnhance: 1
+  useSelectAndEnhance: 0
 --- !u!114 &178852480
 MonoBehaviour:
   m_ObjectHideFlags: 0

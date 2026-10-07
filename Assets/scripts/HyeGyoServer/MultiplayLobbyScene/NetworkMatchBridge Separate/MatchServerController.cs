@@ -47,6 +47,10 @@ public sealed class MatchServerController
     [SerializeField]
     private bool useSelectAndEnhance = true;
 
+    [Tooltip("MultiPlayMode 안에서 준비를 진행할 때는 같은 Scene에서 전투를 시작합니다.")]
+    [SerializeField]
+    private bool completeInCurrentScene;
+
     private bool sceneLoadRequested;
 
     
@@ -84,6 +88,12 @@ public sealed class MatchServerController
             preparationManager =
                 GetComponent<MultiPreparationManager>();
         }
+
+        if (preparationManager == null)
+        {
+            preparationManager =
+                FindFirstObjectByType<MultiPreparationManager>();
+        }
     }
 
     private void OnEnable()
@@ -92,6 +102,12 @@ public sealed class MatchServerController
         {
             preparationManager =
                 GetComponent<MultiPreparationManager>();
+        }
+
+        if (preparationManager == null)
+        {
+            preparationManager =
+                FindFirstObjectByType<MultiPreparationManager>();
         }
 
         if (preparationManager != null)
@@ -149,8 +165,43 @@ public sealed class MatchServerController
 
     private IEnumerator LoadGameplayAfterFinalResponse()
     {
-        // 마지막 선택 결과 RPC가 전송 큐에 들어간 뒤 씬을 이동한다.
+        // 마지막 선택 결과 RPC가 전송 큐에 들어간 뒤 다음 흐름을 진행한다.
         yield return null;
+
+        if (completeInCurrentScene)
+        {
+            if (matchState != null && matchState.IsServer)
+            {
+                matchState.ServerSetPhase(MatchPhase.Battle);
+            }
+
+            const int maxStartAttempts = 300;
+
+            for (int attempt = 0;
+                 attempt < maxStartAttempts;
+                 attempt++)
+            {
+                GameManager_Multi gameManager =
+                    GameManager_Multi.Instance;
+
+                if (gameManager != null)
+                {
+                    gameManager.StartBattle();
+
+                    if (gameManager.IsGameStarted)
+                        yield break;
+                }
+
+                yield return null;
+            }
+
+            Debug.LogError(
+                "[MatchServerController] " +
+                "준비 완료 후 현재 Scene 전투 시작에 실패했습니다."
+            );
+
+            yield break;
+        }
 
         if (!TryLoadGameplayScene(
                 out string loadRejectReason))

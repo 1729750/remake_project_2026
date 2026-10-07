@@ -73,6 +73,7 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
         bridge.PreparationSkippedReceived +=
             HandlePreparationSkipped;
         bridge.LocalMessage += HandleLocalMessage;
+        bridge.MatchStateChanged += HandleMatchStateChanged;
     }
 
     private void OnDestroy()
@@ -91,6 +92,7 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
         bridge.PreparationSkippedReceived -=
             HandlePreparationSkipped;
         bridge.LocalMessage -= HandleLocalMessage;
+        bridge.MatchStateChanged -= HandleMatchStateChanged;
 
         ClearVisuals();
         ClearLocalDeck();
@@ -270,6 +272,27 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
         string message)
     {
         SetInstruction(message);
+    }
+
+    private void HandleMatchStateChanged()
+    {
+        if (bridge == null ||
+            bridge.CurrentPhase != MatchPhase.Battle)
+        {
+            return;
+        }
+
+        mode = ViewMode.None;
+        currentOptions = null;
+        initialCandidates = null;
+        ClearVisuals();
+
+        if (visualRoot != null)
+        {
+            Destroy(visualRoot);
+            visualRoot = null;
+            instructionText = null;
+        }
     }
 
     private void MoveSelection(
