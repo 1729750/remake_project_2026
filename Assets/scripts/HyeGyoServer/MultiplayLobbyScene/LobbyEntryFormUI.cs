@@ -55,8 +55,8 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
         = EntryMode.None;
 
     /// <summary>
-    /// Host 닉네임 또는 Client Join Code 입력을
-    /// Enter나 포커스 이동으로 완료했을 때 발생한다.
+    /// Client Join Code 입력을 Enter나 포커스 이동으로
+    /// 완료했을 때 발생한다. Host는 Panel 진입 즉시 방을 생성한다.
     /// </summary>
     public event Action ConfirmRequested;
 
@@ -66,13 +66,6 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
 
     private void Awake()
     {
-        if (hostNicknameInput != null)
-        {
-            hostNicknameInput.onEndEdit.AddListener(
-                HandleConfirmEndEdit
-            );
-        }
-
         if (joinCodeInput != null)
         {
             joinCodeInput.onEndEdit.AddListener(
@@ -85,13 +78,6 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (hostNicknameInput != null)
-        {
-            hostNicknameInput.onEndEdit.RemoveListener(
-                HandleConfirmEndEdit
-            );
-        }
-
         if (joinCodeInput != null)
         {
             joinCodeInput.onEndEdit.RemoveListener(

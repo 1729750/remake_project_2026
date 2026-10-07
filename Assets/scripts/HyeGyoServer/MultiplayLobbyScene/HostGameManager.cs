@@ -208,6 +208,46 @@ public sealed class HostGameManager :
     }
 
     // =========================================================
+    // Local Nickname
+    // =========================================================
+
+    /// <summary>
+    /// 자동 생성된 Host Session에 현재 PC의 닉네임을 등록한다.
+    /// NetworkObject가 아직 Spawn되지 않았다면 보관했다가
+    /// OnNetworkSpawn에서 다시 제출한다.
+    /// </summary>
+    public bool SetLocalNickname(
+        string nickname)
+    {
+        string validatedNickname =
+            ValidateReceivedNickname(
+                nickname
+            );
+
+        if (string.IsNullOrWhiteSpace(
+                validatedNickname))
+        {
+            SetStatus(
+                "올바른 닉네임을 입력해주세요."
+            );
+
+            return false;
+        }
+
+        localNickname =
+            validatedNickname;
+
+        SubmitLocalNicknameIfReady();
+
+        Debug.Log(
+            "[HostGameManager] " +
+            $"Local 닉네임 저장/제출 | {localNickname}"
+        );
+
+        return true;
+    }
+
+    // =========================================================
     // Room Request
     // =========================================================
 

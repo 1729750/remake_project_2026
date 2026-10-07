@@ -24,9 +24,9 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
 
 
     [Header("Flow")]
-    [Tooltip("개발용 자동 방 생성을 사용할 때만 켭니다. 일반 흐름에서는 LobbyEntryUI가 방 생성을 요청합니다.")]
+    [Tooltip("HostPanel이 열리면 즉시 Relay 방 생성을 시작합니다.")]
     [SerializeField]
-    private bool autoCreateHostOnEnable = false;
+    private bool autoCreateHostOnEnable = true;
 
     [SerializeField]
     private bool autoStartWhenReady = true;
@@ -125,6 +125,13 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         networkLauncher.SessionCreateFailed +=
             HandleSessionCreateFailed;
 
+        if (nicknameInput != null)
+        {
+            nicknameInput.onEndEdit.AddListener(
+                HandleNicknameEndEdit
+            );
+        }
+
 
         if (hostGameManager != null)
         {
@@ -205,6 +212,13 @@ else
                 HandleSessionCreateFailed;
         }
 
+        if (nicknameInput != null)
+        {
+            nicknameInput.onEndEdit.RemoveListener(
+                HandleNicknameEndEdit
+            );
+        }
+
 
         if (hostGameManager != null)
         {
@@ -222,6 +236,25 @@ else
 
 
         StopWaitingAnimation();
+    }
+
+
+    // =========================================================
+    // Host Nickname
+    // =========================================================
+
+    private void HandleNicknameEndEdit(
+        string nickname)
+    {
+        if (hostGameManager == null ||
+            string.IsNullOrWhiteSpace(nickname))
+        {
+            return;
+        }
+
+        hostGameManager.SetLocalNickname(
+            nickname
+        );
     }
 
 
