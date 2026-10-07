@@ -60,6 +60,10 @@ public sealed class HostGameManager :
     [SerializeField]
     private NetworkLauncher networkLauncher;
 
+    [Tooltip("NGO 접속/종료 이벤트를 로비 목록과 연결합니다.")]
+    [SerializeField]
+    private NetworkConnectionMonitor connectionMonitor;
+
     // =========================================================
     // Lobby State
     // =========================================================
@@ -132,11 +136,29 @@ public sealed class HostGameManager :
     private void OnEnable()
     {
         SubscribeLauncherEvents();
+
+        if (connectionMonitor == null)
+        {
+            connectionMonitor =
+                FindFirstObjectByType<NetworkConnectionMonitor>();
+        }
+
+        if (connectionMonitor != null)
+        {
+            connectionMonitor.ClientDisconnected +=
+                HandleClientDisconnected;
+        }
     }
 
     private void OnDisable()
     {
         UnsubscribeLauncherEvents();
+
+        if (connectionMonitor != null)
+        {
+            connectionMonitor.ClientDisconnected -=
+                HandleClientDisconnected;
+        }
     }
 
     // =========================================================
@@ -633,8 +655,6 @@ Debug.Log(
     $"Count: {ConnectedPlayerCount} | " +
     $"InstanceId: {GetInstanceID()}"
 );
-
-LobbyPlayersChanged?.Invoke();
 
         LobbyPlayersChanged?.Invoke();
     }

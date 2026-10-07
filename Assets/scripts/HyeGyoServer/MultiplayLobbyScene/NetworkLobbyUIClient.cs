@@ -7,6 +7,9 @@ public sealed class NetworkLobbyUIClient : MonoBehaviour
     [SerializeField]
     private NetworkLauncher networkLauncher;
 
+    [SerializeField]
+    private HostGameManager hostGameManager;
+
     [Header("Panel")]
     [SerializeField]
     private GameObject selectionPanel;
@@ -70,9 +73,51 @@ public sealed class NetworkLobbyUIClient : MonoBehaviour
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            Debug.LogWarning(
+                "[Client UI] Code를 입력하세요."
+            );
+
+            return;
+        }
+
+        if (!IsValidNickname(nickname))
+        {
+            Debug.LogWarning(
+                "[Client UI] 닉네임은 한글 또는 영문만 사용할 수 있습니다."
+            );
+
+            return;
+        }
+
+        hostGameManager ??=
+            FindFirstObjectByType<HostGameManager>();
+
         Debug.Log(
             $"[Client UI] Nickname: {nickname} | Code: {code}"
         );
+
+        if (hostGameManager != null)
+        {
+            // 닉네임을 NetworkObject Spawn 시점에 제출할 수 있도록
+            // 반드시 HostGameManager를 거쳐 참가한다.
+            hostGameManager.RequestJoinRoom(
+                nickname,
+                code
+            );
+
+            return;
+        }
+
+        if (networkLauncher == null)
+        {
+            Debug.LogError(
+                "[Client UI] HostGameManager와 NetworkLauncher가 모두 없습니다."
+            );
+
+            return;
+        }
 
         networkLauncher.JoinSession(code);
     }
