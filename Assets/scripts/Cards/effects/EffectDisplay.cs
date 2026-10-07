@@ -26,16 +26,35 @@ public class EffectDisplay : MonoBehaviour
         return Instantiate(_prefab, parent).GetComponent<EffectDisplay>();
     }
 
+    private static Sprite ResolveEmoji(
+        EffectType effectType)
+    {
+        if (EffectIconRegistry.TryGetEmoji(
+                effectType,
+                out Sprite registrySprite))
+        {
+            return registrySprite;
+        }
+
+        if (BattleManager.Instance != null)
+            return BattleManager.GetEmoji(effectType);
+
+        if (BattleManager_Multi.Instance != null)
+            return BattleManager_Multi.GetEmoji(effectType);
+
+        return null;
+    }
+
     public void SetEffect(Effect effect, string magnitudeText)
     {
-        _effectSprite.sprite = BattleManager.GetEmoji(effect.GetEffectType());
+        _effectSprite.sprite = ResolveEmoji(effect.GetEffectType());
         _magnitudeText.text = effect.DoesntUseMagnitude ? "" : magnitudeText;
     }
 
     // Effect 인스턴스 없이 EffectType만 있는 호출부(MapVisual처럼 항상 수치를 비워 두는 경우)를 위한 오버로드.
     public void SetEffect(EffectType effectType, string magnitudeText)
     {
-        _effectSprite.sprite = BattleManager.GetEmoji(effectType);
+        _effectSprite.sprite = ResolveEmoji(effectType);
         _magnitudeText.text = magnitudeText;
     }
 
