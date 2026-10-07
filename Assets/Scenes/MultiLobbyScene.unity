@@ -911,6 +911,7 @@ GameObject:
   - component: {fileID: 178852480}
   - component: {fileID: 178852482}
   - component: {fileID: 178852483}
+  - component: {fileID: 178852484}
   m_Layer: 0
   m_Name: NetworkMatchBridge
   m_TagString: Untagged
@@ -1095,6 +1096,59 @@ MonoBehaviour:
   preparationRegistry: {fileID: 516293310}
   matchState: {fileID: 178852478}
   cardOptionGenerator: {fileID: 178852482}
+--- !u!114 &178852484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 178852474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f4ecbe2647b4bd5a7b95ce0f5a54ed6, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::EffectIconRegistry
+  effectIcons:
+  - effectType: 0
+    sprite: {fileID: 21300000, guid: 8bda0dd2cdca9b64b8293c7a8b653899, type: 3}
+  - effectType: 1
+    sprite: {fileID: 21300000, guid: 1af84b259e73b5942804b5ff8718b4cd, type: 3}
+  - effectType: 2
+    sprite: {fileID: 21300000, guid: a3d0ac484919367478251b4740261c73, type: 3}
+  - effectType: 3
+    sprite: {fileID: 21300000, guid: f92d0633605320445961a9904933de33, type: 3}
+  - effectType: 4
+    sprite: {fileID: 21300000, guid: 6e24dbcb5e7f80f4a8e19eacf623f843, type: 3}
+  - effectType: 5
+    sprite: {fileID: 21300000, guid: 41cf9913b84d6084db02f23808333a35, type: 3}
+  - effectType: 6
+    sprite: {fileID: -7746483929725356217, guid: bd76407b9e7063241a69f1b49b9d9d53, type: 3}
+  - effectType: 7
+    sprite: {fileID: 21300000, guid: e5fe154e1eb1b0242bac81a4e7c69729, type: 3}
+  - effectType: 8
+    sprite: {fileID: 21300000, guid: 962e2d77b0edbbb48b5375573c41c7fe, type: 3}
+  - effectType: 9
+    sprite: {fileID: 21300000, guid: 836c997dc123d9142a96396ef956cf74, type: 3}
+  - effectType: 10
+    sprite: {fileID: 21300000, guid: ded04d5cd4acead469f632599543dfc1, type: 3}
+  - effectType: 11
+    sprite: {fileID: 21300000, guid: 01ed87108cb46a54d8efa33151cf72eb, type: 3}
+  - effectType: 12
+    sprite: {fileID: 21300000, guid: 5361a1ca50c7457419c4f4364f6eba37, type: 3}
+  - effectType: 13
+    sprite: {fileID: 21300000, guid: 22cc668ea67469147988527edad8eac3, type: 3}
+  - effectType: 14
+    sprite: {fileID: 21300000, guid: 3b9c915e6f15d0a47951a2a0413087fb, type: 3}
+  - effectType: 15
+    sprite: {fileID: 21300000, guid: d044de8bf84f5004bbeb4b8dd5078042, type: 3}
+  - effectType: 16
+    sprite: {fileID: 0}
+  - effectType: 17
+    sprite: {fileID: 0}
+  - effectType: 18
+    sprite: {fileID: 21300000, guid: 706200e4caa445842bca051cbbac3f7d, type: 3}
+  - effectType: 19
+    sprite: {fileID: 21300000, guid: 8b353d31dd7025c4094fddad6db2abd8, type: 3}
 --- !u!1 &214050597
 GameObject:
   m_ObjectHideFlags: 0

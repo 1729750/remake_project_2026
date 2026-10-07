@@ -270,9 +270,16 @@ public class BattleManager:MonoBehaviour
     {
         if (_emojiCache == null)
         {
-            _emojiCache = new Dictionary<EffectType, Sprite>();
+            // Lobby처럼 Single BattleManager가 없는 Scene에서는
+            // 캐시를 빈 상태로 고착시키지 않고 안전하게 반환한다.
+            if (Instance == null)
+                return null;
+
+            var cache = new Dictionary<EffectType, Sprite>();
             foreach (var entry in Instance.effectEmojis)
-                _emojiCache[entry.effectType] = entry.sprite;
+                cache[entry.effectType] = entry.sprite;
+
+            _emojiCache = cache;
         }
         _emojiCache.TryGetValue(effectType, out var sprite);
         return sprite;

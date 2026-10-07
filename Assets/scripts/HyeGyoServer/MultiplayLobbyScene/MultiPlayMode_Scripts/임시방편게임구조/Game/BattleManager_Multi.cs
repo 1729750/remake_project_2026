@@ -877,25 +877,27 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     {
         if (_emojiCache == null)
         {
-            _emojiCache =
-                new Dictionary<
-                    EffectType,
-                    Sprite>();
-
             if (Instance == null)
             {
                 return null;
             }
 
+            var cache =
+                new Dictionary<
+                    EffectType,
+                    Sprite>();
+
             foreach (
                 EffectEmoji entry
                 in Instance.effectEmojis)
             {
-                _emojiCache[
+                cache[
                     entry.effectType
                 ] =
                     entry.sprite;
             }
+
+            _emojiCache = cache;
         }
 
         _emojiCache.TryGetValue(
