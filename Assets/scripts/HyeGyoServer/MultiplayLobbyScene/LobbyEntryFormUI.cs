@@ -55,8 +55,8 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
         = EntryMode.None;
 
     /// <summary>
-    /// Host 닉네임 또는 Client Join Code 입력에서
-    /// Enter/Submit을 눌렀을 때 발생한다.
+    /// Host 닉네임 또는 Client Join Code 입력을
+    /// Enter나 포커스 이동으로 완료했을 때 발생한다.
     /// </summary>
     public event Action ConfirmRequested;
 
@@ -68,15 +68,15 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
     {
         if (hostNicknameInput != null)
         {
-            hostNicknameInput.onSubmit.AddListener(
-                HandleConfirmSubmit
+            hostNicknameInput.onEndEdit.AddListener(
+                HandleConfirmEndEdit
             );
         }
 
         if (joinCodeInput != null)
         {
-            joinCodeInput.onSubmit.AddListener(
-                HandleConfirmSubmit
+            joinCodeInput.onEndEdit.AddListener(
+                HandleConfirmEndEdit
             );
         }
 
@@ -87,21 +87,39 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
     {
         if (hostNicknameInput != null)
         {
-            hostNicknameInput.onSubmit.RemoveListener(
-                HandleConfirmSubmit
+            hostNicknameInput.onEndEdit.RemoveListener(
+                HandleConfirmEndEdit
             );
         }
 
         if (joinCodeInput != null)
         {
-            joinCodeInput.onSubmit.RemoveListener(
-                HandleConfirmSubmit
+            joinCodeInput.onEndEdit.RemoveListener(
+                HandleConfirmEndEdit
             );
         }
     }
 
-    private void HandleConfirmSubmit(
+    private void HandleConfirmEndEdit(
         string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        Debug.Log(
+            "[LobbyEntryFormUI] " +
+            $"입력 완료 → Confirm 요청 | Mode: {SelectedMode}"
+        );
+
+        Submit();
+    }
+
+    /// <summary>
+    /// UI Button에서도 직접 연결할 수 있는 공용 Submit 진입점.
+    /// </summary>
+    public void Submit()
     {
         ConfirmRequested?.Invoke();
     }
