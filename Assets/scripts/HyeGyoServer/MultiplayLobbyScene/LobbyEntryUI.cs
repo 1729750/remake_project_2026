@@ -28,6 +28,28 @@ public sealed class LobbyEntryUI : MonoBehaviour
     private TMP_Text inputStatusText;
 
     // =========================================================
+    // Unity
+    // =========================================================
+
+    private void OnEnable()
+    {
+        if (formUI != null)
+        {
+            formUI.ConfirmRequested +=
+                Confirm;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (formUI != null)
+        {
+            formUI.ConfirmRequested -=
+                Confirm;
+        }
+    }
+
+    // =========================================================
     // Confirm
     // =========================================================
 

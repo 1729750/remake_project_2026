@@ -95,6 +95,12 @@ public sealed class NetworkLauncher : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Host Session 생성 요청이 실패했을 때 발생한다.
+    /// 로딩 UI가 실패 상태에서 계속 재생되지 않도록 사용한다.
+    /// </summary>
+    public event Action SessionCreateFailed;
+
     private void Awake()
     {
         EnsureReferences();
@@ -177,7 +183,13 @@ public sealed class NetworkLauncher : MonoBehaviour
     /// <summary>Host 방 생성 Button용.</summary>
     public async void CreateSession()
     {
-        await sessionService.CreateSessionAsync();
+        bool created =
+            await sessionService.CreateSessionAsync();
+
+        if (!created)
+        {
+            SessionCreateFailed?.Invoke();
+        }
     }
 
     /// <summary>참가 코드로 Client 입장.</summary>

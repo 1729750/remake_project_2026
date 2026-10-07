@@ -95,6 +95,12 @@ public sealed class HostGameManager :
     /// </summary>
     public event Action LobbyPlayersChanged;
 
+    /// <summary>
+    /// 유효한 Host 방 생성 요청을 NetworkLauncher에 전달하기 직전에 호출.
+    /// Host UI는 이 이벤트로 로딩 표시를 시작한다.
+    /// </summary>
+    public event Action HostRoomCreationStarted;
+
     // =========================================================
     // Public Properties
     // =========================================================
@@ -256,6 +262,8 @@ public sealed class HostGameManager :
         SetStatus(
             "Host 방 생성 중..."
         );
+
+        HostRoomCreationStarted?.Invoke();
 
         networkLauncher
             .CreateSession();

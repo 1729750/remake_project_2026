@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 
@@ -53,13 +54,56 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
     public EntryMode SelectedMode { get; private set; }
         = EntryMode.None;
 
+    /// <summary>
+    /// Host 닉네임 또는 Client Join Code 입력에서
+    /// Enter/Submit을 눌렀을 때 발생한다.
+    /// </summary>
+    public event Action ConfirmRequested;
+
     // =========================================================
     // Unity
     // =========================================================
 
     private void Awake()
     {
+        if (hostNicknameInput != null)
+        {
+            hostNicknameInput.onSubmit.AddListener(
+                HandleConfirmSubmit
+            );
+        }
+
+        if (joinCodeInput != null)
+        {
+            joinCodeInput.onSubmit.AddListener(
+                HandleConfirmSubmit
+            );
+        }
+
         ShowModeSelection();
+    }
+
+    private void OnDestroy()
+    {
+        if (hostNicknameInput != null)
+        {
+            hostNicknameInput.onSubmit.RemoveListener(
+                HandleConfirmSubmit
+            );
+        }
+
+        if (joinCodeInput != null)
+        {
+            joinCodeInput.onSubmit.RemoveListener(
+                HandleConfirmSubmit
+            );
+        }
+    }
+
+    private void HandleConfirmSubmit(
+        string value)
+    {
+        ConfirmRequested?.Invoke();
     }
 
     // =========================================================
@@ -83,6 +127,11 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
 
         ClearHostInput();
 
+        if (hostNicknameInput != null)
+        {
+            hostNicknameInput.ActivateInputField();
+        }
+
         Debug.Log(
             "[LobbyEntryFormUI] Host 모드 선택"
         );
@@ -104,6 +153,11 @@ public sealed class LobbyEntryFormUI : MonoBehaviour
         );
 
         ClearClientInput();
+
+        if (clientNicknameInput != null)
+        {
+            clientNicknameInput.ActivateInputField();
+        }
 
         Debug.Log(
             "[LobbyEntryFormUI] Client 모드 선택"

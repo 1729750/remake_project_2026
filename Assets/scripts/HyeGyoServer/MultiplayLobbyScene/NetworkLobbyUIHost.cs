@@ -122,9 +122,15 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         networkLauncher.SessionCreated +=
             HandleSessionCreated;
 
+        networkLauncher.SessionCreateFailed +=
+            HandleSessionCreateFailed;
+
 
         if (hostGameManager != null)
         {
+            hostGameManager.HostRoomCreationStarted +=
+                HandleHostRoomCreationStarted;
+
             hostGameManager.LobbyPlayersChanged +=
                 HandleLobbyPlayersChanged;
 
@@ -159,7 +165,22 @@ else
 
         RefreshCurrentPeople();
 
-        if (autoCreateHostOnEnable)
+        if (networkLauncher.IsInSession &&
+            !string.IsNullOrWhiteSpace(
+                networkLauncher.JoinCode))
+        {
+            // 패널이 SessionCreated 이후 다시 켜진 경우에도
+            // 현재 방 코드를 복원한다.
+            HandleSessionCreated(
+                networkLauncher.JoinCode
+            );
+        }
+        else if (networkLauncher.IsBusy)
+        {
+            // 패널이 방 생성 도중 다시 켜진 경우 로딩을 복원한다.
+            HandleHostRoomCreationStarted();
+        }
+        else if (autoCreateHostOnEnable)
         {
             StartHostAutomatically();
         }
@@ -179,11 +200,17 @@ else
         {
             networkLauncher.SessionCreated -=
                 HandleSessionCreated;
+
+            networkLauncher.SessionCreateFailed -=
+                HandleSessionCreateFailed;
         }
 
 
         if (hostGameManager != null)
         {
+            hostGameManager.HostRoomCreationStarted -=
+                HandleHostRoomCreationStarted;
+
             hostGameManager.LobbyPlayersChanged -=
                 HandleLobbyPlayersChanged;
         }
@@ -201,6 +228,45 @@ else
     // =========================================================
     // Host Start
     // =========================================================
+
+    private void HandleHostRoomCreationStarted()
+    {
+        hostStartRequested = true;
+
+        if (codeOutput != null)
+        {
+            codeOutput.text =
+                string.Empty;
+        }
+
+        if (currentPeopleText != null)
+        {
+            currentPeopleText.text =
+                string.Empty;
+        }
+
+        StartWaitingAnimation();
+
+        Debug.Log(
+            "[NetworkLobbyUIHost] " +
+            "Host 방 생성 요청 → 로딩 시작"
+        );
+    }
+
+
+    private void HandleSessionCreateFailed()
+    {
+        hostStartRequested = false;
+
+        StopWaitingAnimation();
+        RefreshCurrentPeople();
+
+        Debug.LogWarning(
+            "[NetworkLobbyUIHost] " +
+            "Host 방 생성 실패 → 로딩 종료"
+        );
+    }
+
 
     private void StartHostAutomatically()
     {
@@ -222,24 +288,7 @@ else
         }
 
 
-        hostStartRequested = true;
-
-
-        if (codeOutput != null)
-        {
-            codeOutput.text =
-                string.Empty;
-        }
-
-
-        if (currentPeopleText != null)
-        {
-            currentPeopleText.text =
-                string.Empty;
-        }
-
-
-        StartWaitingAnimation();
+        HandleHostRoomCreationStarted();
 
 
         if (!networkLauncher.NetworkEnabled)
