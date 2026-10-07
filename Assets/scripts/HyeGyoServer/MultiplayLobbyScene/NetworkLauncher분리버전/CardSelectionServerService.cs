@@ -187,6 +187,42 @@ public sealed class CardSelectionServerService : MonoBehaviour
         return true;
     }
 
+    public bool TryGetInitialCandidatePoolIndexes(
+        ulong clientId,
+        out int card0,
+        out int card1,
+        out int card2)
+    {
+        card0 = -1;
+        card1 = -1;
+        card2 = -1;
+
+        EnsureReferences();
+
+        if (preparationRegistry == null ||
+            cardOptionGenerator == null ||
+            !preparationRegistry.TryGetPlayer(
+                clientId,
+                out PlayerPreparationData player) ||
+            player.CardCandidates == null ||
+            player.CardCandidates.Length != CandidateCount)
+        {
+            return false;
+        }
+
+        card0 = cardOptionGenerator.GetCardPoolIndex(
+            player.CardCandidates[0]
+        );
+        card1 = cardOptionGenerator.GetCardPoolIndex(
+            player.CardCandidates[1]
+        );
+        card2 = cardOptionGenerator.GetCardPoolIndex(
+            player.CardCandidates[2]
+        );
+
+        return card0 >= 0 && card1 >= 0 && card2 >= 0;
+    }
+
     public bool TryChooseCard(
         ulong senderClientId,
         int candidateIndex,

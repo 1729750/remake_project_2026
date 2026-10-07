@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -31,6 +32,9 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
 
     [SerializeField]
     private EnhanceCandidateServerService enhanceCandidateService;
+
+    private readonly HashSet<ulong>
+        preparationReadyClients = new();
 
     public event Action<string> LocalMessage;
     public event Action<EnhanceOptionNetData[]>
@@ -123,32 +127,80 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        if (!IsServer || cardSelectionService == null)
-            return;
+        if (IsServer && cardSelectionService != null)
+        {
+            cardSelectionService.InitialCandidatesReady +=
+                HandleInitialCandidatesReady;
 
-        cardSelectionService.InitialCandidatesReady +=
-            HandleInitialCandidatesReady;
+            cardSelectionService.InitialCardConfirmed +=
+                HandleInitialCardConfirmed;
 
-        cardSelectionService.InitialCardConfirmed +=
-            HandleInitialCardConfirmed;
+            cardSelectionService.AllInitialCardsSelected +=
+                HandleAllInitialCardsSelected;
+        }
 
-        cardSelectionService.AllInitialCardsSelected +=
-            HandleAllInitialCardsSelected;
+        // 각 Client의 in-scene Bridge/UI가 실제 Spawn된 뒤 서버에 준비 완료를 알린다.
+        // 후보가 이미 생성된 경우 서버가 저장된 후보를 즉시 재전송한다.
+        if (IsClient)
+        {
+            NotifyPreparationClientReadyRpc();
+        }
     }
 
     public override void OnNetworkDespawn()
     {
-        if (cardSelectionService == null)
+        if (cardSelectionService != null)
+        {
+            cardSelectionService.InitialCandidatesReady -=
+                HandleInitialCandidatesReady;
+
+            cardSelectionService.InitialCardConfirmed -=
+                HandleInitialCardConfirmed;
+
+            cardSelectionService.AllInitialCardsSelected -=
+                HandleAllInitialCardsSelected;
+        }
+
+        preparationReadyClients.Clear();
+    }
+
+    [Rpc(SendTo.Server)]
+    private void NotifyPreparationClientReadyRpc(
+        RpcParams rpcParams = default)
+    {
+        ulong clientId =
+            rpcParams.Receive.SenderClientId;
+
+        preparationReadyClients.Add(clientId);
+
+        Debug.Log(
+            "[NetworkMatchBridge] " +
+            $"준비 UI Client Ready | ClientId: {clientId}"
+        );
+
+        TryReplayInitialCandidates(clientId);
+    }
+
+    private void TryReplayInitialCandidates(
+        ulong clientId)
+    {
+        if (!IsServer ||
+            cardSelectionService == null ||
+            !cardSelectionService.TryGetInitialCandidatePoolIndexes(
+                clientId,
+                out int card0,
+                out int card1,
+                out int card2))
+        {
             return;
+        }
 
-        cardSelectionService.InitialCandidatesReady -=
-            HandleInitialCandidatesReady;
-
-        cardSelectionService.InitialCardConfirmed -=
-            HandleInitialCardConfirmed;
-
-        cardSelectionService.AllInitialCardsSelected -=
-            HandleAllInitialCardsSelected;
+        SendInitialCardCandidatesToClient(
+            clientId,
+            card0,
+            card1,
+            card2
+        );
     }
 
     public void RequestStartMatch()
@@ -218,6 +270,38 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
         int card1,
         int card2)
     {
+        if (!preparationReadyClients.Contains(
+                targetClientId))
+        {
+            Debug.Log(
+                "[NetworkMatchBridge] " +
+                $"후보 저장 완료, Client Ready 대기 | " +
+                $"ClientId: {targetClientId}"
+            );
+
+            return;
+        }
+
+        SendInitialCardCandidatesToClient(
+            targetClientId,
+            card0,
+            card1,
+            card2
+        );
+    }
+
+    private void SendInitialCardCandidatesToClient(
+        ulong targetClientId,
+        int card0,
+        int card1,
+        int card2)
+    {
+        Debug.Log(
+            "[NetworkMatchBridge] " +
+            $"초기 카드 후보 전송 | ClientId: {targetClientId} | " +
+            $"Cards: {card0}, {card1}, {card2}"
+        );
+
         SendInitialCardCandidatesRpc(
             card0,
             card1,
@@ -242,6 +326,10 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
             cardOptionGenerator?.GetCardByPoolIndex(card1),
             cardOptionGenerator?.GetCardByPoolIndex(card2)
         };
+
+        Debug.Log(
+            "[NetworkMatchBridge] 초기 카드 후보 RPC 수신"
+        );
 
         InitialCardCandidatesReceived?.Invoke(cards);
     }
