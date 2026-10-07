@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// Single 모드의 Card/RewardDisplay/DeckDisplay prefab을 그대로 사용해
-/// Lobby에서 초기 카드와 10회 준비 선택을 표시한다.
+/// MultiPlayMode의 MapManager 아래에서 초기 카드와 10회 준비 선택을 표시한다.
 /// 서버 판정은 하지 않고 index 요청과 로컬 표시만 담당한다.
 /// </summary>
 public sealed class MultiplayerPreparationUI : MonoBehaviour
@@ -28,11 +28,13 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
 
     private NetworkMatchBridge bridge;
     private CardOptionGenerator generator;
+    private TMP_FontAsset preparationFont;
     private bool initialized;
 
     private readonly List<VisualItem> visuals = new();
     private readonly List<CardDefinition> localDeck = new();
 
+    private GameObject preparationContainer;
     private GameObject visualRoot;
     private TextMeshPro instructionText;
     private DeckDisplay deckDisplay;
@@ -44,13 +46,15 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
 
     public void Initialize(
         NetworkMatchBridge networkBridge,
-        CardOptionGenerator optionGenerator)
+        CardOptionGenerator optionGenerator,
+        TMP_FontAsset font)
     {
         if (initialized)
             return;
 
         bridge = networkBridge;
         generator = optionGenerator;
+        preparationFont = font;
 
         if (bridge == null || generator == null)
         {
@@ -293,6 +297,11 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
             visualRoot = null;
             instructionText = null;
         }
+
+        if (preparationContainer != null)
+        {
+            preparationContainer.SetActive(false);
+        }
     }
 
     private void MoveSelection(
@@ -356,7 +365,7 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
         GameObject obj =
             Instantiate(prefab, visualRoot.transform);
 
-        obj.transform.position = Vector3.zero;
+        obj.transform.localPosition = Vector3.zero;
         deckDisplay = obj.GetComponent<DeckDisplay>();
 
         if (deckDisplay == null)
@@ -527,6 +536,10 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
 
         TextMeshPro targetLabel =
             targetLabelObject.AddComponent<TextMeshPro>();
+
+        if (preparationFont != null)
+            targetLabel.font = preparationFont;
+
         targetLabel.alignment = TextAlignmentOptions.Center;
         targetLabel.fontSize = 2.2f;
         targetLabel.GetComponent<Renderer>().sortingLayerID =
@@ -556,6 +569,9 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
 
         TextMeshPro label =
             obj.AddComponent<TextMeshPro>();
+
+        if (preparationFont != null)
+            label.font = preparationFont;
 
         label.text = text;
         label.alignment = TextAlignmentOptions.Center;
@@ -597,7 +613,7 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
         {
             if (visuals[i].Root != null)
             {
-                visuals[i].Root.transform.position =
+                visuals[i].Root.transform.localPosition =
                     new Vector3(
                         (i - (visuals.Count - 1) / 2f) * spacing,
                         0f,
@@ -648,22 +664,69 @@ public sealed class MultiplayerPreparationUI : MonoBehaviour
         if (visualRoot != null)
             return;
 
+        Transform parent = null;
+
+        foreach (MapManager_Multi mapManager in
+                 FindObjectsByType<MapManager_Multi>(
+                     FindObjectsInactive.Include,
+                     FindObjectsSortMode.None))
+        {
+            if (mapManager == null ||
+                mapManager.gameObject.name != "MapManager")
+            {
+                continue;
+            }
+
+            preparationContainer = mapManager.gameObject;
+
+            // SinglePlayMode처럼 MapManager를 화면 컨테이너로 사용하되,
+            // 예전 MapManager_Multi 선택 로직은 중복 실행하지 않는다.
+            mapManager.enabled = false;
+            preparationContainer.SetActive(true);
+
+            foreach (Transform child in mapManager.transform)
+            {
+                if (child != null)
+                    child.gameObject.SetActive(false);
+            }
+
+            parent = mapManager.transform;
+            break;
+        }
+
         visualRoot =
             new GameObject("MultiplayerPreparationView");
 
-        visualRoot.transform.position = Vector3.zero;
+        if (parent != null)
+        {
+            visualRoot.transform.SetParent(parent, false);
+            visualRoot.transform.localPosition = Vector3.zero;
+        }
+        else
+        {
+            visualRoot.transform.position = Vector3.zero;
+
+            Debug.LogWarning(
+                "[MultiplayerPreparationUI] " +
+                "MapManager를 찾지 못해 Scene root에 선택 UI를 생성합니다."
+            );
+        }
 
         GameObject textObject =
             new GameObject("PreparationInstruction");
 
         textObject.transform.SetParent(
-            visualRoot.transform
+            visualRoot.transform,
+            false
         );
-        textObject.transform.position =
+        textObject.transform.localPosition =
             new Vector3(0f, 4.2f, 0f);
 
         instructionText =
             textObject.AddComponent<TextMeshPro>();
+
+        if (preparationFont != null)
+            instructionText.font = preparationFont;
 
         instructionText.alignment =
             TextAlignmentOptions.Center;

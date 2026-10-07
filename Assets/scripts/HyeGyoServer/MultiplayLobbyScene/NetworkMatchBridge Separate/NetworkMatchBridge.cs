@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -32,6 +33,10 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
 
     [SerializeField]
     private EnhanceCandidateServerService enhanceCandidateService;
+
+    [Header("Preparation View")]
+    [SerializeField]
+    private TMP_FontAsset preparationFont;
 
     private readonly HashSet<ulong>
         preparationReadyClients = new();
@@ -122,7 +127,11 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
             ui = gameObject.AddComponent<MultiplayerPreparationUI>();
         }
 
-        ui.Initialize(this, cardOptionGenerator);
+        ui.Initialize(
+            this,
+            cardOptionGenerator,
+            preparationFont
+        );
     }
 
     public override void OnNetworkSpawn()
