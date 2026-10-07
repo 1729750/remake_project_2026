@@ -24,6 +24,10 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
 
 
     [Header("Flow")]
+    [Tooltip("개발용 자동 방 생성을 사용할 때만 켭니다. 일반 흐름에서는 LobbyEntryUI가 방 생성을 요청합니다.")]
+    [SerializeField]
+    private bool autoCreateHostOnEnable = false;
+
     [SerializeField]
     private bool autoStartWhenReady = true;
 
@@ -155,7 +159,10 @@ else
 
         RefreshCurrentPeople();
 
-        StartHostAutomatically();
+        if (autoCreateHostOnEnable)
+        {
+            StartHostAutomatically();
+        }
     }
 
 

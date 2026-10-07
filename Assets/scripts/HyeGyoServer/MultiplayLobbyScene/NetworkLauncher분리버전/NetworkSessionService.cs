@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Unity.Netcode;
 using Unity.Services.Multiplayer;
 using UnityEngine;
 
@@ -15,6 +16,7 @@ using UnityEngine;
 /// WithRelayNetwork()를 사용하므로
 /// Session 생성 / 참가 과정에서 Relay 네트워크가 함께 구성된다.
 /// </summary>
+[RequireComponent(typeof(NetworkManager))]
 [RequireComponent(typeof(NetworkModeGate))]
 [RequireComponent(typeof(NetworkStatusHub))]
 [RequireComponent(typeof(UnityServicesAuthService))]
@@ -32,6 +34,7 @@ public sealed class NetworkSessionService : MonoBehaviour
     private NetworkModeGate modeGate;
     private NetworkStatusHub statusHub;
     private UnityServicesAuthService services;
+    private NetworkManager networkManager;
 
     private ISession currentSession;
 
@@ -88,6 +91,9 @@ public sealed class NetworkSessionService : MonoBehaviour
 
         services ??=
             GetComponent<UnityServicesAuthService>();
+
+        networkManager ??=
+            GetComponent<NetworkManager>();
     }
 
 
@@ -166,6 +172,18 @@ public sealed class NetworkSessionService : MonoBehaviour
             // 성공한 경우에만 저장
             currentSession =
                 createdSession;
+
+            if (!await WaitForNetworkListeningAsync("HOST"))
+            {
+                await LeaveFailedSessionAsync(createdSession);
+
+                statusHub.SetStatus(
+                    "Relay 세션은 생성됐지만 NGO Host 연결이 시작되지 않았습니다.\n" +
+                    "NetworkManager/Session 네트워크 구성을 확인하세요."
+                );
+
+                return false;
+            }
 
 
             // -------------------------------------------------
@@ -309,6 +327,18 @@ public sealed class NetworkSessionService : MonoBehaviour
             // 성공한 경우에만 저장
             currentSession =
                 joinedSession;
+
+            if (!await WaitForNetworkListeningAsync("CLIENT"))
+            {
+                await LeaveFailedSessionAsync(joinedSession);
+
+                statusHub.SetStatus(
+                    "Relay 세션에는 참가했지만 NGO Client 연결이 시작되지 않았습니다.\n" +
+                    "NetworkManager/Session 네트워크 구성을 확인하세요."
+                );
+
+                return false;
+            }
 
 
             // -------------------------------------------------
@@ -476,6 +506,74 @@ public sealed class NetworkSessionService : MonoBehaviour
 
 
     // =========================================================
+    // NGO connection verification
+    // =========================================================
+
+    private async Task<bool> WaitForNetworkListeningAsync(
+        string role)
+    {
+        EnsureReferences();
+
+        const int maxAttempts = 100;
+
+        for (int attempt = 0;
+             attempt < maxAttempts;
+             attempt++)
+        {
+            if (networkManager != null &&
+                networkManager.IsListening)
+            {
+                Debug.Log(
+                    "[NetworkSessionService] " +
+                    $"NGO {role} 시작 확인 | " +
+                    $"IsServer: {networkManager.IsServer} | " +
+                    $"IsClient: {networkManager.IsClient} | " +
+                    $"LocalClientId: {networkManager.LocalClientId}"
+                );
+
+                return true;
+            }
+
+            await Task.Delay(100);
+        }
+
+        Debug.LogError(
+            "[NetworkSessionService] " +
+            $"NGO {role} 시작 확인 실패 | " +
+            $"NetworkManager: {(networkManager != null ? "있음" : "없음")}"
+        );
+
+        return false;
+    }
+
+    private async Task LeaveFailedSessionAsync(
+        ISession session)
+    {
+        try
+        {
+            if (session != null)
+            {
+                await session.LeaveAsync();
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "[NetworkSessionService] " +
+                $"실패한 Session 정리 중 오류: {exception.Message}"
+            );
+        }
+        finally
+        {
+            if (ReferenceEquals(currentSession, session))
+            {
+                currentSession = null;
+            }
+        }
+    }
+
+
+    // =========================================================
     // Validation
     // =========================================================
 
@@ -513,6 +611,18 @@ public sealed class NetworkSessionService : MonoBehaviour
             Debug.LogError(
                 "[NetworkSessionService] " +
                 "UnityServicesAuthService를 찾을 수 없습니다.",
+                this
+            );
+
+            return false;
+        }
+
+
+        if (networkManager == null)
+        {
+            Debug.LogError(
+                "[NetworkSessionService] " +
+                "NetworkManager를 찾을 수 없습니다.",
                 this
             );
 
