@@ -1,3 +1,4 @@
+throw 'Disabled incomplete import helper. Do not execute: recovery ownership and byte-exact import remain unresolved.'
 $ErrorActionPreference = 'Stop'
 $root = 'c:\Git-Directory\UpnL_FirstGame\remake_project_2026'
 $task = Join-Path $root '.agents\tasks\github-unity-import-2026'
