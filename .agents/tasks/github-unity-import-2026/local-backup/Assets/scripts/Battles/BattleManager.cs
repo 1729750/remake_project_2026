@@ -1,0 +1,309 @@
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+
+public class BattleManager:MonoBehaviour
+{
+    public static BattleManager Instance { get; private set; }
+
+    [SerializeField] private CharacterManager playerCharacterManager;
+    [SerializeField] private CharacterManager enemyCharacterManager;
+    [SerializeField] private TextMeshPro turnText;
+    [SerializeField] private float turnDuration = 1f;
+    [SerializeField] private float startDelay = 3f;
+    [SerializeField] private List<EffectEmoji> effectEmojis = new List<EffectEmoji>();
+    // enemyData(CharacterData)에 EnemyAIBehavior가 지정되어 있지 않을 때 대신 쓰이는 기본 AI.
+    [SerializeField] private EnemyAIBehavior defaultEnemyAI;
+
+    // 큐에 쌓인 카드의 남은 턴을 보여주는 눈금(TurnScaleDisplay)이 소환될 중심점.
+    // 눈금 프리팹 자체는 Resources/Prefabs/scale에서 직접 불러온다(HandManager의 카드 프리팹과 동일한 방식).
+    [SerializeField] private Transform scaleArea;
+    [SerializeField] private float scaleSpacing = 0.5f;
+    [SerializeField] private float scaleVerticalOffset = 0.3f;
+    [SerializeField] private Color scaleDefaultColor = new Color(1f, 1f, 1f, 0.6f);
+    // 왼쪽/오른쪽 눈금이 중심에서 한 칸 멀어질 때마다 알파에 곱해지는 값 — 오른쪽을 더 작게 잡아
+    // 왼쪽보다 훨씬 급격히 반투명해지게 한다.
+    [SerializeField] private float scaleLeftFadePerStep = 0.85f;
+    [SerializeField] private float scaleRightFadePerStep = 0.5f;
+    // 적/내 큐 카드의 남은 턴에 따라 칠해지는 색 — near는 남은 턴이 가장 적을 때(중심에 가까움),
+    // far는 가장 많을 때(10칸 끝)의 색이다.
+    [SerializeField] private Color enemyScaleNearColor = new Color(0.8f, 0.05f, 0.05f);
+    [SerializeField] private Color enemyScaleFarColor = new Color(1f, 0.75f, 0.75f);
+    [SerializeField] private Color playerScaleNearColor = new Color(0.05f, 0.05f, 0.8f);
+    [SerializeField] private Color playerScaleFarColor = new Color(0.75f, 0.75f, 1f);
+
+    private TurnManager _turnManager;
+    private TurnTimerOverlay _turnTimerOverlay;
+    private TurnScaleDisplay _turnScaleDisplay;
+    // scaleArea 밑의 눈금 오브젝트를 전투가 바뀌어도 계속 재사용하는 풀 — Init()에서 한 번만 만들고
+    // 이후로는 GameObjectPool.ReleaseAll()로 반납만 한다(Destroy/Instantiate 반복을 피한다).
+    private GameObjectPool _scalePool;
+    private float _startElapsed;
+    private static Dictionary<EffectType, Sprite> _emojiCache;
+
+    // BattleStarting 카운트다운 중 1초마다, 그리고 실제 턴이 끝날 때마다 TurnEnd1/TurnEnd2를
+    // 번갈아 재생하기 위한 상태. 전투가 끝나면(NotifyDefeat) 다음 전투를 위해 리셋된다.
+    private int _startTickCount;
+    private bool _nextTurnEndIsFirst = true;
+
+    public BattleState CurrentState { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+    }
+
+    // GameManager.Start(최초 1회)와 GameManager.GameStart(매 런 재시작마다) 둘 다에서 호출된다.
+    // 재호출 시 이전 TurnTimerOverlay가 남아있으면 먼저 파괴한다 — 그렇지 않으면 재시작할 때마다
+    // 오버레이 오브젝트가 하나씩 쌓인다.
+    public void Init()
+    {
+        playerCharacterManager.Init();
+        enemyCharacterManager.Init();
+
+        if (_turnTimerOverlay != null)
+            Destroy(_turnTimerOverlay.gameObject);
+
+        // TurnScaleDisplay는 매번 scaleArea 밑에 눈금이 필요하므로, 재호출 시 이전 전투에서 쓰던
+        // 눈금 오브젝트를 파괴하는 대신 풀에 반납만 해서(비활성화) 다음 TurnScaleDisplay 생성 때
+        // 그대로 재사용한다 — 배틀이 반복돼도 Destroy/Instantiate가 쌓이지 않는다.
+        if (scaleArea != null)
+        {
+            if (_scalePool == null)
+                _scalePool = new GameObjectPool(Resources.Load<GameObject>("Prefabs/scale"), scaleArea);
+            _scalePool.ReleaseAll();
+        }
+
+        var overlayGO = new GameObject("TurnTimerOverlay");
+        overlayGO.transform.SetParent(turnText.transform.parent);
+        overlayGO.transform.localPosition = Vector3.zero;
+        overlayGO.transform.localScale = Vector3.one;
+        overlayGO.AddComponent<MeshFilter>();
+        overlayGO.AddComponent<MeshRenderer>();
+        _turnTimerOverlay = overlayGO.AddComponent<TurnTimerOverlay>();
+        _turnManager = new TurnManager(turnDuration, _turnTimerOverlay);
+
+        _turnManager.OnTurnStarted += OnTurnStarted;
+        _turnManager.OnTurnEnded += OnTurnEnded;
+
+        _turnScaleDisplay = new TurnScaleDisplay(
+            _scalePool, scaleSpacing, scaleVerticalOffset,
+            scaleDefaultColor, scaleLeftFadePerStep, scaleRightFadePerStep,
+            enemyScaleNearColor, enemyScaleFarColor, playerScaleNearColor, playerScaleFarColor);
+    }
+
+    public void StartBattle(CharacterData playerData, CharacterData enemyData)
+    {
+        EnemyAIBehavior enemyAI = enemyData.GetEnemyAI() != null ? enemyData.GetEnemyAI() : defaultEnemyAI;
+        playerCharacterManager.CharacterInit(UnpackCardCollection(playerData.GetDeck()).ToArray(), playerData.GetMaxHealth());
+        enemyCharacterManager.CharacterInit(UnpackCardCollection(enemyData.GetDeck()).ToArray(), enemyData.GetMaxHealth(), enemyAI);
+
+        _turnManager.Reset();
+        _startElapsed = 0f;
+        _startTickCount = 0;
+        _turnTimerOverlay?.SetFill(0f);
+        // startDelay 카운트다운 동안은 bgm 없이 진행하다가, OnBattleStarted에서 BattleBGM을 튼다.
+        SoundManager.Instance?.StopBgm();
+        UpdateStartCountdownText();
+        SetState(BattleState.BattleStarting);
+    }
+
+    // BattleStarting 카운트다운 동안 turnText에 남아있던 이전 전투의 턴 수 대신 남은 초를 표시한다.
+    // 3부터 시작해 1초마다 1씩 줄어들다가, startDelay에 도달하면 OnBattleStarted → TurnManager.StartTurn
+    // 이 같은 turnText를 실제 턴 수로 덮어써 이어받는다.
+    private void UpdateStartCountdownText()
+    {
+        if (turnText == null) return;
+        int remaining = Mathf.CeilToInt(Mathf.Max(startDelay - _startElapsed, 0f));
+        turnText.text = $"{remaining}";
+    }
+
+    // CardCollection 에셋을 런타임 덱으로 풀어낸다. 원본 에셋이 오염되지 않도록
+    // 각 CardDefinition을 Instantiate로 깊은 복사해서 반환한다.
+    public static List<CardDefinition> UnpackCardCollection(CardCollection collection)
+    {
+        var result = new List<CardDefinition>();
+        if (collection == null) return result;
+        foreach (var def in collection.GetCards())
+            if (def != null)
+                result.Add(Instantiate(def));
+        return result;
+    }
+
+    public void Tick(float deltaTime)
+    {
+        _turnScaleDisplay?.Refresh(playerCharacterManager, enemyCharacterManager, deltaTime);
+
+        if (CurrentState == BattleState.BattleStarting)
+        {
+            _startElapsed += deltaTime;
+            _turnTimerOverlay?.SetFill(Mathf.Clamp01(_startElapsed / startDelay));
+
+            // 시작하자마자(0초 시점) 한 번, 그리고 그 뒤로 매 1초마다 한 번씩 — startDelay가
+            // n초면 총 n번 울리도록 목표 재생 횟수를 "지금까지 지난 정수초 + 1"로 계산한다.
+            int desiredTicks = Mathf.Min(Mathf.FloorToInt(_startElapsed) + 1, Mathf.FloorToInt(startDelay));
+            while (_startTickCount < desiredTicks)
+            {
+                _startTickCount++;
+                PlayAlternatingTurnEnd();
+            }
+
+            if (_startElapsed >= startDelay)
+            {
+                OnBattleStarted();
+            }
+            else
+            {
+                UpdateStartCountdownText();
+            }
+        }
+        else if (CurrentState == BattleState.Turn)
+        {
+            _turnManager.Tick(deltaTime);
+        }
+    }
+
+    private void SetState(BattleState state)
+    {
+        CurrentState = state;
+    }
+
+    private void OnBattleStarted()
+    {
+        SoundManager.Instance?.Play(EffectSound.BattleStart);
+        SoundManager.Instance?.Play(BgmName.BattleBGM);
+        // 턴 숫자는 이제 게임 시작 전 카운트다운 용도로만 쓰인다 — 실제 턴이 시작되면 지워서
+        // 이후로는 scaleArea의 눈금이 그 자리를 대신하게 한다.
+        if (turnText != null) turnText.text = "";
+        _turnManager.StartTurn();
+    }
+
+    private void OnTurnStarted()
+    {
+        SetState(BattleState.TurnStart);
+        Debug.Log($"Turn {_turnManager.GetCurrentTurn()} Started");
+        playerCharacterManager.OnTurnStart();
+        enemyCharacterManager.OnTurnStart();
+        SetState(BattleState.Turn);
+    }
+
+    private void OnTurnEnded()
+    {
+        SetState(BattleState.TurnEnd);
+        Debug.Log($"Turn {_turnManager.GetCurrentTurn()} Ended");
+        PlayAlternatingTurnEnd();
+        playerCharacterManager.OnTurnEnd();
+        enemyCharacterManager.OnTurnEnd();
+        if (CurrentState != BattleState.BattleFinish)
+        {
+            _turnManager.StartTurn();
+        }
+    }
+
+    // BattleStarting 카운트다운의 1초 틱과 실제 턴 종료가 같은 토글을 공유해 TurnEnd1/2를 번갈아 재생한다.
+    private void PlayAlternatingTurnEnd()
+    {
+        SoundManager.Instance?.Play(_nextTurnEndIsFirst ? EffectSound.TurnEnd1 : EffectSound.TurnEnd2);
+        _nextTurnEndIsFirst = !_nextTurnEndIsFirst;
+    }
+
+    public void NotifyDefeat(CharacterManager loser)
+    {
+        if (CurrentState != BattleState.BattleFinish)
+        {
+            SetState(BattleState.BattleFinish);
+            _nextTurnEndIsFirst = true;
+            playerCharacterManager.ClearHandAndQueue();
+            enemyCharacterManager.ClearHandAndQueue();
+            // battleBGM은 전투가 끝나는 이 시점부터 다음 BattleStart(OnBattleStarted가 다시
+            // BgmName.BattleBGM을 틀 때)까지 나오지 않아야 하므로 여기서 완전히 멈춘다.
+            SoundManager.Instance?.StopBgm();
+            if (loser == playerCharacterManager)
+            {
+                GameManager.Instance.GameOver();
+            }
+            else if (GameManager.Instance.IsBossBattle)
+            {
+                // 보스전 승리 = 게임 클리어. 다음 전투로 이어지는 보상 화면(EndBattle) 대신
+                // GameOver와 동일한 결과 화면으로 바로 보낸다(GameWinBGM만 다르다).
+                GameManager.Instance.GameWin();
+            }
+            else
+            {
+                SoundManager.Instance?.Play(EffectSound.PlayerWin);
+                // menu BGM은 playerWin 효과음이 끝난 뒤부터 틀어야 하므로 그 클립 길이만큼 예약한다.
+                float delay = SoundManager.Instance != null
+                    ? SoundManager.Instance.GetEffectClipLength(EffectSound.PlayerWin)
+                    : 0f;
+                SoundManager.Instance?.PlayBgmDelayed(BgmName.Menu, delay);
+                GameManager.Instance.EndBattle();
+            }
+        }
+    }
+
+    public CharacterManager GetOpponent(CharacterManager user)
+    {
+        return user == playerCharacterManager ? enemyCharacterManager : playerCharacterManager;
+    }
+
+    // 현재 턴 수 / 이번 턴 길이 / 이번 턴 남은 시간 — EnemyAIBehavior가 턴 진행 상황을 보고 판단할 때 쓴다.
+    public EnemyAIBehavior GetDefaultEnemyAI() => defaultEnemyAI;
+    public int GetCurrentTurn() => _turnManager.GetCurrentTurn();
+    public float GetTurnDuration() => _turnManager.GetTurnDuration();
+    public float GetRemainingTurnTime() => _turnManager.GetRemainingTime();
+
+    // enemyAI(!playerControlled인 self)가 매 틱 Decide에 넘길 전투 상황 스냅샷을 만든다.
+    public BattleSnapshot BuildSnapshot(CharacterManager self)
+    {
+        CharacterManager opponent = GetOpponent(self);
+        return new BattleSnapshot(
+            self, opponent,
+            self.GetHealth(), self.getmaxHealth(), self.GetDefense(), self.GetCost(),
+            self.GetEffects(), self.GetHand(), self.GetQueue(), self.QueueHasFreeSlot(), self.GetDeck(),
+            opponent.GetHealth(), opponent.getmaxHealth(), opponent.GetDefense(),
+            opponent.GetEffects(), opponent.GetQueue(),
+            GetCurrentTurn(), GetTurnDuration(), GetRemainingTurnTime());
+    }
+
+    public static Sprite GetEmoji(EffectType effectType)
+    {
+        if (_emojiCache == null)
+        {
+            // Lobby처럼 Single BattleManager가 없는 Scene에서는
+            // 캐시를 빈 상태로 고착시키지 않고 안전하게 반환한다.
+            if (Instance == null)
+                return null;
+
+            var cache = new Dictionary<EffectType, Sprite>();
+            foreach (var entry in Instance.effectEmojis)
+                cache[entry.effectType] = entry.sprite;
+
+            _emojiCache = cache;
+        }
+        _emojiCache.TryGetValue(effectType, out var sprite);
+        return sprite;
+    }
+
+    public void Update()
+    {
+        if(GameManager.Instance.GetGameState() == GameState.Battle)
+            Tick(Time.deltaTime);
+    }
+}
+
+public enum BattleState
+{
+    BattleStarting,
+    TurnStart,
+    Turn,
+    TurnEnd,
+    BattleFinish
+}
+
+[System.Serializable]
+public class EffectEmoji
+{
+    public EffectType effectType;
+    public Sprite sprite;
+}
