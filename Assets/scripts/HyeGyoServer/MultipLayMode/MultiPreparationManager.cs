@@ -482,7 +482,15 @@ private void CheckAllPlayersCompleted()
 
     return true;
 }
-public int GetRemainingChoices(
+    public CardDefinition[] GetConfirmedDeck(ulong clientId)
+    {
+        if (!preparationRegistry.TryGetPlayer(clientId, out PlayerPreparationData player))
+            return null;
+
+        return player.FinalDeck.ToArray();
+    }
+
+    public int GetRemainingChoices(
     ulong clientId)
 {
     int completed =
