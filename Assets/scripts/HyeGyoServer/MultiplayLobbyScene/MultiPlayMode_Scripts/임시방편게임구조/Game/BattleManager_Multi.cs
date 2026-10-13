@@ -204,28 +204,14 @@ public sealed class BattleManager_Multi : NetworkBehaviour
 
         TryBindLocalViews();
 
-        if (MatchDeckStore.Instance != null)
-        {
-            if (!TryInitializeFinalDecksServer())
-            {
-                Debug.LogError(
-                    "[BattleManager_Multi] " +
-                    "FinalDeck 초기화 실패로 전투 시작을 중단합니다."
-                );
+        // 현재 단계에서는
+        // Inspector Start Deck 사용.
+        // 나중에 FinalDeck 연동으로 교체.
+        playerCharacterManager
+            ?.InitializeConfiguredCharacterServer();
 
-                return;
-            }
-        }
-        else
-        {
-            // MultiPlayMode Scene을 직접 실행한 개발 테스트에서만
-            // Inspector Start Deck을 fallback으로 사용한다.
-            playerCharacterManager
-                ?.InitializeConfiguredCharacterServer();
-
-            enemyCharacterManager
-                ?.InitializeConfiguredCharacterServer();
-        }
+        enemyCharacterManager
+            ?.InitializeConfiguredCharacterServer();
 
         _battleStarted = true;
 
@@ -257,99 +243,13 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     }
 
 
-    private bool TryInitializeFinalDecksServer()
-    {
-        MatchDeckStore store =
-            MatchDeckStore.Instance;
-
-        if (store == null ||
-            playerCharacterManager == null ||
-            enemyCharacterManager == null)
-        {
-            return false;
-        }
-
-        ulong playerClientId =
-            playerCharacterManager.RepresentedClientId;
-
-        ulong enemyClientId =
-            enemyCharacterManager.RepresentedClientId;
-
-        if (!store.TryCreateDeck(
-                playerClientId,
-                out CardDefinition[] playerDeck))
-        {
-            Debug.LogError(
-                "[BattleManager_Multi] " +
-                $"Player FinalDeck을 찾지 못했습니다: {playerClientId}"
-            );
-
-            return false;
-        }
-
-        if (!store.TryCreateDeck(
-                enemyClientId,
-                out CardDefinition[] enemyDeck))
-        {
-            foreach (CardDefinition card in playerDeck)
-            {
-                if (card != null)
-                    Destroy(card);
-            }
-
-            Debug.LogError(
-                "[BattleManager_Multi] " +
-                $"Enemy FinalDeck을 찾지 못했습니다: {enemyClientId}"
-            );
-
-            return false;
-        }
-
-        playerCharacterManager.CharacterInit(
-            playerDeck,
-            playerCharacterManager.getmaxHealth()
-        );
-
-        enemyCharacterManager.CharacterInit(
-            enemyDeck,
-            enemyCharacterManager.getmaxHealth()
-        );
-
-        Debug.Log(
-            "[BattleManager_Multi] " +
-            $"FinalDeck 전투 연결 완료 | " +
-            $"Player({playerClientId}): {playerDeck.Length} | " +
-            $"Enemy({enemyClientId}): {enemyDeck.Length}"
-        );
-
-        return true;
-    }
-
-
     public void SetBattleViewActive(
         bool active)
     {
-        // NetworkObject가 붙은 BattleManager root 자체는 끄지 않고
-        // Player/Enemy/Turn 등 visual child만 토글한다.
-        if (battleViewRoot == gameObject)
-        {
-            foreach (Transform child in transform)
-            {
-                if (child != null)
-                    child.gameObject.SetActive(active);
-            }
-
-            Debug.Log(
-                "[BattleManager_Multi] " +
-                $"Battle child views active: {active}"
-            );
-
-            return;
-        }
-
         if (battleViewRoot != null)
         {
-            battleViewRoot.SetActive(active);
+            battleViewRoot
+                .SetActive(active);
         }
 
         Debug.Log(
@@ -880,27 +780,25 @@ public sealed class BattleManager_Multi : NetworkBehaviour
     {
         if (_emojiCache == null)
         {
+            _emojiCache =
+                new Dictionary<
+                    EffectType,
+                    Sprite>();
+
             if (Instance == null)
             {
                 return null;
             }
 
-            var cache =
-                new Dictionary<
-                    EffectType,
-                    Sprite>();
-
             foreach (
                 EffectEmoji entry
                 in Instance.effectEmojis)
             {
-                cache[
+                _emojiCache[
                     entry.effectType
                 ] =
                     entry.sprite;
             }
-
-            _emojiCache = cache;
         }
 
         _emojiCache.TryGetValue(

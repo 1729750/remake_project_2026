@@ -1,4 +1,3 @@
-using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -32,10 +31,6 @@ public sealed class MatchServerController
     private EnhanceCandidateServerService
         enhanceCandidateService;
 
-    [SerializeField]
-    private MultiPreparationManager
-        preparationManager;
-
 
     [Header("Flow")]
 
@@ -46,12 +41,6 @@ public sealed class MatchServerController
     [InspectorName("셀렉 & 강화 사용")]
     [SerializeField]
     private bool useSelectAndEnhance = true;
-
-    [Tooltip("MultiPlayMode 안에서 준비를 진행할 때는 같은 Scene에서 전투를 시작합니다.")]
-    [SerializeField]
-    private bool completeInCurrentScene;
-
-    private bool sceneLoadRequested;
 
     
     private void Awake()
@@ -81,135 +70,6 @@ public sealed class MatchServerController
             enhanceCandidateService =
                 GetComponent<
                     EnhanceCandidateServerService>();
-        }
-
-        if (preparationManager == null)
-        {
-            preparationManager =
-                GetComponent<MultiPreparationManager>();
-        }
-
-        if (preparationManager == null)
-        {
-            preparationManager =
-                FindFirstObjectByType<MultiPreparationManager>();
-        }
-    }
-
-    private void OnEnable()
-    {
-        if (preparationManager == null)
-        {
-            preparationManager =
-                GetComponent<MultiPreparationManager>();
-        }
-
-        if (preparationManager == null)
-        {
-            preparationManager =
-                FindFirstObjectByType<MultiPreparationManager>();
-        }
-
-        if (preparationManager != null)
-        {
-            preparationManager.AllPlayersCompleted +=
-                HandleAllPlayersCompleted;
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (preparationManager != null)
-        {
-            preparationManager.AllPlayersCompleted -=
-                HandleAllPlayersCompleted;
-        }
-    }
-
-    private void HandleAllPlayersCompleted()
-    {
-        if (sceneLoadRequested)
-            return;
-
-        MatchDeckStore store =
-            MatchDeckStore.EnsureOn(
-                NetworkManager.Singleton != null
-                    ? NetworkManager.Singleton.gameObject
-                    : null
-            );
-
-        if (store == null)
-        {
-            Debug.LogError(
-                "[MatchServerController] FinalDeck 저장소가 없습니다."
-            );
-            return;
-        }
-
-        if (!store.Capture(
-                preparationRegistry,
-                out string captureRejectReason))
-        {
-            Debug.LogError(
-                "[MatchServerController] " +
-                $"FinalDeck 저장 실패 | {captureRejectReason}"
-            );
-
-            return;
-        }
-
-        StartCoroutine(
-            LoadGameplayAfterFinalResponse()
-        );
-    }
-
-    private IEnumerator LoadGameplayAfterFinalResponse()
-    {
-        // 마지막 선택 결과 RPC가 전송 큐에 들어간 뒤 다음 흐름을 진행한다.
-        yield return null;
-
-        if (completeInCurrentScene)
-        {
-            if (matchState != null && matchState.IsServer)
-            {
-                matchState.ServerSetPhase(MatchPhase.Battle);
-            }
-
-            const int maxStartAttempts = 300;
-
-            for (int attempt = 0;
-                 attempt < maxStartAttempts;
-                 attempt++)
-            {
-                GameManager_Multi gameManager =
-                    GameManager_Multi.Instance;
-
-                if (gameManager != null)
-                {
-                    gameManager.StartBattle();
-
-                    if (gameManager.IsGameStarted)
-                        yield break;
-                }
-
-                yield return null;
-            }
-
-            Debug.LogError(
-                "[MatchServerController] " +
-                "준비 완료 후 현재 Scene 전투 시작에 실패했습니다."
-            );
-
-            yield break;
-        }
-
-        if (!TryLoadGameplayScene(
-                out string loadRejectReason))
-        {
-            Debug.LogError(
-                "[MatchServerController] " +
-                $"준비 완료 후 씬 이동 실패 | {loadRejectReason}"
-            );
         }
     }
 
@@ -411,12 +271,6 @@ public bool TryStartMatch(
     private bool TryLoadGameplayScene(
         out string rejectReason)
     {
-        if (sceneLoadRequested)
-        {
-            rejectReason = "게임 Scene 이동이 이미 요청되었습니다.";
-            return false;
-        }
-
         NetworkManager networkManager =
             NetworkManager.Singleton;
 
@@ -492,8 +346,6 @@ public bool TryStartMatch(
             return false;
         }
 
-
-        sceneLoadRequested = true;
 
         Debug.Log(
             "[MatchServerController] " +

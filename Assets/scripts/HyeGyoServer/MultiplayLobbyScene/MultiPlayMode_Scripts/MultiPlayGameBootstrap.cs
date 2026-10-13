@@ -1,39 +1,31 @@
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// MultiPlayMode 진입 후 실제 접속 ClientId 두 개를
-/// GameNetworkState의 Player0/Player1에 할당한다.
-/// 전투 시작은 카드 준비 10회가 끝난 뒤 MatchServerController가 담당한다.
-/// </summary>
 public sealed class MultiPlayGameBootstrap : NetworkBehaviour
 {
+    [Header("References")]
     [SerializeField]
     private GameNetworkState gameNetworkState;
 
+    [Header("Initial State")]
     [SerializeField]
     private int initialHealth = 100;
 
-    private bool playersInitialized;
-
     public override void OnNetworkSpawn()
     {
-        if (IsServer)
-            TryInitializePlayersServer();
+        if (!IsServer)
+            return;
+
+        InitializePlayersServer();
     }
 
-    private void Update()
+    private void InitializePlayersServer()
     {
-        if (IsServer && !playersInitialized)
-            TryInitializePlayersServer();
-    }
-
-    private void TryInitializePlayersServer()
-    {
-        if (playersInitialized ||
-            gameNetworkState == null ||
-            NetworkManager.Singleton == null)
+        if (gameNetworkState == null)
         {
+            Debug.LogError(
+                "[MultiPlayGameBootstrap] GameNetworkState가 없습니다."
+            );
             return;
         }
 
@@ -41,26 +33,28 @@ public sealed class MultiPlayGameBootstrap : NetworkBehaviour
             NetworkManager.Singleton.ConnectedClientsIds;
 
         if (clients.Count != 2)
+        {
+            Debug.LogError(
+                "[MultiPlayGameBootstrap] " +
+                $"현재 연결 수가 2명이 아닙니다: {clients.Count}"
+            );
             return;
+        }
 
         ulong player0 = clients[0];
         ulong player1 = clients[1];
 
+        // 순서가 달라져도 항상 작은 ClientId = Player0
         if (player1 < player0)
-            (player0, player1) = (player1, player0);
+        {
+            (player0, player1) =
+                (player1, player0);
+        }
 
         gameNetworkState.InitializePlayersServer(
             player0,
             player1,
             initialHealth
-        );
-
-        playersInitialized =
-            gameNetworkState.PlayersAssigned;
-
-        Debug.Log(
-            "[MultiPlayGameBootstrap] " +
-            $"Player0={player0}, Player1={player1} 등록 완료"
         );
     }
 }
