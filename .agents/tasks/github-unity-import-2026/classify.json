@@ -1147,6 +1147,8 @@
     "ProjectSettings/ShaderGraphSettings.asset"
   ],
   "delete": [
+    "Assets/_Recovery/0 (8).unity",
+    "Assets/_Recovery/0 (8).unity.meta",
     "Assets/scripts/Cards/effects/EffectIconRegistry.cs",
     "Assets/scripts/Cards/effects/EffectIconRegistry.cs.meta",
     "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/MatchDeckStore.cs",
