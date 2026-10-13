@@ -1,0 +1,18 @@
+$ErrorActionPreference = 'Stop'
+$root = 'c:\Git-Directory\UpnL_FirstGame\remake_project_2026'
+$task = Join-Path $root '.agents\tasks\github-unity-import-2026'
+$source = Join-Path $task 'temp-remote'
+$classify = Get-Content -Raw -LiteralPath (Join-Path $task 'classify.json') | ConvertFrom-Json
+$excludedExact = @('.gitignore','.vsconfig')
+$excludedPrefixes = @('.git\','Library\','obj\','Binaries\','Temp\','Build\','UserSettings\','.vs\','.kiro\','.agents\tasks\github-unity-import-2026\')
+function Is-Excluded([string]$rel) { $p=$rel.Replace('/','\'); if ($p -in $excludedExact) { return $true }; foreach ($prefix in $excludedPrefixes) { if ($p.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)) { return $true } }; if ($p -match '\.(csproj|user)$') { return $true }; return $false }
+function Full([string]$base,[string]$rel) { Join-Path $base ($rel -replace '/','\') }
+$added=0; $replaced=0; $skipped=0; $deleted=0; $verified=0; $mismatches=@(); $deletedRecords=@(); $skippedPaths=@()
+foreach ($rel in @($classify.add)) { if (Is-Excluded $rel) { $skipped++; $skippedPaths += "add: $rel"; continue }; $src=Full $source $rel; $dst=Full $root $rel; $parent=Split-Path -Parent $dst; New-Item -ItemType Directory -Force -Path $parent | Out-Null; Copy-Item -LiteralPath $src -Destination $dst -Force; $added++ }
+foreach ($rel in @($classify.replace)) { if (Is-Excluded $rel) { $skipped++; $skippedPaths += "replace: $rel"; continue }; $src=Full $source $rel; $dst=Full $root $rel; $parent=Split-Path -Parent $dst; New-Item -ItemType Directory -Force -Path $parent | Out-Null; Copy-Item -LiteralPath $src -Destination $dst -Force; $replaced++ }
+foreach ($rel in @($classify.delete)) { if (Is-Excluded $rel -or $rel -in @($classify.localOnlyPreserved)) { $skipped++; $skippedPaths += "delete: $rel"; continue }; $dst=Full $root $rel; if (Test-Path -LiteralPath $dst -PathType Leaf) { $item=Get-Item -LiteralPath $dst; $hash=(Get-FileHash -LiteralPath $dst -Algorithm SHA256).Hash.ToLowerInvariant(); Remove-Item -LiteralPath $dst -Force; $deletedRecords += [pscustomobject]@{path=$rel;sha256=$hash;bytes=$item.Length}; $deleted++ } else { $skipped++; $skippedPaths += "delete absent: $rel" } }
+foreach ($rel in @($classify.replaceDiffers)) { if (Is-Excluded $rel) { continue }; $src=Full $source $rel; $dst=Full $root $rel; if (!(Test-Path -LiteralPath $dst -PathType Leaf)) { $mismatches += [pscustomobject]@{path=$rel;expected='present';actual='absent'}; continue }; $expected=(Get-FileHash -LiteralPath $src -Algorithm SHA256).Hash.ToLowerInvariant(); $actual=(Get-FileHash -LiteralPath $dst -Algorithm SHA256).Hash.ToLowerInvariant(); if ($expected -eq $actual) { $verified++ } else { $mismatches += [pscustomobject]@{path=$rel;expected=$expected;actual=$actual} } }
+$recovery = Join-Path $root 'Assets\_Recovery'; $recoveryDeleted=@(); if (Test-Path -LiteralPath $recovery) { Get-ChildItem -LiteralPath $recovery -File -Recurse | ForEach-Object { $relative=$_.FullName.Substring($root.Length+1).Replace('\','/'); $recoveryDeleted += [pscustomobject]@{path=$relative;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant();bytes=$_.Length}; Remove-Item -LiteralPath $_.FullName -Force }; Get-ChildItem -LiteralPath $recovery -Directory -Recurse | Sort-Object FullName -Descending | Remove-Item -Force -Recurse }
+$result=[pscustomobject]@{added=$added;replaced=$replaced;deleted=$deleted;skipped=$skipped;verified=$verified;mismatches=@($mismatches);deletedRecords=@($deletedRecords);recoveryDeleted=@($recoveryDeleted);skippedPaths=@($skippedPaths)}
+$result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $task 'import-result.json') -Encoding UTF8
+$result | ConvertTo-Json -Depth 8
