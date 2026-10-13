@@ -946,7 +946,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+<<<<<<< HEAD
   GlobalObjectIdHash: 89306494
+=======
+  GlobalObjectIdHash: 1146711843
+>>>>>>> a9650c8 (votisthis)
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -1013,7 +1017,11 @@ MonoBehaviour:
   enhanceCandidateService: {fileID: 178852480}
   preparationManager: {fileID: 0}
   gameplaySceneName: MultiPlayMode
+<<<<<<< HEAD
   useSelectAndEnhance: 0
+=======
+  useSelectAndEnhance: 1
+>>>>>>> a9650c8 (votisthis)
   completeInCurrentScene: 0
 --- !u!114 &178852480
 MonoBehaviour:
@@ -6149,7 +6157,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+<<<<<<< HEAD
   GlobalObjectIdHash: 497023313
+=======
+  GlobalObjectIdHash: 343755367
+>>>>>>> a9650c8 (votisthis)
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
