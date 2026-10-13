@@ -24,10 +24,6 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
 
 
     [Header("Flow")]
-    [Tooltip("HostPanel이 열리면 즉시 Relay 방 생성을 시작합니다.")]
-    [SerializeField]
-    private bool autoCreateHostOnEnable = true;
-
     [SerializeField]
     private bool autoStartWhenReady = true;
 
@@ -122,22 +118,9 @@ public sealed class NetworkLobbyUIHost : MonoBehaviour
         networkLauncher.SessionCreated +=
             HandleSessionCreated;
 
-        networkLauncher.SessionCreateFailed +=
-            HandleSessionCreateFailed;
-
-        if (nicknameInput != null)
-        {
-            nicknameInput.onEndEdit.AddListener(
-                HandleNicknameEndEdit
-            );
-        }
-
 
         if (hostGameManager != null)
         {
-            hostGameManager.HostRoomCreationStarted +=
-                HandleHostRoomCreationStarted;
-
             hostGameManager.LobbyPlayersChanged +=
                 HandleLobbyPlayersChanged;
 
@@ -172,25 +155,7 @@ else
 
         RefreshCurrentPeople();
 
-        if (networkLauncher.IsInSession &&
-            !string.IsNullOrWhiteSpace(
-                networkLauncher.JoinCode))
-        {
-            // 패널이 SessionCreated 이후 다시 켜진 경우에도
-            // 현재 방 코드를 복원한다.
-            HandleSessionCreated(
-                networkLauncher.JoinCode
-            );
-        }
-        else if (networkLauncher.IsBusy)
-        {
-            // 패널이 방 생성 도중 다시 켜진 경우 로딩을 복원한다.
-            HandleHostRoomCreationStarted();
-        }
-        else if (autoCreateHostOnEnable)
-        {
-            StartHostAutomatically();
-        }
+        StartHostAutomatically();
     }
 
 
@@ -207,24 +172,11 @@ else
         {
             networkLauncher.SessionCreated -=
                 HandleSessionCreated;
-
-            networkLauncher.SessionCreateFailed -=
-                HandleSessionCreateFailed;
-        }
-
-        if (nicknameInput != null)
-        {
-            nicknameInput.onEndEdit.RemoveListener(
-                HandleNicknameEndEdit
-            );
         }
 
 
         if (hostGameManager != null)
         {
-            hostGameManager.HostRoomCreationStarted -=
-                HandleHostRoomCreationStarted;
-
             hostGameManager.LobbyPlayersChanged -=
                 HandleLobbyPlayersChanged;
         }
@@ -240,66 +192,8 @@ else
 
 
     // =========================================================
-    // Host Nickname
-    // =========================================================
-
-    private void HandleNicknameEndEdit(
-        string nickname)
-    {
-        if (hostGameManager == null ||
-            string.IsNullOrWhiteSpace(nickname))
-        {
-            return;
-        }
-
-        hostGameManager.SetLocalNickname(
-            nickname
-        );
-    }
-
-
-    // =========================================================
     // Host Start
     // =========================================================
-
-    private void HandleHostRoomCreationStarted()
-    {
-        hostStartRequested = true;
-
-        if (codeOutput != null)
-        {
-            codeOutput.text =
-                string.Empty;
-        }
-
-        if (currentPeopleText != null)
-        {
-            currentPeopleText.text =
-                string.Empty;
-        }
-
-        StartWaitingAnimation();
-
-        Debug.Log(
-            "[NetworkLobbyUIHost] " +
-            "Host 방 생성 요청 → 로딩 시작"
-        );
-    }
-
-
-    private void HandleSessionCreateFailed()
-    {
-        hostStartRequested = false;
-
-        StopWaitingAnimation();
-        RefreshCurrentPeople();
-
-        Debug.LogWarning(
-            "[NetworkLobbyUIHost] " +
-            "Host 방 생성 실패 → 로딩 종료"
-        );
-    }
-
 
     private void StartHostAutomatically()
     {
@@ -321,7 +215,24 @@ else
         }
 
 
-        HandleHostRoomCreationStarted();
+        hostStartRequested = true;
+
+
+        if (codeOutput != null)
+        {
+            codeOutput.text =
+                string.Empty;
+        }
+
+
+        if (currentPeopleText != null)
+        {
+            currentPeopleText.text =
+                string.Empty;
+        }
+
+
+        StartWaitingAnimation();
 
 
         if (!networkLauncher.NetworkEnabled)
@@ -759,18 +670,6 @@ Debug.Log(
 
         if (playerCount < 2)
         {   
-            return;
-        }
-
-        // 실제 NGO 연결뿐 아니라 Host/Client 닉네임 등록도 끝난 뒤 이동한다.
-        if (hostGameManager == null ||
-            !hostGameManager.IsRoomReady)
-        {
-            Debug.Log(
-                "[NetworkLobbyUIHost] " +
-                "NGO 2명 연결 완료, 닉네임 등록 대기"
-            );
-
             return;
         }
 

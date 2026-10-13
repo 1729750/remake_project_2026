@@ -70,33 +70,12 @@ public sealed class PlayerPreparationRegistry : MonoBehaviour
 
     private void EnsureReferences()
     {
-        NetworkManager singleton =
-            NetworkManager.Singleton;
-
-        if (connectionMonitor != null &&
-            singleton != null &&
-            connectionMonitor.GetComponent<NetworkManager>() == singleton)
-        {
+        if (connectionMonitor != null)
             return;
-        }
 
-        foreach (NetworkConnectionMonitor monitor in
-                 FindObjectsByType<NetworkConnectionMonitor>(
-                     FindObjectsInactive.Include,
-                     FindObjectsSortMode.None))
-        {
-            if (monitor == null)
-                continue;
-
-            if (singleton == null ||
-                monitor.GetComponent<NetworkManager>() == singleton)
-            {
-                connectionMonitor = monitor;
-                return;
-            }
-        }
-
-        connectionMonitor = null;
+        connectionMonitor =
+            FindFirstObjectByType<
+                NetworkConnectionMonitor>();
     }
 
     private void HandleClientConnected(
@@ -173,26 +152,8 @@ public sealed class PlayerPreparationRegistry : MonoBehaviour
     private void RemovePlayer(
         ulong clientId)
     {
-        if (!players.TryGetValue(
-                clientId,
-                out PlayerPreparationData player))
-        {
+        if (!players.Remove(clientId))
             return;
-        }
-
-        if (player != null)
-        {
-            foreach (CardDefinition card
-                     in player.FinalDeck)
-            {
-                if (card != null)
-                    Destroy(card);
-            }
-
-            player.FinalDeck.Clear();
-        }
-
-        players.Remove(clientId);
 
         Debug.Log(
             "[PlayerPreparationRegistry] " +

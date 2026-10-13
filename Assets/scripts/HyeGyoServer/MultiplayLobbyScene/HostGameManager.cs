@@ -60,10 +60,6 @@ public sealed class HostGameManager :
     [SerializeField]
     private NetworkLauncher networkLauncher;
 
-    [Tooltip("NGO 접속/종료 이벤트를 로비 목록과 연결합니다.")]
-    [SerializeField]
-    private NetworkConnectionMonitor connectionMonitor;
-
     // =========================================================
     // Lobby State
     // =========================================================
@@ -94,12 +90,6 @@ public sealed class HostGameManager :
     /// 로비 플레이어 정보가 변경되었을 때 호출.
     /// </summary>
     public event Action LobbyPlayersChanged;
-
-    /// <summary>
-    /// 유효한 Host 방 생성 요청을 NetworkLauncher에 전달하기 직전에 호출.
-    /// Host UI는 이 이벤트로 로딩 표시를 시작한다.
-    /// </summary>
-    public event Action HostRoomCreationStarted;
 
     // =========================================================
     // Public Properties
@@ -142,29 +132,11 @@ public sealed class HostGameManager :
     private void OnEnable()
     {
         SubscribeLauncherEvents();
-
-        if (connectionMonitor == null)
-        {
-            connectionMonitor =
-                FindFirstObjectByType<NetworkConnectionMonitor>();
-        }
-
-        if (connectionMonitor != null)
-        {
-            connectionMonitor.ClientDisconnected +=
-                HandleClientDisconnected;
-        }
     }
 
     private void OnDisable()
     {
         UnsubscribeLauncherEvents();
-
-        if (connectionMonitor != null)
-        {
-            connectionMonitor.ClientDisconnected -=
-                HandleClientDisconnected;
-        }
     }
 
     // =========================================================
@@ -205,46 +177,6 @@ public sealed class HostGameManager :
                 HandleLobbyPlayersChanged;
         }
 
-    }
-
-    // =========================================================
-    // Local Nickname
-    // =========================================================
-
-    /// <summary>
-    /// 자동 생성된 Host Session에 현재 PC의 닉네임을 등록한다.
-    /// NetworkObject가 아직 Spawn되지 않았다면 보관했다가
-    /// OnNetworkSpawn에서 다시 제출한다.
-    /// </summary>
-    public bool SetLocalNickname(
-        string nickname)
-    {
-        string validatedNickname =
-            ValidateReceivedNickname(
-                nickname
-            );
-
-        if (string.IsNullOrWhiteSpace(
-                validatedNickname))
-        {
-            SetStatus(
-                "올바른 닉네임을 입력해주세요."
-            );
-
-            return false;
-        }
-
-        localNickname =
-            validatedNickname;
-
-        SubmitLocalNicknameIfReady();
-
-        Debug.Log(
-            "[HostGameManager] " +
-            $"Local 닉네임 저장/제출 | {localNickname}"
-        );
-
-        return true;
     }
 
     // =========================================================
@@ -302,8 +234,6 @@ public sealed class HostGameManager :
         SetStatus(
             "Host 방 생성 중..."
         );
-
-        HostRoomCreationStarted?.Invoke();
 
         networkLauncher
             .CreateSession();
@@ -703,6 +633,8 @@ Debug.Log(
     $"Count: {ConnectedPlayerCount} | " +
     $"InstanceId: {GetInstanceID()}"
 );
+
+LobbyPlayersChanged?.Invoke();
 
         LobbyPlayersChanged?.Invoke();
     }

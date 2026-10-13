@@ -5,7 +5,6 @@ public struct EnhanceOptionNetData : INetworkSerializable
     public EffectType EffectType;
     public int Magnitude;
     public EffectTarget Target;
-    public EffectCategory AppliedCategory;
     public int CostDelta;
     public int CooldownDelta;
 
@@ -13,14 +12,12 @@ public struct EnhanceOptionNetData : INetworkSerializable
         EffectType effectType,
         int magnitude,
         EffectTarget target,
-        EffectCategory appliedCategory,
         int costDelta,
         int cooldownDelta)
     {
         EffectType = effectType;
         Magnitude = magnitude;
         Target = target;
-        AppliedCategory = appliedCategory;
         CostDelta = costDelta;
         CooldownDelta = cooldownDelta;
     }
@@ -32,7 +29,6 @@ public struct EnhanceOptionNetData : INetworkSerializable
         serializer.SerializeValue(ref EffectType);
         serializer.SerializeValue(ref Magnitude);
         serializer.SerializeValue(ref Target);
-        serializer.SerializeValue(ref AppliedCategory);
         serializer.SerializeValue(ref CostDelta);
         serializer.SerializeValue(ref CooldownDelta);
     }
@@ -47,7 +43,6 @@ public struct EnhanceOptionNetData : INetworkSerializable
             effect.GetEffectType(),
             effect.GetMagnitude(),
             upgrade.effect.GetEffectTarget(),
-            upgrade.effect.GetAppliedCategory(),
             upgrade.costDelta,
             upgrade.cooldownDelta
         );
@@ -62,11 +57,10 @@ public struct EnhanceOptionNetData : INetworkSerializable
             );
 
         CardEffect cardEffect =
-            new CardEffect(effect, Target);
-
-        cardEffect.SetAppliedCategory(
-            AppliedCategory
-        );
+            new CardEffect(
+                effect,
+                Target
+            );
 
         return new CardUpgrade(
             cardEffect,
