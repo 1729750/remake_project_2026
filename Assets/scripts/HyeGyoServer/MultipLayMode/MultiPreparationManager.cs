@@ -1,4 +1,4 @@
-using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -6,505 +6,156 @@ using UnityEngine;
 public sealed class MultiPreparationManager : MonoBehaviour
 {
     private const int MaxRounds = 10;
-    private const int OptionCount = 3;
+    [SerializeField] private PlayerPreparationRegistry preparationRegistry;
+    [SerializeField] private NetworkMatchState matchState;
+    [SerializeField] private CardOptionGenerator cardOptionGenerator;
+    [SerializeField, Min(0f)] private float transitionDelaySeconds = 1f;
+    private bool transitionStarted;
+    private readonly Dictionary<ulong, int> currentRoundByClient = new();
+    private readonly Dictionary<ulong, PreparationOption[]> currentOptionsByClient = new();
 
-    [SerializeField]
-    private PlayerPreparationRegistry preparationRegistry;
+    private bool Validate(ulong clientId, out PlayerPreparationData player, out string reason)
+    {
+        player = null;
+        reason = string.Empty;
+        var network = NetworkManager.Singleton;
+        if (network == null || !network.IsServer || !network.ConnectedClients.ContainsKey(clientId) ||
+            preparationRegistry == null || !preparationRegistry.TryGetPlayer(clientId, out player))
+        {
+            reason = "Unregistered preparation owner.";
+            return false;
+        }
+        if (matchState == null || cardOptionGenerator == null ||
+            (matchState.CurrentPhase != MatchPhase.ChoosingCard && matchState.CurrentPhase != MatchPhase.ChoosingCondition))
+        {
+            reason = "Preparation is not active.";
+            return false;
+        }
+        return true;
+    }
 
-    [SerializeField]
-    private NetworkMatchState matchState;
-
-    [SerializeField]
-    private CardOptionGenerator cardOptionGenerator;
-
-    private readonly Dictionary<
-        ulong,
-        int
-    > currentRoundByClient = new();
-
-    private readonly Dictionary<
-        ulong,
-        PreparationOption[]
-    > currentOptionsByClient = new();
-
-    public bool TryBeginForPlayer(
-        ulong clientId,
-        out PreparationOption[] options,
-        out string rejectReason)
+    public bool TryBeginForPlayer(ulong clientId, out PreparationOption[] options, out string rejectReason)
     {
         options = null;
-        rejectReason = string.Empty;
-
-            Debug.Log(
-        "[MultiPreparationManager] " +
-        $"TryBeginForPlayer 시작 | " +
-        $"ClientId: {clientId} | " +
-        $"Phase: {(matchState != null ? matchState.CurrentPhase.ToString() : "NULL")} | " +
-        $"Registry: {(preparationRegistry != null ? "있음" : "NULL")} | " +
-        $"PlayerCount: {(preparationRegistry != null ? preparationRegistry.Count : -1)}"
-    );
-
-        if (!IsServer())
+        if (!Validate(clientId, out PlayerPreparationData player, out rejectReason)) return false;
+        if (player.FinalDeck.Count != player.FinalDeckSourceIndices.Count)
         {
-            rejectReason = "Server가 아닙니다.";
+            rejectReason = "Existing deck has no source metadata.";
             return false;
         }
-
-        // 플레이어 2명이 준비되어 있는데
-// 아직 WaitingForPlayers라면
-// Server가 Preparation 단계로 진입시킨다.
-if (matchState != null &&
-    matchState.CurrentPhase ==
-        MatchPhase.WaitingForPlayers &&
-    preparationRegistry != null &&
-    preparationRegistry.Count == 2)
-{
-    matchState.ServerSetPhase(
-        MatchPhase.ChoosingCard
-    );
-
-    Debug.Log(
-        "[MultiPreparationManager] " +
-        "플레이어 2명 확인 → " +
-        "Preparation Phase 시작 | " +
-        "ChoosingCard"
-    );
-}
-
-        if (matchState.CurrentPhase !=
-            MatchPhase.ChoosingCard &&
-            matchState.CurrentPhase !=
-            MatchPhase.ChoosingCondition)
+        if (player.ConditionCompleted) return true;
+        if (currentOptionsByClient.TryGetValue(clientId, out options)) return true;
+        options = cardOptionGenerator.GenerateOptions(player, MaxRounds - GetRemainingChoices(clientId));
+        if (options == null || options.Length != 3)
         {
-    rejectReason =
-        $"현재 준비 선택 단계가 아닙니다. " +
-        $"CurrentPhase: {matchState.CurrentPhase}";
-
-    Debug.LogWarning(
-        "[MultiPreparationManager] " +
-        $"준비 요청 거절 | " +
-        $"ClientId: {clientId} | " +
-        $"Reason: {rejectReason}"
-    );
-
-
+            rejectReason = "Invalid candidate pool.";
             return false;
         }
-
-if (!preparationRegistry.TryGetPlayer(
-        clientId,
-        out PlayerPreparationData player))
-{
-    rejectReason =
-        $"플레이어 준비 데이터를 찾을 수 없습니다. " +
-        $"ClientId: {clientId}";
-
-    Debug.LogWarning(
-        "[MultiPreparationManager] " +
-        $"준비 요청 거절 | " +
-        $"Reason: {rejectReason}"
-    );
-
-    return false;
-}
-
-        int round =
-            currentRoundByClient.TryGetValue(
-                clientId,
-                out int value)
-                ? value
-                : 0;
-
-        if (round >= MaxRounds)
-        {
-            rejectReason =
-                "이미 10회 선택을 완료했습니다.";
-
-            return false;
-        }
-
-        options =
-            cardOptionGenerator.GenerateOptions(
-                player,
-                round
-            );
-
-        if (options == null ||
-            options.Length != OptionCount)
-        {
-            rejectReason =
-                "선택지 생성에 실패했습니다.";
-
-            return false;
-        }
-
-        currentOptionsByClient[clientId] =
-            options;
-
-        return true;
-    }
-public bool TryConfirmOption(
-    ulong clientId,
-    int optionIndex,
-    out PreparationOption selectedOption,
-    out PreparationOption[] nextOptions,
-    out int remaining,
-    out string rejectReason)
-{
-    selectedOption = default;
-    nextOptions = null;
-    remaining = 0;
-    rejectReason = string.Empty;
-
-    if (!IsServer())
-    {
-        rejectReason =
-            "Server가 아닙니다.";
-
-        return false;
-    }
-
-    if (!preparationRegistry.TryGetPlayer(
-            clientId,
-            out PlayerPreparationData player))
-    {
-        rejectReason =
-            "플레이어 데이터를 찾을 수 없습니다.";
-
-        return false;
-    }
-
-    if (!currentOptionsByClient.TryGetValue(
-            clientId,
-            out PreparationOption[] options))
-    {
-        rejectReason =
-            "현재 선택지가 없습니다.";
-
-        return false;
-    }
-
-    if (optionIndex < 0 ||
-        optionIndex >= options.Length)
-    {
-        rejectReason =
-            "잘못된 선택지입니다.";
-
-        return false;
-    }
-
-    selectedOption =
-        options[optionIndex];
-
-    if (!ApplyOption(
-            player,
-            selectedOption,
-            out rejectReason))
-    {
-        return false;
-    }
-
-    int nextRound =
-        currentRoundByClient.TryGetValue(
-            clientId,
-            out int currentRound)
-            ? currentRound + 1
-            : 1;
-
-    currentRoundByClient[clientId] =
-        nextRound;
-
-    currentOptionsByClient.Remove(
-        clientId
-    );
-
-    remaining =
-        Mathf.Max(
-            0,
-            MaxRounds - nextRound
-        );
-
-    // =========================
-    // 10회 완료
-    // =========================
-    if (nextRound >= MaxRounds)
-    {
-        player.ConditionCompleted = true;
-
-        CheckAllPlayersCompleted();
-
+        currentOptionsByClient[clientId] = options;
         return true;
     }
 
-    // =========================
-    // 다음 선택지 3개 생성
-    // =========================
-    nextOptions =
-        cardOptionGenerator
-            .GenerateOptions(
-                player,
-                nextRound
-            );
-
-    if (nextOptions == null ||
-        nextOptions.Length != OptionCount)
+    public bool TryConfirmOption(ulong clientId, int optionIndex, int expectedRound,
+        out PreparationOption selectedOption, out PreparationOption[] nextOptions,
+        out int remaining, out string rejectReason)
     {
-        rejectReason =
-            "다음 선택지 생성에 실패했습니다.";
-
-        return false;
-    }
-
-    currentOptionsByClient[
-        clientId
-    ] = nextOptions;
-
-    return true;
-}
-private bool ApplyOption(
-    PlayerPreparationData player,
-    PreparationOption option,
-    out string rejectReason)
-{
-    rejectReason = string.Empty;
-
-    switch (option.Type)
-    {
-        case PreparationOptionType.AddCard:
-            return ApplyAddCard(
-                player,
-                option.Card,
-                out rejectReason
-            );
-
-        case PreparationOptionType.EnhanceCard:
-            return ApplyEnhance(
-                player,
-                option.TargetCardIndex,
-                option.EnhanceId,
-                out rejectReason
-            );
-
-        case PreparationOptionType.Skip:
-            return true;
-
-        default:
-            rejectReason =
-                "알 수 없는 옵션입니다.";
-
-            return false;
-    }
-}
-
-private bool ApplyAddCard(
-    PlayerPreparationData player,
-    CardDefinition card,
-    out string rejectReason)
-{
-    rejectReason = string.Empty;
-
-    if (player == null)
-    {
-        rejectReason =
-            "플레이어 데이터가 없습니다.";
-
-        return false;
-    }
-
-    if (card == null)
-    {
-        rejectReason =
-            "추가할 카드가 없습니다.";
-
-        return false;
-    }
-
-    CardDefinition runtimeCard =
-        card.Clone();
-
-    player.FinalDeck.Add(
-        runtimeCard
-    );
-
-    Debug.Log(
-        "[MultiPreparationManager] " +
-        $"카드 추가 | " +
-        $"ClientId: {player.ClientId} | " +
-        $"Card: {card.name} | " +
-        $"DeckCount: {player.FinalDeck.Count}"
-    );
-
-    return true;
-}
-    private bool ApplyEnhance(
-        PlayerPreparationData player,
-        int targetCardIndex,
-        int enhanceId,
-        out string rejectReason)
-    {
-        rejectReason = string.Empty;
-
-        if (targetCardIndex < 0 ||
-            targetCardIndex >=
-            player.FinalDeck.Count)
+        selectedOption = default;
+        nextOptions = null;
+        remaining = GetRemainingChoices(clientId);
+        if (!Validate(clientId, out PlayerPreparationData player, out rejectReason)) return false;
+        if (player.ConditionCompleted || expectedRound != MaxRounds - remaining ||
+            !currentOptionsByClient.TryGetValue(clientId, out PreparationOption[] options) ||
+            optionIndex < -1 || optionIndex >= options.Length)
         {
-            rejectReason =
-                "강화 대상 카드가 유효하지 않습니다.";
-
+            rejectReason = "Stale or invalid preparation request.";
             return false;
         }
+        selectedOption = optionIndex == -1
+            ? new PreparationOption { Type = PreparationOptionType.Skip } : options[optionIndex];
+        switch (selectedOption.Type)
+        {
+            case PreparationOptionType.AddCard:
+                if (selectedOption.Card == null || cardOptionGenerator.GetCardByPoolIndex(selectedOption.CardPoolIndex) == null)
+                {
+                    rejectReason = "Invalid card source.";
+                    return false;
+                }
+                player.FinalDeck.Add(selectedOption.Card.Clone());
+                player.FinalDeckSourceIndices.Add(selectedOption.CardPoolIndex);
+                break;
+            case PreparationOptionType.EnhanceCard:
+                int target = selectedOption.TargetCardIndex;
+                if (target < 0 || target >= player.FinalDeck.Count || selectedOption.Upgrade == null ||
+                    !RewardManager.CanEnhance(player.FinalDeck[target], selectedOption.Upgrade))
+                {
+                    rejectReason = "Invalid owner upgrade target.";
+                    return false;
+                }
+                player.FinalDeck[target].ApplyUpgrade(selectedOption.Upgrade);
+                break;
+            case PreparationOptionType.Skip:
+                break;
+            default:
+                rejectReason = "Unknown preparation option.";
+                return false;
+        }
 
-        // 실제 강화 데이터 구조에 맞춰
-        // 이후 구현
-        return true;
-    }
-
-private void CheckAllPlayersCompleted()
-{
-    if (preparationRegistry.Count != 2)
-        return;
-
-    foreach (
-        PlayerPreparationData player
-        in preparationRegistry.Players)
-    {
+        int round = expectedRound + 1;
+        currentRoundByClient[clientId] = round;
+        currentOptionsByClient.Remove(clientId);
+        foreach (PreparationOption option in options)
+            if (option.Card != null) Destroy(option.Card);
+        remaining = MaxRounds - round;
+        player.ConditionCompleted = remaining == 0;
         if (!player.ConditionCompleted)
-            return;
-    }
-
-    Debug.Log(
-        "[MultiPreparationManager] " +
-        "Host / Client 준비 10회 모두 완료"
-    );
-
-    MapManager_Multi.Instance
-        ?.NotifyBothPlayersConfirmed();
-}
-
-    private bool IsServer()
-    {
-        return
-            NetworkManager.Singleton != null &&
-            NetworkManager.Singleton.IsServer;
-    }
-
-    public bool TrySkip(
-    ulong clientId,
-    out PreparationOption[] nextOptions,
-    out int remaining,
-    out string rejectReason)
-{
-    nextOptions = null;
-    remaining = 0;
-    rejectReason = string.Empty;
-
-    if (!IsServer())
-    {
-        rejectReason =
-            "Server가 아닙니다.";
-
-        return false;
-    }
-
-    if (!preparationRegistry.TryGetPlayer(
-            clientId,
-            out PlayerPreparationData player))
-    {
-        rejectReason =
-            "플레이어 데이터를 찾을 수 없습니다.";
-
-        return false;
-    }
-
-    int currentRound =
-        currentRoundByClient.TryGetValue(
-            clientId,
-            out int value)
-            ? value
-            : 0;
-
-    if (currentRound >= MaxRounds)
-    {
-        rejectReason =
-            "이미 준비를 완료했습니다.";
-
-        return false;
-    }
-
-    int nextRound =
-        currentRound + 1;
-
-    currentRoundByClient[
-        clientId
-    ] = nextRound;
-
-    // 기존 선택지 폐기
-    currentOptionsByClient.Remove(
-        clientId
-    );
-
-    remaining =
-        Mathf.Max(
-            0,
-            MaxRounds - nextRound
-        );
-
-    // 카드 추가/강화 없음
-
-    if (nextRound >= MaxRounds)
-    {
-        player.ConditionCompleted = true;
-
-        CheckAllPlayersCompleted();
-
+        {
+            nextOptions = cardOptionGenerator.GenerateOptions(player, round);
+            if (nextOptions != null) currentOptionsByClient[clientId] = nextOptions;
+            // The decision is already committed; candidate retry must never consume it twice.
+        }
         return true;
     }
 
-    nextOptions =
-        cardOptionGenerator
-            .GenerateOptions(
-                player,
-                nextRound
-            );
+    public bool TrySkip(ulong clientId, int expectedRound, out PreparationOption[] nextOptions,
+        out int remaining, out string rejectReason) => TryConfirmOption(clientId, -1, expectedRound,
+            out _, out nextOptions, out remaining, out rejectReason);
 
-    if (nextOptions == null ||
-        nextOptions.Length != OptionCount)
+    public CardDefinition[] GetConfirmedDeck(ulong clientId) =>
+        preparationRegistry.TryGetPlayer(clientId, out PlayerPreparationData player) ? player.FinalDeck.ToArray() : null;
+
+    public int[] GetConfirmedSources(ulong clientId) =>
+        preparationRegistry.TryGetPlayer(clientId, out PlayerPreparationData player) ? player.FinalDeckSourceIndices.ToArray() : null;
+
+    public int GetRemainingChoices(ulong clientId) =>
+        MaxRounds - (currentRoundByClient.TryGetValue(clientId, out int round) ? round : 0);
+
+    public void CheckAllPlayersCompleted()
     {
-        rejectReason =
-            "다음 선택지 생성에 실패했습니다.";
-
-        return false;
+        if (transitionStarted || !AllCompleted()) return;
+        transitionStarted = true;
+        StartCoroutine(CompleteAfterDelay());
     }
 
-    currentOptionsByClient[
-        clientId
-    ] = nextOptions;
-
-    return true;
-}
-    public CardDefinition[] GetConfirmedDeck(ulong clientId)
+    private bool AllCompleted()
     {
-        if (!preparationRegistry.TryGetPlayer(clientId, out PlayerPreparationData player))
-            return null;
-
-        return player.FinalDeck.ToArray();
+        var network = NetworkManager.Singleton;
+        if (network == null || !network.IsServer || preparationRegistry.Count != 2) return false;
+        foreach (PlayerPreparationData player in preparationRegistry.Players)
+            if (!player.ConditionCompleted || !network.ConnectedClients.ContainsKey(player.ClientId)) return false;
+        return true;
     }
 
-    public int GetRemainingChoices(
-    ulong clientId)
-{
-    int completed =
-        currentRoundByClient.TryGetValue(
-            clientId,
-            out int round)
-            ? round
-            : 0;
+    private void OnDestroy()
+    {
+        foreach (PreparationOption[] choices in currentOptionsByClient.Values)
+            foreach (PreparationOption option in choices)
+                if (option.Card != null) Destroy(option.Card);
+    }
 
-    return Mathf.Clamp(
-        MaxRounds - completed,
-        0,
-        MaxRounds
-    );
-}
-
+    private IEnumerator CompleteAfterDelay()
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, transitionDelaySeconds));
+        if (AllCompleted()) MapManager_Multi.Instance?.NotifyBothPlayersConfirmed();
+        else Debug.LogWarning("[MultiPreparationManager] Transition cancelled: owner disconnected.");
+    }
 }

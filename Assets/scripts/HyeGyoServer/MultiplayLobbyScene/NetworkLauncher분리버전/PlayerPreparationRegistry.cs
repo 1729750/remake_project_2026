@@ -152,8 +152,11 @@ public sealed class PlayerPreparationRegistry : MonoBehaviour
     private void RemovePlayer(
         ulong clientId)
     {
-        if (!players.Remove(clientId))
+        if (!players.TryGetValue(clientId, out PlayerPreparationData removed))
             return;
+        foreach (CardDefinition card in removed.FinalDeck)
+            if (card != null) Destroy(card);
+        players.Remove(clientId);
 
         Debug.Log(
             "[PlayerPreparationRegistry] " +

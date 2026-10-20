@@ -3,313 +3,134 @@ using UnityEngine;
 
 public sealed class CardOptionGenerator : MonoBehaviour
 {
-    [Header("Card Pool")]
-    [SerializeField]
-    private List<CardDefinition> cardPool;
+    [SerializeField] private List<CardDefinition> cardPool;
 
-
-    public PreparationOption[] GenerateOptions(
-        PlayerPreparationData player,
-        int round)
+    public PreparationOption[] GenerateOptions(PlayerPreparationData player, int round)
     {
-        PreparationOption[] result =
-            new PreparationOption[3];
-
-        // 1번: 무조건 강화
-        if (HasEnhanceableCard(player))
+        if (cardPool == null || cardPool.Count == 0 || cardPool.Exists(card => card == null || !card.TryGetValidatedEffects(out _)))
         {
-            result[0] =
-                CreateEnhanceOption(player);
-        }
-        else
-        {
-            // 강화할 카드가 없으면 새 카드
-            result[0] =
-                CreateAddCardOption(player);
+            Debug.LogError("[CardOptionGenerator] Configure the complete reward card pool.");
+            return null;
         }
 
-        // 2번: 무조건 새 카드
-        result[1] =
-            CreateAddCardOption(player);
-
-        // 3번: 50% 강화 / 50% 새 카드
-        bool enhance =
-            Random.value < 0.5f;
-
-        if (enhance &&
-            HasEnhanceableCard(player))
+        return new[]
         {
-            result[2] =
-                CreateEnhanceOption(player);
-        }
-        else
-        {
-            result[2] =
-                CreateAddCardOption(player);
-        }
-
-        return result;
-    }
-
-
-    private PreparationOption
-        CreateAddCardOption(
-            PlayerPreparationData player)
-    {
-        if (cardPool == null ||
-            cardPool.Count == 0)
-        {
-            Debug.LogWarning(
-                "[CardOptionGenerator] " +
-                "Card Pool이 비어 있습니다."
-            );
-
-            return CreateSkipOption();
-        }
-
-        int cardPoolIndex =
-            Random.Range(
-                0,
-                cardPool.Count
-            );
-
-        CardDefinition card =
-            cardPool[
-                cardPoolIndex
-            ];
-
-        return new PreparationOption
-        {
-            Type =
-                PreparationOptionType.AddCard,
-
-            Card =
-                card,
-
-            TargetCardIndex =
-                -1,
-
-            EnhanceId =
-                -1
+            round > 0 ? CreateEnhanceOption(player) : CreateAddCardOption(),
+            CreateAddCardOption(),
+            round > 0 && Random.value < 0.5f ? CreateEnhanceOption(player) : CreateAddCardOption()
         };
     }
 
-
-    private PreparationOption
-        CreateEnhanceOption(
-            PlayerPreparationData player)
+    private PreparationOption CreateAddCardOption()
     {
-        List<int> candidates =
-            GetEnhanceableCardIndexes(
-                player
-            );
-
-        if (candidates.Count == 0)
-        {
-            return
-                CreateAddCardOption(
-                    player
-                );
-        }
-
-        int targetIndex =
-            candidates[
-                Random.Range(
-                    0,
-                    candidates.Count
-                )
-            ];
-
+        int index = Random.Range(0, cardPool.Count);
         return new PreparationOption
         {
-            Type =
-                PreparationOptionType.EnhanceCard,
-
-            Card =
-                null,
-
-            TargetCardIndex =
-                targetIndex,
-
-            EnhanceId =
-                0
+            Type = PreparationOptionType.AddCard,
+            Card = cardPool[index].Clone(),
+            CardPoolIndex = index,
+            TargetCardIndex = -1,
+            EnhanceId = -1
         };
     }
 
-
-    private PreparationOption
-        CreateSkipOption()
+    private PreparationOption CreateEnhanceOption(PlayerPreparationData player)
     {
-        return new PreparationOption
+        // Reuse Single's upgrade producer and eligibility rules.
+        for (int attempt = 0; attempt < 64; attempt++)
         {
-            Type =
-                PreparationOptionType.Skip,
-
-            Card =
-                null,
-
-            TargetCardIndex =
-                -1,
-
-            EnhanceId =
-                -1
-        };
-    }
-
-
-    private bool HasEnhanceableCard(
-        PlayerPreparationData player)
-    {
-        if (player == null)
-        {
-            return false;
-        }
-
-        return
-            GetEnhanceableCardIndexes(
-                player
-            ).Count > 0;
-    }
-
-
-    private List<int>
-        GetEnhanceableCardIndexes(
-            PlayerPreparationData player)
-    {
-        var result =
-            new List<int>();
-
-        if (player == null ||
-            player.FinalDeck == null)
-        {
-            return result;
-        }
-
-        for (int i = 0;
-             i < player.FinalDeck.Count;
-             i++)
-        {
-            CardDefinition card =
-                player.FinalDeck[i];
-
-            if (card == null)
+            CardUpgrade upgrade = RewardManager.RollEnhanceOption();
+            var targets = new List<int>();
+            for (int i = 0; i < player.FinalDeck.Count; i++)
+                if (player.FinalDeck[i] != null && RewardManager.CanEnhance(player.FinalDeck[i], upgrade))
+                    targets.Add(i);
+            if (targets.Count == 0) continue;
+            int target = targets[Random.Range(0, targets.Count)];
+            return new PreparationOption
             {
-                continue;
-            }
-
-            // 현재는 null이 아닌 모든 카드를
-            // 강화 가능 대상으로 취급
-            result.Add(i);
+                Type = PreparationOptionType.EnhanceCard,
+                CardPoolIndex = -1,
+                TargetCardIndex = target,
+                EnhanceId = attempt,
+                Upgrade = upgrade,
+                Card = player.FinalDeck[target].Clone()
+            };
         }
-
-        return result;
+        return CreateAddCardOption();
     }
 
+    public int GetCardPoolIndex(CardDefinition card) => cardPool == null ? -1 : cardPool.IndexOf(card);
 
-    // =========================================================
-    // Network Card Pool Mapping
-    // =========================================================
+    public CardDefinition GetCardByPoolIndex(int index) =>
+        cardPool != null && index >= 0 && index < cardPool.Count ? cardPool[index] : null;
 
-    public int GetCardPoolIndex(
-        CardDefinition card)
+    [System.Serializable]
+    private class CardState
     {
-        if (card == null ||
-            cardPool == null)
+        public int source, cost, cooldown, type;
+        public int[] effects, magnitudes, targets, categories;
+    }
+
+    public string SerializeCard(CardDefinition card, int source)
+    {
+        if (!card.TryGetValidatedEffects(out CardEffect[] effects))
+            throw new System.InvalidOperationException("Invalid card effect definition.");
+        var state = new CardState
         {
-            return -1;
-        }
-
-        return cardPool.IndexOf(
-            card
-        );
-    }
-
-
-    public CardDefinition GetCardByPoolIndex(
-        int index)
-    {
-        if (cardPool == null)
+            source = source, cost = card.GetCost(), cooldown = card.GetCooldown(), type = (int)card.GetCardType(),
+            effects = new int[effects.Length], magnitudes = new int[effects.Length],
+            targets = new int[effects.Length], categories = new int[effects.Length]
+        };
+        for (int i = 0; i < effects.Length; i++)
         {
-            return null;
+            state.effects[i] = (int)effects[i].GetEffect().GetEffectType();
+            state.magnitudes[i] = effects[i].GetEffect().GetMagnitude();
+            state.targets[i] = (int)effects[i].GetEffectTarget();
+            state.categories[i] = (int)effects[i].GetAppliedCategory();
         }
+        return JsonUtility.ToJson(state);
+    }
 
-        if (index < 0 ||
-            index >= cardPool.Count)
+    public CardDefinition DeserializeCard(string json)
+    {
+        CardState state = JsonUtility.FromJson<CardState>(json);
+        if (state == null || state.effects == null || state.effects.Length > 64 ||
+            state.magnitudes == null || state.targets == null || state.categories == null ||
+            state.effects.Length != state.magnitudes.Length || state.effects.Length != state.targets.Length ||
+            state.effects.Length != state.categories.Length || state.cost < 0 || state.cooldown < 1 ||
+            !System.Enum.IsDefined(typeof(CardType), (CardType)state.type))
+            throw new System.InvalidOperationException("Invalid runtime card state.");
+        CardDefinition source = GetCardByPoolIndex(state.source);
+        if (source == null) throw new System.InvalidOperationException("Invalid card source.");
+        var effects = new CardEffect[state.effects.Length];
+        for (int i = 0; i < effects.Length; i++)
         {
-            Debug.LogWarning(
-                "[CardOptionGenerator] " +
-                $"잘못된 CardPoolIndex: {index}"
-            );
-
-            return null;
+            if (!System.Enum.IsDefined(typeof(EffectType), (EffectType)state.effects[i]) ||
+                !System.Enum.IsDefined(typeof(EffectTarget), (EffectTarget)state.targets[i]))
+                throw new System.InvalidOperationException("Invalid effect state.");
+            effects[i] = new CardEffect(Effect.Create((EffectType)state.effects[i], state.magnitudes[i]), (EffectTarget)state.targets[i]);
+            effects[i].SetAppliedCategory((EffectCategory)state.categories[i]);
+            if (state.categories[i] == 0 || (effects[i].GetAppliedCategory() & ~effects[i].GetSupportedCategories()) != 0)
+                throw new System.InvalidOperationException("Unsupported effect category.");
         }
-
-        return cardPool[
-            index
-        ];
+        return CardDefinition.CreateRuntime(state.cooldown, state.cost, (CardType)state.type, source.GetSprite(), effects);
     }
 
-    public PreparationOptionNetData ToNetData(
-    PreparationOption option)
-{
-    int cardPoolIndex = -1;
-
-    if (option.Type ==
-        PreparationOptionType.AddCard &&
-        option.Card != null)
+    public PreparationOptionNetData ToNetData(PreparationOption option) => new PreparationOptionNetData
     {
-        cardPoolIndex =
-            GetCardPoolIndex(
-                option.Card
-            );
-    }
-
-    return new PreparationOptionNetData
-    {
-        Type =
-            (byte)option.Type,
-
-        CardPoolIndex =
-            cardPoolIndex,
-
-        TargetCardIndex =
-            option.TargetCardIndex,
-
-        EnhanceId =
-            option.EnhanceId
+        Type = (byte)option.Type,
+        CardPoolIndex = option.CardPoolIndex,
+        TargetCardIndex = option.TargetCardIndex,
+        EnhanceId = option.EnhanceId
     };
-}
-public PreparationOption FromNetData(
-    PreparationOptionNetData data)
-{
-    PreparationOptionType type =
-        (PreparationOptionType)data.Type;
 
-    CardDefinition card = null;
-
-    if (type ==
-        PreparationOptionType.AddCard)
+    public PreparationOption FromNetData(PreparationOptionNetData data) => new PreparationOption
     {
-        card =
-            GetCardByPoolIndex(
-                data.CardPoolIndex
-            );
-    }
-
-    return new PreparationOption
-    {
-        Type =
-            type,
-
-        Card =
-            card,
-
-        TargetCardIndex =
-            data.TargetCardIndex,
-
-        EnhanceId =
-            data.EnhanceId
+        Type = (PreparationOptionType)data.Type,
+        CardPoolIndex = data.CardPoolIndex,
+        Card = data.Type == (byte)PreparationOptionType.AddCard
+            ? GetCardByPoolIndex(data.CardPoolIndex)?.Clone() : null,
+        TargetCardIndex = data.TargetCardIndex,
+        EnhanceId = data.EnhanceId
     };
-}
-
 }
