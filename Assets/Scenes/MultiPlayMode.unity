@@ -924,9 +924,35 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardOptionGenerator
   cardPool:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 6e4e4276562262248aecbc66706b5a51, type: 2}
+  - {fileID: 11400000, guid: 9cd2a7c063871e14495a645c9488be38, type: 2}
+  - {fileID: 11400000, guid: 0f5fba19a89ce0d4ca8f9e31e19b809a, type: 2}
+  - {fileID: 11400000, guid: b8e489ebc6e8b4344ab6f7328817a5b0, type: 2}
+  - {fileID: 11400000, guid: d8282a6efacc94948870bdc623775219, type: 2}
+  - {fileID: 11400000, guid: e3905ac462ed1064bb284a2c7278014d, type: 2}
+  - {fileID: 11400000, guid: b6f12a9d57055c9459cedcfdb93442fc, type: 2}
+  - {fileID: 11400000, guid: fd0cd6fd89259c64eb1a1d8b72537eb8, type: 2}
+  - {fileID: 11400000, guid: 61c2840774674e3f9c1c449ae8866cf2, type: 2}
+  - {fileID: 11400000, guid: e1875c35347d4f329d55fd6fe8f6a982, type: 2}
+  - {fileID: 11400000, guid: 487e1117532a455bbf97bb73edfd001c, type: 2}
+  - {fileID: 11400000, guid: 7b5dfdeb1ab14e0f83732438e0804218, type: 2}
+  - {fileID: 11400000, guid: d4826697bfa348ffbf83db02c670e1db, type: 2}
+  - {fileID: 11400000, guid: 7941aedc84ff4262be4b816c332100dc, type: 2}
+  - {fileID: 11400000, guid: f42992e211d149fdaaeb501fa66b2124, type: 2}
+  - {fileID: 11400000, guid: 139a1bc889eb4b3bbfb5f23d53e2df1b, type: 2}
+  - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
+  - {fileID: 11400000, guid: 6794d21a31874765a7334e396b07bc3f, type: 2}
+  - {fileID: 11400000, guid: f38c189ec00642e0b41978b1b8a2f08d, type: 2}
+  - {fileID: 11400000, guid: 1d0f4083eb82443ca4739191f210b0dc, type: 2}
+  - {fileID: 11400000, guid: 64d603a27f1e4efeb8ea6cd43ebd5dc8, type: 2}
+  - {fileID: 11400000, guid: 25c9899db6794fab9460fa5fae71efb5, type: 2}
+  - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
+  - {fileID: 11400000, guid: 8ac2a13904754e5aa42070b1ac54f545, type: 2}
+  - {fileID: 11400000, guid: ccf8f9dfcc5f4a8e90a171c84d2323d5, type: 2}
+  - {fileID: 11400000, guid: fcaa4318c10e47eaa173c9aa749c997b, type: 2}
+  - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
+  - {fileID: 11400000, guid: ce7596a0626246bb9b31e06b87e1ace5, type: 2}
+  - {fileID: 11400000, guid: 237f6ed46cf7484eaf83b6465bb9d8bf, type: 2}
 --- !u!4 &224265909
 Transform:
   m_ObjectHideFlags: 0
@@ -3014,7 +3040,8 @@ Transform:
   m_LocalPosition: {x: 0.04, y: 2.41, z: 0}
   m_LocalScale: {x: 1, y: 0.4, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 885946570}
   m_Father: {fileID: 1474451738}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &885946568
@@ -3076,6 +3103,54 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!1 &885946569
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 885946570}
+  - component: {fileID: 885946571}
+  m_Layer: 0
+  m_Name: MySelectedCardsDisplay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &885946570
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 885946569}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 2.5, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 885946567}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 8, y: 2}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &885946571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 885946569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1f8d35b43c62fa4e9dd4c621d17c089, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DeckDisplay
 --- !u!1 &892674532
 GameObject:
   m_ObjectHideFlags: 0
@@ -6412,7 +6487,8 @@ MonoBehaviour:
   preparationViewRoot: {fileID: 1924148766}
   preparationManager: {fileID: 1924148768}
   networkMatchBridge: {fileID: 0}
-  myDeckDisplay: {fileID: 0}
+  panelGameObject: {fileID: 885946566}
+  myDeckDisplay: {fileID: 885946571}
   deckCardSize: 0.7
   deckColumns: 6
   remainingText: {fileID: 0}

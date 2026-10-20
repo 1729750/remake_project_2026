@@ -1,5 +1,6 @@
 using Unity.Netcode;
 
+[System.Serializable]
 public struct PreparationOptionNetData
     : INetworkSerializable
 {

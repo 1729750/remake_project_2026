@@ -15,6 +15,8 @@ public sealed class PlayerPreparationData
     public List<CardDefinition> FinalDeck { get; }
         = new List<CardDefinition>();
 
+    public List<int> FinalDeckSourceIndices { get; } = new List<int>();
+
     public PlayerPreparationData(
         ulong clientId)
     {

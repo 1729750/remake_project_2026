@@ -1,515 +1,230 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
 public sealed class MapManager_Multi : MonoBehaviour
 {
-    public static MapManager_Multi Instance
-    {
-        get;
-        private set;
-    }
-
-    [Header("Preparation")]
-    [SerializeField]
-    private GameObject preparationViewRoot;
-
-    [SerializeField]
-    private MultiPreparationManager preparationManager;
-
-    private PreparationOption[] _options;
-    private int _selectedIndex;
-
-    [SerializeField]
-    private NetworkMatchBridge networkMatchBridge;
-
-
-    // Inspector에 직접 넣지 않고
-    // 자식의 PreparationOptionVisual_Multi를 자동 검색
+    public static MapManager_Multi Instance { get; private set; }
+    [SerializeField] private GameObject preparationViewRoot;
+    [SerializeField] private MultiPreparationManager preparationManager;
+    [SerializeField] private NetworkMatchBridge networkMatchBridge;
+    [SerializeField] private GameObject panelGameObject;
+    [SerializeField] private DeckDisplay myDeckDisplay;
+    [SerializeField] private TextMeshPro remainingText;
+    [SerializeField] private float myDeckCardSize = 0.7f;
+    [SerializeField] private int myDeckColumns = 6;
+    private PopupManager popupManager;
     private PreparationOptionVisual_Multi[] optionVisuals;
+    private PreparationOption[] options;
+    private readonly List<CardDefinition> localDeck = new();
+    private int selectedIndex;
+    private bool ownsInput, deckOpen, pending;
 
-    [Header("My Deck View")]
-    [SerializeField]
-    private DeckDisplay myDeckDisplay;
-
-    [SerializeField]
-    private GameObject panelGameObject;
-
-    [SerializeField]
-    private float deckCardSize = 0.7f;
-
-    [SerializeField]
-    private int deckColumns = 6;
-
-    [Header("My Deck Display")]
-     [SerializeField]
-    private TextMeshPro remainingText;
-
-    [SerializeField]
-    private float myDeckCardSize = 0.7f;
-
-    [SerializeField]
-    private int myDeckColumns = 6;
-
-    private readonly List<CardDefinition>
-        _localDeckView =
-            new List<CardDefinition>();
-
-
-private void Awake()
-{
-    if (Instance != null &&
-        Instance != this)
+    private void Awake()
     {
-        Destroy(gameObject);
-        return;
-    }
-
-    Instance = this;
-
-    EnsureMyDeckDisplay();
-    FindOptionVisuals();
-
-    if (preparationViewRoot != null)
-    {
-        preparationViewRoot.SetActive(true);
-    }
-
-    Debug.Log(
-        "[MapManager_Multi] Awake - 활성화"
-    );
-}
-
-private void Start()
-{
-
-    if (preparationViewRoot != null)
-    {
-        preparationViewRoot.SetActive(true);
-    }
-
-    Debug.Log(
-        "[MapManager_Multi] Start - 준비 화면 활성화"
-    );
-
-    Debug.Log(
-        "[MapManager_Multi] " +
-        $"찾은 OptionVisual 수: " +
-        $"{(optionVisuals != null ? optionVisuals.Length : 0)}"
-    );
-    
-    SetRemainingChoices(10);
-    if (networkMatchBridge == null)
-    {
-        networkMatchBridge =
-            FindFirstObjectByType<
-                NetworkMatchBridge
-            >();
-    }
-
-    if (networkMatchBridge == null)
-    {
-        Debug.LogError(
-            "[MapManager_Multi] " +
-            "NetworkMatchBridge를 찾을 수 없습니다."
-        );
-
-        return;
-    }
-
-    Debug.Log(
-        "[MapManager_Multi] " +
-        "첫 준비 선택지 요청"
-    );
-
-    networkMatchBridge
-        .RequestBeginPreparation();
-}
-private void FindOptionVisuals()
-{
-    string[] paths =
-    {
-        "MapSelectPanel/Panel1/EnemyDisplay",
-        "MapSelectPanel/Panel2/EnemyDisplay",
-        "MapSelectPanel/Panel3/EnemyDisplay"
-    };
-
-    optionVisuals =
-        new PreparationOptionVisual_Multi[
-            paths.Length
-        ];
-
-    for (int i = 0; i < paths.Length; i++)
-    {
-        Transform target =
-            transform.Find(
-                paths[i]
-            );
-
-        if (target == null)
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+        if (panelGameObject == null) panelGameObject = transform.Find("PanelGameObject")?.gameObject;
+        if (myDeckDisplay == null && panelGameObject != null)
         {
-            Debug.LogError(
-                "[MapManager_Multi] " +
-                $"찾지 못함: {paths[i]}"
-            );
-
-            continue;
-        }
-
-        PreparationOptionVisual_Multi visual =
-            target.GetComponent<
-                PreparationOptionVisual_Multi
-            >();
-
-        // Inspector에서 직접 안 붙여놨어도
-        // 런타임에 자동으로 붙인다.
-        if (visual == null)
-        {
-            visual =
-                target.gameObject.AddComponent<
-                    PreparationOptionVisual_Multi
-                >();
-        }
-
-        optionVisuals[i] =
-            visual;
-
-        Debug.Log(
-            "[MapManager_Multi] " +
-            $"OptionVisual 연결 성공: {paths[i]}"
-        );
-    }
-}
-
-
-    public void SetPreparationViewActive(
-        bool active)
-    {
-        if (preparationViewRoot != null)
-        {
-            preparationViewRoot.SetActive(active);
-        }
-
-        Debug.Log(
-            "[MapManager_Multi] " +
-            $"Preparation View Active: {active}"
-        );
-    }
-
-public void ShowOptions(
-    PreparationOption[] options)
-{
-    if (options == null ||
-        options.Length == 0)
-    {
-        Debug.LogWarning(
-            "[MapManager_Multi] 표시할 옵션이 없습니다."
-        );
-
-        return;
-    }
-
-    _options = options;
-    _selectedIndex = 0;
-
-    int count =
-        Mathf.Min(
-            optionVisuals.Length,
-            options.Length
-        );
-
-    for (int i = 0;
-         i < optionVisuals.Length;
-         i++)
-    {
-        if (optionVisuals[i] == null)
-            continue;
-
-        bool active =
-            i < count;
-
-        optionVisuals[i]
-            .gameObject
-            .SetActive(active);
-
-        if (active)
-        {
-            optionVisuals[i]
-                .SetOption(
-                    options[i]
-                );
-        }
-    }
-
-    RefreshSelectionHighlight();
-
-    LoadPreparationInput();
-
-    Debug.Log(
-        "[MapManager_Multi] " +
-        $"옵션 표시 완료 | " +
-        $"Options: {_options.Length} | " +
-        $"Visuals: {optionVisuals.Length}"
-    );
-}
-private void LoadPreparationInput()
-{
-    if (PlayerInputManager.Instance == null)
-    {
-        Debug.LogError(
-            "[MapManager_Multi] " +
-            "PlayerInputManager.Instance가 없습니다."
-        );
-
-        return;
-    }
-
-    PlayerInputManager.Instance.Load(
-        "Select",
-        new Dictionary<string, Action>
-        {
-            ["Left"] = () =>
+            myDeckDisplay = panelGameObject.GetComponentInChildren<DeckDisplay>(true);
+            if (myDeckDisplay == null)
             {
-                MoveSelection(-1);
-            },
-
-            ["Right"] = () =>
-            {
-                MoveSelection(1);
-            },
-
-            ["Select"] = () =>
-            {
-                ConfirmLocalPreparation();
+                var display = new GameObject("MySelectedCardsDisplay", typeof(RectTransform), typeof(DeckDisplay));
+                display.transform.SetParent(panelGameObject.transform, false);
+                myDeckDisplay = display.GetComponent<DeckDisplay>();
             }
         }
-    );
-
-    Debug.Log(
-        "[MapManager_Multi] " +
-        "Preparation 입력 로드 완료"
-    );
-}
-public void MoveSelection(
-    int delta)
-{
-    if (_options == null ||
-        _options.Length == 0)
-    {
-        return;
-    }
-
-    int count =
-        _options.Length;
-
-    _selectedIndex =
-        ((_selectedIndex + delta)
-        % count + count)
-        % count;
-
-    RefreshSelectionHighlight();
-
-    Debug.Log(
-        "[MapManager_Multi] " +
-        $"현재 선택 Index: {_selectedIndex}"
-    );
-}
-
-
-    private void RefreshSelectionHighlight()
-    {
-        if (optionVisuals == null)
-            return;
-
-        for (int i = 0;
-             i < optionVisuals.Length;
-             i++)
+        // Use the valid PopupComponent resource, avoiding the conflicted PopupManager prefab metadata.
+        var popup = new GameObject("MySelectedCardsPopup");
+        popup.SetActive(false);
+        popup.transform.SetParent(transform, false);
+        popup.transform.localPosition = new Vector3(5.2f, 1f, 0f);
+        GameObject component = Resources.Load<GameObject>("Prefabs/PopUpComponent");
+        if (component != null) Instantiate(component, popup.transform);
+        popupManager = popup.AddComponent<PopupManager>();
+        popup.SetActive(true);
+        optionVisuals = new PreparationOptionVisual_Multi[3];
+        for (int i = 0; i < 3; i++)
         {
-            if (optionVisuals[i] == null)
-                continue;
-
-            bool selected =
-                i == _selectedIndex &&
-                i < _options.Length;
-
-            optionVisuals[i]
-                .SetSelected(
-                    selected
-                );
+            Transform target = transform.Find($"MapSelectPanel/Panel{i + 1}/EnemyDisplay");
+            if (target == null) continue;
+            optionVisuals[i] = target.GetComponent<PreparationOptionVisual_Multi>();
+            if (optionVisuals[i] == null) optionVisuals[i] = target.gameObject.AddComponent<PreparationOptionVisual_Multi>();
+            optionVisuals[i].SetPopupManager(popupManager);
+        }
+        if (remainingText == null && panelGameObject != null)
+        {
+            var label = new GameObject("RemainingChoices", typeof(TextMeshPro));
+            label.transform.SetParent(transform, false);
+            label.transform.position = panelGameObject.transform.position + new Vector3(-4f, 1.5f, 0f);
+            remainingText = label.GetComponent<TextMeshPro>();
+            remainingText.fontSize = 3;
+            remainingText.rectTransform.sizeDelta = new Vector2(2f, 0.5f);
         }
     }
 
+    private void Start()
+    {
+        if (popupManager != null && !popupManager.enabled) popupManager.enabled = true;
+        if (networkMatchBridge == null) networkMatchBridge = FindFirstObjectByType<NetworkMatchBridge>();
+        SetRemainingChoices(10);
+        networkMatchBridge?.RequestBeginPreparation();
+    }
+
+    public void ShowOptions(PreparationOption[] newOptions)
+    {
+        options = newOptions;
+        selectedIndex = Mathf.Clamp(selectedIndex, 0, options.Length - 1);
+        pending = false;
+        for (int i = 0; i < optionVisuals.Length; i++)
+        {
+            if (optionVisuals[i] == null) continue;
+            optionVisuals[i].gameObject.SetActive(true);
+            optionVisuals[i].SetOption(options[i]);
+        }
+        if (!ownsInput && PlayerInputManager.Instance != null)
+        {
+            PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
+            {
+                ["Left"] = () => MoveSelection(-1),
+                ["Right"] = () => MoveSelection(1),
+                ["Select"] = ConfirmLocalPreparation,
+                ["ViewDeck"] = OpenDeck
+            });
+            ownsInput = true;
+        }
+        if (!deckOpen) RefreshSelection();
+    }
+
+    public void MoveSelection(int delta)
+    {
+        if (pending || deckOpen || options == null || options.Length == 0) return;
+        selectedIndex = (selectedIndex + delta + options.Length) % options.Length;
+        RefreshSelection();
+    }
+
+    private void RefreshSelection()
+    {
+        foreach (PreparationOptionVisual_Multi visual in optionVisuals) visual?.SetSelected(false);
+        if (options != null && options.Length > selectedIndex) optionVisuals[selectedIndex]?.SetSelected(true);
+    }
 
     public void ConfirmLocalPreparation()
     {
-        if (_options == null ||
-            _options.Length == 0)
-        {
-            Debug.LogWarning(
-                "[MapManager_Multi] " +
-                "현재 선택지가 없습니다."
-            );
-
-            return;
-        }
-
-        if (preparationManager == null)
-        {
-            Debug.LogError(
-                "[MapManager_Multi] " +
-                "MultiPreparationManager가 없습니다."
-            );
-
-            return;
-        }
-
-        Debug.Log(
-            "[MapManager_Multi] " +
-            $"선택 확정 요청 | " +
-            $"Index: {_selectedIndex}"
-        );
-
-    networkMatchBridge
-        .RequestConfirmPreparationOption(
-            _selectedIndex
-        );
+        if (pending || deckOpen || options == null || options.Length == 0 || networkMatchBridge == null) return;
+        pending = true;
+        networkMatchBridge.RequestConfirmPreparationOption(selectedIndex);
     }
 
+    private void OpenDeck()
+    {
+        if (pending || deckOpen || myDeckDisplay == null || localDeck.Count == 0) return;
+        deckOpen = true;
+        foreach (PreparationOptionVisual_Multi visual in optionVisuals) visual?.SetSelected(false);
+        myDeckDisplay.SetPopupManager(popupManager);
+        RefreshMyDeck(localDeck);
+        PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
+        {
+            ["Left"] = () => myDeckDisplay.MoveSelectionHorizontal(-1),
+            ["Right"] = () => myDeckDisplay.MoveSelectionHorizontal(1),
+            ["Up"] = () => myDeckDisplay.MoveSelectionVertical(-1),
+            ["Down"] = () => myDeckDisplay.MoveSelectionVertical(1),
+            ["Cancel"] = CloseDeck,
+            ["ViewDeck"] = CloseDeck
+        });
+        myDeckDisplay.SelectFirst();
+    }
+
+    private void CloseDeck()
+    {
+        if (!deckOpen) return;
+        PlayerInputManager.Instance?.Unload();
+        deckOpen = false;
+        myDeckDisplay.Deselect();
+        myDeckDisplay.SetPopupManager(null);
+        popupManager.Hide();
+        RefreshSelection();
+    }
+
+    public void ApplyConfirmedDeckSnapshot(CardDefinition[] deck)
+    {
+        var previous = localDeck.ToArray();
+        localDeck.Clear();
+        if (deck != null)
+            foreach (CardDefinition card in deck) localDeck.Add(card.Clone());
+        RefreshMyDeck(localDeck);
+        foreach (CardDefinition card in previous) Destroy(card);
+    }
+
+    public void RefreshMyDeck(List<CardDefinition> deck)
+    {
+        if (myDeckDisplay == null || panelGameObject == null) return;
+        myDeckDisplay.gameObject.SetActive(true);
+        Vector3 parentScale = myDeckDisplay.transform.parent.lossyScale;
+        myDeckDisplay.transform.localScale = new Vector3(1f / parentScale.x, 1f / parentScale.y, 1f / parentScale.z);
+        SpriteRenderer panel = panelGameObject.GetComponent<SpriteRenderer>();
+        Vector2 size = panel != null ? (Vector2)panel.bounds.size * 0.9f : new Vector2(8f, 2f);
+        myDeckDisplay.SetSize(size);
+        myDeckDisplay.SetPopupManager(deckOpen ? popupManager : null);
+        int columns = Mathf.Max(1, myDeckColumns);
+        // CardVisual's native sprite determines dimensions; cap the Multi scale to the panel height.
+        GameObject prefab = Resources.Load<GameObject>("Prefabs/Card");
+        SpriteRenderer background = prefab != null ? prefab.transform.Find("Front/background")?.GetComponent<SpriteRenderer>() : null;
+        float scale = Mathf.Max(0.01f, myDeckCardSize);
+        if (background != null && background.sprite != null)
+        {
+            Vector2 native = background.sprite.bounds.size;
+            scale = Mathf.Min(scale, size.x / columns / native.x, size.y / native.y);
+        }
+        myDeckDisplay.SetDeck(deck, null, scale, columns);
+        if (deckOpen) myDeckDisplay.SelectFirst();
+    }
+
+    public void SetRemainingChoices(int remaining)
+    {
+        if (remainingText != null) remainingText.text = $"{remaining}/10";
+    }
+
+    public void ShowWaitingForOpponent()
+    {
+        pending = false;
+        options = null;
+        CloseDeck();
+        if (ownsInput) PlayerInputManager.Instance?.Unload();
+        ownsInput = false;
+        foreach (PreparationOptionVisual_Multi visual in optionVisuals) if (visual != null) visual.gameObject.SetActive(false);
+        popupManager.Hide();
+    }
+
+    public void SetPreparationViewActive(bool active)
+    {
+        Transform candidates = transform.Find("MapSelectPanel");
+        if (candidates != null) candidates.gameObject.SetActive(active);
+    }
 
     public void NotifyBothPlayersConfirmed()
     {
-        Debug.Log(
-            "[MapManager_Multi] " +
-            "Host / Client 모두 준비 완료"
-        );
-
         SetPreparationViewActive(false);
-
-        GameManager_Multi.Instance
-            ?.StartBattle();
+        GameManager_Multi.Instance?.StartBattle();
     }
 
-    public void ApplyConfirmedOptionToLocalView(
-        PreparationOption option)
+    private void OnDisable()
     {
-        if (option.Type == PreparationOptionType.AddCard &&
-            option.Card != null)
-        {
-            _localDeckView.Add(option.Card.Clone());
-        }
-
-        RefreshMyDeck(_localDeckView);
+        if (Instance != this) return;
+        CloseDeck();
+        if (ownsInput) PlayerInputManager.Instance?.Unload();
+        ownsInput = false;
+        if (popupManager != null) popupManager.gameObject.SetActive(false);
     }
 
-    public void ApplyConfirmedDeckSnapshot(
-        CardDefinition[] confirmedDeck)
+    private void OnDestroy()
     {
-        _localDeckView.Clear();
-        if (confirmedDeck != null)
-        {
-            foreach (CardDefinition card in confirmedDeck)
-            {
-                if (card != null)
-                    _localDeckView.Add(card.Clone());
-            }
-        }
-
-        RefreshMyDeck(_localDeckView);
-    }
-
-    private void EnsureMyDeckDisplay()
-    {
-        if (myDeckDisplay != null)
-            return;
-
-        if (panelGameObject == null)
-        {
-            Transform panel = transform.Find("PanelGameObject");
-            if (panel != null)
-                panelGameObject = panel.gameObject;
-        }
-
-        if (panelGameObject == null)
-        {
-            Debug.LogWarning("[MapManager_Multi] PanelGameObject를 찾을 수 없습니다.");
-            return;
-        }
-
-        Transform display = panelGameObject.transform.Find("MySelectedCardsDisplay");
-        GameObject displayObject = display != null
-            ? display.gameObject
-            : new GameObject("MySelectedCardsDisplay");
-        if (display == null)
-            displayObject.transform.SetParent(panelGameObject.transform, false);
-
-        RectTransform rect = displayObject.GetComponent<RectTransform>();
-        if (rect == null)
-            rect = displayObject.AddComponent<RectTransform>();
-        if (rect.rect.width <= 0f || rect.rect.height <= 0f)
-            rect.sizeDelta = new Vector2(8f, 2f);
-
-        myDeckDisplay = displayObject.GetComponent<DeckDisplay>();
-        if (myDeckDisplay == null)
-            myDeckDisplay = displayObject.AddComponent<DeckDisplay>();
-    }
-
-    public void ApplyConfirmedOptionToLocalViewLegacy(
-        PreparationOption option)
-    {
-        ApplyConfirmedOptionToLocalView(option);
-    }
-public void RefreshMyDeck(
-    List<CardDefinition> deck)
-{
-    if (myDeckDisplay == null)
-    {
-        Debug.LogError(
-            "[MapManager_Multi] myDeckDisplay가 없습니다."
-        );
-
-        return;
-    }
-
-    if (!myDeckDisplay.gameObject.activeSelf)
-    {
-        myDeckDisplay.gameObject.SetActive(true);
-    }
-
-    myDeckDisplay.SetDeck(
-        deck,
-        null,
-        myDeckCardSize,
-        myDeckColumns
-    );
-
-    Debug.Log(
-        "[MapManager_Multi] " +
-        $"내 덱 갱신 | Count: {(deck != null ? deck.Count : 0)}"
-    );
-}
-public void SetRemainingChoices(
-    int remaining)
-{
-    if (remainingText != null)
-    {
-        remainingText.text =
-            $"{remaining}/10";
-    }
-}
-
-        public void ShowWaitingForOpponent()
-    {
-        _options = null;
-
-        if (PlayerInputManager.Instance != null)
-        {
-            PlayerInputManager.Instance.Unload();
-        }
-
-        Debug.Log(
-            "[MapManager_Multi] " +
-            "내 준비 완료 → 상대 플레이어 대기"
-        );
+        if (Instance != this) return;
+        CloseDeck();
+        if (ownsInput) PlayerInputManager.Instance?.Unload();
+        foreach (CardDefinition card in localDeck) if (card != null) Destroy(card);
+        Instance = null;
     }
 }

@@ -19,6 +19,12 @@ public sealed class PreparationOptionVisual_Multi
     private EffectDisplay _mainEffect;
     private EffectDisplay _subEffect;
 
+    private CardInstance _card;
+    private GameObject _cardObject;
+    private PopupManager _popupManager;
+
+    public void SetPopupManager(PopupManager popupManager) => _popupManager = popupManager;
+
     private GameObject _highlight;
 
 
@@ -96,6 +102,7 @@ public sealed class PreparationOptionVisual_Multi
     public void SetSelected(
         bool selected)
     {
+        _card?.SetSelected(selected);
         if (_highlight != null)
         {
             _highlight.SetActive(
@@ -188,31 +195,8 @@ public sealed class PreparationOptionVisual_Multi
     private void ShowEnhance(
         PreparationOption option)
     {
-        /*
-         * 현재 네트워크 데이터에는
-         * TargetCardIndex만 들어 있고
-         * 강화 대상의 CardDefinition 자체는
-         * 아직 Client에 동기화되지 않는다.
-         *
-         * 다음 단계에서 Local FinalDeck 동기화를 붙이면
-         * 여기서 TargetCardIndex로 실제 카드를 찾아
-         * ShowCard()를 호출하게 된다.
-         */
-
-        ClearVisual();
-
-        if (_hpText != null)
-        {
-            _hpText.text =
-                "UP";
-        }
-
-        Debug.Log(
-            "[PreparationOptionVisual_Multi] " +
-            $"강화 옵션 표시 | " +
-            $"TargetCardIndex: {option.TargetCardIndex} | " +
-            $"EnhanceId: {option.EnhanceId}"
-        );
+        ShowCard(option.Card);
+        if (_hpText != null) _hpText.text = "UP";
     }
 
 
@@ -227,6 +211,24 @@ public sealed class PreparationOptionVisual_Multi
         {
             ClearVisual();
             return;
+        }
+
+        if (_cardObject != null) Destroy(_cardObject);
+        GameObject prefab = Resources.Load<GameObject>("Prefabs/Card");
+        if (prefab != null)
+        {
+            _cardObject = Instantiate(prefab, transform);
+            _cardObject.name = "CandidateCard";
+            _cardObject.transform.localPosition = Vector3.zero;
+            CardVisual visual = _cardObject.GetComponent<CardVisual>();
+            visual.SetPopupManager(_popupManager);
+            _card = new CardInstance(card, null);
+            _card.SetVisual(visual);
+            _card.SetFace(true);
+            _card.SetLayer("UI");
+            Vector2 size = _card.GetBackgroundSize();
+            float scale = Mathf.Min(2.3f / size.x, 2.8f / size.y);
+            _card.SetSize(size * scale);
         }
 
         int attackScore =
@@ -477,6 +479,9 @@ public sealed class PreparationOptionVisual_Multi
 
     private void ClearVisual()
     {
+        if (_cardObject != null) Destroy(_cardObject);
+        _cardObject = null;
+        _card = null;
         if (_attack != null)
         {
             _attack.size =

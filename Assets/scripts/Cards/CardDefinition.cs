@@ -22,6 +22,29 @@ public class CardDefinition: ScriptableObject
         return definition;
     }
 
+    public bool TryGetValidatedEffects(out CardEffect[] effects)
+    {
+        effects = null;
+        if (_effects == null) return false;
+        foreach (CardEffect effect in _effects)
+        {
+            if (effect?.GetEffect() == null ||
+                !System.Enum.IsDefined(typeof(EffectType), effect.GetEffect().GetEffectType()) ||
+                !System.Enum.IsDefined(typeof(EffectTarget), effect.GetEffectTarget())) return false;
+            EffectCategory applied = effect.GetAppliedCategory();
+            if (applied == 0 || (applied & ~effect.GetSupportedCategories()) != 0) return false;
+        }
+        effects = _effects.ToArray();
+        return true;
+    }
+
+    public static CardDefinition CreateRuntime(int cooldown, int cost, CardType type, Sprite sprite, CardEffect[] effects)
+    {
+        CardDefinition definition = Create(cooldown, cost, effects, sprite);
+        definition.cardType = type;
+        return definition;
+    }
+
     public int GetCooldown() => cooldown;
     public int GetCost() => cost;
     public CardEffect[] GetEffects() => _effects.ToArray();
