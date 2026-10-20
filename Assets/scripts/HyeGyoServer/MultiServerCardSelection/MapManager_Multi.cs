@@ -34,6 +34,9 @@ public sealed class MapManager_Multi : MonoBehaviour
     private DeckDisplay myDeckDisplay;
 
     [SerializeField]
+    private GameObject panelGameObject;
+
+    [SerializeField]
     private float deckCardSize = 0.7f;
 
     [SerializeField]
@@ -65,6 +68,7 @@ private void Awake()
 
     Instance = this;
 
+    EnsureMyDeckDisplay();
     FindOptionVisuals();
 
     if (preparationViewRoot != null)
@@ -386,39 +390,75 @@ public void MoveSelection(
             ?.StartBattle();
     }
 
-public void ApplyConfirmedOptionToLocalView(
-    PreparationOption option)
-{
-    switch (option.Type)
+    public void ApplyConfirmedOptionToLocalView(
+        PreparationOption option)
     {
-        case PreparationOptionType.AddCard:
+        if (option.Type == PreparationOptionType.AddCard &&
+            option.Card != null)
         {
-            if (option.Card != null)
-            {
-                _localDeckView.Add(
-                    option.Card
-                );
-
-                RefreshMyDeck(
-                    _localDeckView
-                );
-            }
-
-            break;
+            _localDeckView.Add(option.Card.Clone());
         }
 
-        case PreparationOptionType.EnhanceCard:
-        {
-            // 현재는 강화 표시 로직이 아직 미완성
-            // 그래도 현재 덱을 다시 그리도록 함
-            RefreshMyDeck(
-                _localDeckView
-            );
-
-            break;
-        }
+        RefreshMyDeck(_localDeckView);
     }
-}
+
+    public void ApplyConfirmedDeckSnapshot(
+        CardDefinition[] confirmedDeck)
+    {
+        _localDeckView.Clear();
+        if (confirmedDeck != null)
+        {
+            foreach (CardDefinition card in confirmedDeck)
+            {
+                if (card != null)
+                    _localDeckView.Add(card.Clone());
+            }
+        }
+
+        RefreshMyDeck(_localDeckView);
+    }
+
+    private void EnsureMyDeckDisplay()
+    {
+        if (myDeckDisplay != null)
+            return;
+
+        if (panelGameObject == null)
+        {
+            Transform panel = transform.Find("PanelGameObject");
+            if (panel != null)
+                panelGameObject = panel.gameObject;
+        }
+
+        if (panelGameObject == null)
+        {
+            Debug.LogWarning("[MapManager_Multi] PanelGameObject를 찾을 수 없습니다.");
+            return;
+        }
+
+        Transform display = panelGameObject.transform.Find("MySelectedCardsDisplay");
+        GameObject displayObject = display != null
+            ? display.gameObject
+            : new GameObject("MySelectedCardsDisplay");
+        if (display == null)
+            displayObject.transform.SetParent(panelGameObject.transform, false);
+
+        RectTransform rect = displayObject.GetComponent<RectTransform>();
+        if (rect == null)
+            rect = displayObject.AddComponent<RectTransform>();
+        if (rect.rect.width <= 0f || rect.rect.height <= 0f)
+            rect.sizeDelta = new Vector2(8f, 2f);
+
+        myDeckDisplay = displayObject.GetComponent<DeckDisplay>();
+        if (myDeckDisplay == null)
+            myDeckDisplay = displayObject.AddComponent<DeckDisplay>();
+    }
+
+    public void ApplyConfirmedOptionToLocalViewLegacy(
+        PreparationOption option)
+    {
+        ApplyConfirmedOptionToLocalView(option);
+    }
 public void RefreshMyDeck(
     List<CardDefinition> deck)
 {

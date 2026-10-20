@@ -758,74 +758,94 @@ public void RequestConfirmPreparationOption(
     );
 }
 [Rpc(SendTo.Server)]
-private void RequestConfirmPreparationOptionRpc(
-    int optionIndex,
-    RpcParams rpcParams = default)
-{
-    ulong senderClientId =
-        rpcParams.Receive.SenderClientId;
-
-    if (!preparationManager.TryConfirmOption(
-            senderClientId,
-            optionIndex,
-            out PreparationOption selectedOption,
-            out PreparationOption[] nextOptions,
-            out int remaining,
-            out string rejectReason))
+    private void RequestConfirmPreparationOptionRpc(
+        int optionIndex,
+        RpcParams rpcParams = default)
     {
-        SendRejectMessage(
-            senderClientId,
-            rejectReason
-        );
+        ulong senderClientId =
+            rpcParams.Receive.SenderClientId;
 
-        return;
+        if (!preparationManager.TryConfirmOption(
+                senderClientId,
+                optionIndex,
+                out PreparationOption selectedOption,
+                out PreparationOption[] nextOptions,
+                out int remaining,
+                out string rejectReason))
+        {
+            SendRejectMessage(senderClientId, rejectReason);
+            return;
+        }
+
+        SendPreparationConfirmResult(
+            senderClientId, selectedOption, nextOptions, remaining);
     }
 
-    // senderClientId에게만
-    // remaining + FinalDeck + nextOptions 전달
-}
-public void RequestSkipPreparation()
-{
-    if (!CanSendNetworkRequest())
-        return;
+    private void SendPreparationConfirmResult(
+        ulong targetClientId,
+        PreparationOption selectedOption,
+        PreparationOption[] nextOptions,
+        int remaining)
+    {
+        PreparationOptionNetData selectedData =
+            cardOptionGenerator.ToNetData(selectedOption);
+        bool hasNextOptions = nextOptions != null && nextOptions.Length == 3;
+        PreparationOptionNetData next0 = default;
+        PreparationOptionNetData next1 = default;
+        PreparationOptionNetData next2 = default;
+        if (hasNextOptions)
+        {
+            next0 = cardOptionGenerator.ToNetData(nextOptions[0]);
+            next1 = cardOptionGenerator.ToNetData(nextOptions[1]);
+            next2 = cardOptionGenerator.ToNetData(nextOptions[2]);
+        }
 
-    RequestSkipPreparationRpc();}
+        CardDefinition[] deck =
+            preparationManager.GetConfirmedDeck(targetClientId);
+        int[] deckPoolIndices = new int[10];
+        int deckCount = deck == null ? 0 : Mathf.Min(deck.Length, deckPoolIndices.Length);
+        for (int i = 0; i < deckCount; i++)
+            deckPoolIndices[i] = cardOptionGenerator.GetCardPoolIndex(deck[i]);
+
+        SendPreparationConfirmResultRpc(
+            targetClientId, selectedData, remaining, hasNextOptions,
+            next0, next1, next2, deckPoolIndices, deckCount);
+    }
 
     [Rpc(SendTo.Server)]
-private void RequestSkipPreparationRpc(
-    RpcParams rpcParams = default)
-{
-    ulong senderClientId =
-        rpcParams.Receive.SenderClientId;
-
-    if (!preparationManager.TrySkip(
-            senderClientId,
-            out PreparationOption[] nextOptions,
-            out int remaining,
-            out string rejectReason))
+    private void RequestSkipPreparationRpc(
+        RpcParams rpcParams = default)
     {
-        SendRejectMessage(
-            senderClientId,
-            rejectReason
-        );
+        ulong senderClientId = rpcParams.Receive.SenderClientId;
+        if (!preparationManager.TrySkip(
+                senderClientId,
+                out PreparationOption[] nextOptions,
+                out int remaining,
+                out string rejectReason))
+        {
+            SendRejectMessage(senderClientId, rejectReason);
+            return;
+        }
 
-        return;
+        SendPreparationConfirmResult(
+            senderClientId,
+            new PreparationOption { Type = PreparationOptionType.Skip },
+            nextOptions,
+            remaining);
     }
 
-    // 해당 플레이어에게만
-    // remaining + nextOptions 전달
-}
-
-[Rpc(SendTo.ClientsAndHost)]
-private void SendPreparationConfirmResultRpc(
-    ulong targetClientId,
-    PreparationOptionNetData selectedData,
-    int remaining,
-    bool hasNextOptions,
-    PreparationOptionNetData next0,
-    PreparationOptionNetData next1,
-    PreparationOptionNetData next2)
-{
+    [Rpc(SendTo.ClientsAndHost)]
+    private void SendPreparationConfirmResultRpc(
+        ulong targetClientId,
+        PreparationOptionNetData selectedData,
+        int remaining,
+        bool hasNextOptions,
+        PreparationOptionNetData next0,
+        PreparationOptionNetData next1,
+        PreparationOptionNetData next2,
+        int[] deckPoolIndices,
+        int deckCount)
+    {
     if (NetworkManager.Singleton == null)
         return;
 

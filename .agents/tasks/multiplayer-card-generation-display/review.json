@@ -1,0 +1,76 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "severity": "HIGH",
+      "title": "Runtime snapshot reconstruction loses effect semantics",
+      "detail": "The plan reconstructs effects with new Effect(type, magnitude), but this project uses Effect.Create to recover concrete effect behavior and supported categories. Define reconstruction through Effect.Create or a verified equivalent, then require a server-record round trip for type, magnitude, target, supported category, and applied category.",
+      "file": "plan.md section (C), PreparationStateSnapshot runtime record reconstruction",
+      "line": 0
+    },
+    {
+      "severity": "HIGH",
+      "title": "Malformed definition validation can throw before rejection",
+      "detail": "CardDefinition.GetEffects calls _effects.ToArray and throws when the backing list is null, while the plan requires rejecting null lists and nested null values. Add a safe TryGetValidatedEffects API and require pool validation and snapshot export to use it without exceptions escaping request handling.",
+      "file": "plan.md section (A), pool validation and CardDefinition validation helper",
+      "line": 0
+    },
+    {
+      "severity": "HIGH",
+      "title": "Candidate and upper-display data contracts remain ambiguous",
+      "detail": "The plan does not fully specify how EnhanceCard candidate metadata differs from committed owner-card snapshot data, so implementation could display a source-pool definition or an uncommitted target card. Define separate candidate and SelectedCard DTO contracts and state that candidate visuals never read SelectedCards while the upper display never reads PreparationOption.Card.",
+      "file": "plan.md sections (A) and (C), candidate and snapshot contracts",
+      "line": 0
+    },
+    {
+      "severity": "HIGH",
+      "title": "NGO RPC migration is ambiguous",
+      "detail": "The current bridge uses universal Rpc attributes with a manual target filter, while the plan proposes legacy ClientRpcParams without specifying the exact package-compatible declarations or removing all old response paths. Choose one API for NGO 2.13.0, name the exact declarations to replace, and require a static check that private payloads never reach another client.",
+      "file": "plan.md section (C), API contract and NetworkMatchBridge edits",
+      "line": 0
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Scene-local PopupManager copying is underspecified",
+      "detail": "Copying a prefab with conflicted metadata into scene-local records lacks a precise representation and lifecycle contract. Choose ordinary scene-local objects with no prefab links or a clean valid prefab, and specify checks that inactive PopupComponent children are found and initialized after activation.",
+      "file": "plan.md section (B), Popup source and scene-local records",
+      "line": 0
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Existing-deck source-index failure path is incomplete",
+      "detail": "The plan requires source metadata for every SelectedCard but does not define when initial cards are validated or whether preparation may begin when one has no exact pool identity. Validate all initial cards before preparation and reject that owner without generation or mutation when identity is unavailable.",
+      "file": "plan.md section (A), clone identity and Single display",
+      "line": 0
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Transition hook boundary is unclear",
+      "detail": "The planned delayed call reaches NotifyBothPlayersConfirmed, which the investigation says immediately starts battle, while scene migration and FinalDeck handoff are out of scope. State that this is only a one-shot delayed call to the existing entry point, add explicit server transitionStarted/transitionCancelled state, and do not claim step 11 or handoff completion.",
+      "file": "plan.md section (E), future 10-round flow hook",
+      "line": 0
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Pool equality is not tied to the actual Single source",
+      "detail": "The plan compares the Multi list to a Single scene line number, but the verified producer reads RewardManager.GetRewardCards. Define that serialized RewardManager.rewardCards sequence as canonical and validate count, GUID, and order against Multi cardPool.",
+      "file": "plan.md section (A), actual pool connection and invalid policy",
+      "line": 0
+    },
+    {
+      "severity": "LOW",
+      "title": "Single semantics wording overstates layout reuse",
+      "detail": "The data and popup path is reusable, but the plan changes Multi-specific columns and sizing. Describe this as reusing the data/popup path with isolated Multi layout configuration.",
+      "file": "plan.md section (A), Single display",
+      "line": 0
+    },
+    {
+      "severity": "LOW",
+      "title": "Clone cleanup owner is not concrete",
+      "detail": "Assign server runtime deck clones to PlayerPreparationData until registry removal and client display clones to MapManager_Multi, with only those owners performing cleanup.",
+      "file": "plan.md section (A), clone identity and lifecycle",
+      "line": 0
+    }
+  ],
+  "reviewDoc": "C:\\Git-Directory\\UpnL_FirstGame\\remake_project_2026\\.agents\\tasks\\multiplayer-card-generation-display\\design-review.md"
+}
