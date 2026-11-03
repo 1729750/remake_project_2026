@@ -8,7 +8,6 @@ using UnityEngine;
 /// 상태 저장과 게임 판정은 다른 클래스가 담당한다.
 /// </summary>
 [RequireComponent(typeof(NetworkObject))]
-[RequireComponent(typeof(NetworkMatchState))]
 public sealed class NetworkMatchBridge : NetworkBehaviour
 {
     [Header("Network Mode")]
@@ -92,47 +91,48 @@ public sealed class NetworkMatchBridge : NetworkBehaviour
 
     private void Awake()
     {
-        if (matchState == null)
-        {
-            matchState =
-                GetComponent<NetworkMatchState>();
-        }
-
-        if (serverController == null)
-        {
-            serverController =
-                GetComponent<MatchServerController>();
-        }
-
-if (networkModeGate == null ||
-    !networkModeGate.NetworkEnabled)
-{
-    NetworkModeGate[] gates =
-        FindObjectsByType<NetworkModeGate>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
-
-    foreach (NetworkModeGate gate in gates)
-    {
-        if (gate == null)
-            continue;
-
-        if (!gate.NetworkEnabled)
-            continue;
-
-        networkModeGate = gate;
-
-        Debug.Log(
-            "[NetworkMatchBridge] " +
-            $"활성 NetworkModeGate 자동 연결 | " +
-            $"Name: {gate.gameObject.name} | " +
-            $"InstanceID: {gate.GetInstanceID()}"
-        );
-
-        break;
+        if (matchState == null) matchState = GetComponent<NetworkMatchState>();
+        if (serverController == null) serverController = GetComponent<MatchServerController>();
     }
-}
+
+    public event Action PreparationAvailabilityChanged;
+    public event Action PreparationViewChanged;
+    public bool PreparationReady => IsSpawned && IsMultiGameMode && matchState != null && matchState.PreparationReady;
+    private void HandlePreparationAvailability() => PreparationAvailabilityChanged?.Invoke();
+    private void HandleNetworkEnabled(bool enabled) => HandlePreparationAvailability();
+
+    public override void OnNetworkSpawn()
+    {
+        if (networkModeGate != null) networkModeGate.NetworkEnabledChanged -= HandleNetworkEnabled;
+        networkModeGate = NetworkManager.GetComponent<NetworkModeGate>();
+        if (networkModeGate != null) networkModeGate.NetworkEnabledChanged += HandleNetworkEnabled;
+        if (matchState != null)
+        {
+            matchState.MatchStateChanged += HandlePreparationAvailability;
+            matchState.LifecycleChanged += HandlePreparationAvailability;
+        }
+        HandlePreparationAvailability();
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (networkModeGate != null) networkModeGate.NetworkEnabledChanged -= HandleNetworkEnabled;
+        if (matchState != null)
+        {
+            matchState.MatchStateChanged -= HandlePreparationAvailability;
+            matchState.LifecycleChanged -= HandlePreparationAvailability;
+        }
+        MapManager_Multi.Instance?.ClearPreparationVisuals();
+        CardOptionGenerator.DisposeOptions(localPreparationOptions);
+        localPreparationOptions = null;
+        foreach (CardDefinition card in localConfirmedDeck) if (card != null) Destroy(card);
+        localConfirmedDeck = Array.Empty<CardDefinition>();
+        localPreparationRound = localRevision = localEpoch = 0;
+        nextRequestId = pendingRequestId = 0;
+        automaticBeginSent = false;
+        PreparationRequestPending = false;
+        hasLocalView = false;
+        HandlePreparationAvailability();
     }
 
 
@@ -528,242 +528,250 @@ private bool CanSendNetworkRequest()
         );
     }
 
-public void RequestBeginPreparation()
-{
-    Debug.Log(
-        "[NetworkMatchBridge] " +
-        $"Gate Name: {(networkModeGate != null ? networkModeGate.gameObject.name : "NULL")} | " +
-        $"Gate InstanceID: {(networkModeGate != null ? networkModeGate.GetInstanceID() : -1)} | " +
-        $"NetworkEnabled: {(networkModeGate != null && networkModeGate.NetworkEnabled)}"
-    );
-
-    NetworkModeGate[] allGates =
-        FindObjectsByType<NetworkModeGate>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
-
-    Debug.Log(
-        $"[NetworkMatchBridge] 현재 씬/런타임 NetworkModeGate 개수: {allGates.Length}"
-    );
-
-    for (int i = 0; i < allGates.Length; i++)
-    {
-        Debug.Log(
-            "[NetworkMatchBridge] " +
-            $"Gate[{i}] | " +
-            $"Name: {allGates[i].gameObject.name} | " +
-            $"InstanceID: {allGates[i].GetInstanceID()} | " +
-            $"Enabled: {allGates[i].NetworkEnabled} | " +
-            $"Active: {allGates[i].gameObject.activeInHierarchy}"
-        );
-    }
-
-    if (!CanSendNetworkRequest())
-    {
-        Debug.LogWarning(
-            "[NetworkMatchBridge] CanSendNetworkRequest 실패"
-        );
-
-        return;
-    }
-
-    Debug.Log(
-        "[NetworkMatchBridge] 준비 선택지 요청 전송"
-    );
-
-    RequestBeginPreparationRpc();
-}
-
-    private void ResolvePreparationReferences()
-    {
-        if (preparationManager == null) preparationManager = FindFirstObjectByType<MultiPreparationManager>();
-        if (cardOptionGenerator == null) cardOptionGenerator = FindFirstObjectByType<CardOptionGenerator>();
-    }
-
-[Rpc(SendTo.Server)]
-private void RequestBeginPreparationRpc(
-    RpcParams rpcParams = default)
-{
-    ResolvePreparationReferences();
-    ulong senderClientId =
-        rpcParams.Receive.SenderClientId;
-
-        Debug.Log(
-        "[NetworkMatchBridge][Server] " +
-        $"준비 선택지 요청 수신 | " +
-        $"ClientId: {senderClientId}"
-    );
-        Debug.Log(
-        "[NetworkMatchBridge][Server] " +
-        $"현재 Preparation Phase: " +
-        $"{(preparationManager != null ? "Manager 있음" : "Manager 없음")}"
-    );
-
-    if (preparationManager == null)
-    {
-        SendRejectMessage(
-            senderClientId,
-            "MultiPreparationManager가 없습니다."
-        );
-
-        return;
-    }
-
-    if (cardOptionGenerator == null)
-    {
-        SendRejectMessage(
-            senderClientId,
-            "CardOptionGenerator가 없습니다."
-        );
-
-        return;
-    }
-
-    if (!preparationManager.TryBeginForPlayer(
-            senderClientId,
-            out PreparationOption[] options,
-            out string rejectReason))
-    {
-        SendRejectMessage(
-            senderClientId,
-            rejectReason
-        );
-
-        return;
-    }
-
-    if (options != null && options.Length != 3)
-    {
-        SendRejectMessage(
-            senderClientId,
-            "준비 선택지가 3개가 아닙니다."
-        );
-
-        return;
-    }
-
-    SendPreparationState(senderClientId, options);
-}
-
-private int localPreparationRound;
-private PreparationOption[] localPreparationOptions;
-
+    private int localPreparationRound, localRevision, localEpoch;
+    private long nextRequestId, pendingRequestId;
+    private bool automaticBeginSent, hasLocalView, localOptionsRetry, recoveryAttempted;
+    private PreparationOption[] localPreparationOptions;
+    private CardDefinition[] localConfirmedDeck = Array.Empty<CardDefinition>();
     public bool PreparationRequestPending { get; private set; }
 
-public void RequestConfirmPreparationOption(int optionIndex)
-{
-    if (!PreparationRequestPending && CanSendNetworkRequest())
+    public void RequestBeginPreparation() => TryBeginLocalPreparation();
+
+    public bool TryBeginLocalPreparation()
+    {
+        if (automaticBeginSent || PreparationRequestPending || !PreparationReady || !IsClient) return false;
+        automaticBeginSent = true;
+        return DispatchStateRequest();
+    }
+
+    public bool RequestPreparationResync()
+    {
+        if (!PreparationReady || PreparationRequestPending || !IsClient) return false;
+        return DispatchStateRequest();
+    }
+
+    private bool DispatchStateRequest()
     {
         PreparationRequestPending = true;
-        RequestConfirmPreparationOptionRpc(optionIndex, localPreparationRound);
+        pendingRequestId = ++nextRequestId;
+        RequestBeginPreparationRpc(pendingRequestId);
+        return true;
     }
-}
 
-public void RequestSkipPreparation()
-{
-    RequestConfirmPreparationOption(-1);
-}
-
-[Rpc(SendTo.Server)]
-private void RequestConfirmPreparationOptionRpc(int optionIndex, int expectedRound, RpcParams rpcParams = default)
-{
-    ResolvePreparationReferences();
-    ulong sender = rpcParams.Receive.SenderClientId;
-    if (preparationManager == null) return;
-    bool accepted = preparationManager.TryConfirmOption(sender, optionIndex, expectedRound,
-        out _, out PreparationOption[] next, out _, out string reason);
-    if (!accepted)
+    [Rpc(SendTo.Server)]
+    private void RequestBeginPreparationRpc(long requestId, RpcParams rpcParams = default)
     {
-        SendRejectMessage(sender, reason);
-        preparationManager.TryBeginForPlayer(sender, out next, out _);
+        ulong sender = rpcParams.Receive.SenderClientId;
+        bool valid = preparationManager.TryBeginForPlayer(sender, out PreparationOption[] options, out string reason);
+        SendPreparationState(sender, options, requestId, false, valid ? string.Empty : reason);
     }
-    SendPreparationState(sender, next);
-    if (accepted) preparationManager.CheckAllPlayersCompleted();
-}
 
-[Serializable]
-private class PreparationViewState
-{
-    public string[] cards;
-    public PreparationOptionNetData[] metadata;
-    public string[] candidateCards;
-    public int remaining;
-}
-
-private void SendPreparationState(ulong owner, PreparationOption[] options)
-{
-    if (!IsServer || !NetworkManager.Singleton.ConnectedClients.ContainsKey(owner)) return;
-    CardDefinition[] deck = preparationManager.GetConfirmedDeck(owner);
-    int[] sources = preparationManager.GetConfirmedSources(owner);
-    var cards = new string[deck == null ? 0 : deck.Length];
-    for (int i = 0; i < cards.Length; i++) cards[i] = cardOptionGenerator.SerializeCard(deck[i], sources[i]);
-    var metadata = new PreparationOptionNetData[options == null ? 0 : options.Length];
-    var candidateCards = new string[metadata.Length];
-    for (int i = 0; i < metadata.Length; i++)
+    public bool RequestConfirmPreparationOption(int optionIndex)
     {
-        metadata[i] = cardOptionGenerator.ToNetData(options[i]);
-        int source = options[i].Type == PreparationOptionType.AddCard ? options[i].CardPoolIndex
-            : options[i].Type == PreparationOptionType.EnhanceCard ? sources[options[i].TargetCardIndex] : -1;
-        candidateCards[i] = options[i].Card == null ? string.Empty : cardOptionGenerator.SerializeCard(options[i].Card, source);
+        if (PreparationRequestPending || !PreparationReady || !hasLocalView || localOptionsRetry ||
+            localPreparationRound >= 10 || !IsClient) return false;
+        recoveryAttempted = false;
+        PreparationRequestPending = true;
+        pendingRequestId = ++nextRequestId;
+        RequestConfirmPreparationOptionRpc(optionIndex, localPreparationRound, localRevision, localEpoch, pendingRequestId);
+        return true;
     }
-    string payload = JsonUtility.ToJson(new PreparationViewState
-    {
-        cards = cards, metadata = metadata, candidateCards = candidateCards,
-        remaining = preparationManager.GetRemainingChoices(owner)
-    });
-    SendPreparationStateClientRpc(payload,
-        new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { owner } } });
-}
 
-[ClientRpc]
-private void SendPreparationStateClientRpc(string payload, ClientRpcParams clientRpcParams = default)
-{
-    ResolvePreparationReferences();
-    if (payload == null || payload.Length > 262144) return;
-    PreparationViewState state = JsonUtility.FromJson<PreparationViewState>(payload);
-    if (state == null || state.cards == null || state.cards.Length > 10 || state.metadata == null ||
-        (state.metadata.Length != 0 && state.metadata.Length != 3) || state.candidateCards == null ||
-        state.candidateCards.Length != state.metadata.Length || state.remaining < 0 || state.remaining > 10 ||
-        10 - state.remaining < localPreparationRound) return;
-    string[] cards = state.cards;
-    PreparationOptionNetData[] metadata = state.metadata;
-    string[] candidateCards = state.candidateCards;
-    int remaining = state.remaining;
-    var deck = new CardDefinition[cards.Length];
-    var options = new PreparationOption[metadata.Length];
-    try
+    public void RequestSkipPreparation() => RequestConfirmPreparationOption(-1);
+
+    [Rpc(SendTo.Server)]
+    private void RequestConfirmPreparationOptionRpc(int optionIndex, int round, int revision, int epoch,
+        long requestId, RpcParams rpcParams = default)
     {
-        for (int i = 0; i < cards.Length; i++) deck[i] = cardOptionGenerator.DeserializeCard(cards[i]);
-        for (int i = 0; i < options.Length; i++)
+        ulong sender = rpcParams.Receive.SenderClientId;
+        bool accepted = preparationManager.TryConfirmOption(sender, optionIndex, round, revision, epoch, requestId,
+            out PreparationOption[] options, out string reason);
+        if (!accepted) preparationManager.TryBeginForPlayer(sender, out options, out _);
+        SendPreparationState(sender, options, requestId, accepted, reason);
+        if (accepted) preparationManager.CheckAllPlayersCompleted();
+    }
+
+    [Serializable]
+    private class PreparationViewState
+    {
+        public long requestId;
+        public int epoch, revision, round, remaining;
+        public bool accepted, optionsRetry;
+        public string error;
+        public string[] cards;
+        public PreparationOptionNetData[] metadata;
+        public string[] candidateCards, afterCards;
+    }
+
+    private void SendPreparationState(ulong owner, PreparationOption[] options, long requestId, bool accepted, string error)
+    {
+        if (!IsServer || !NetworkManager.ConnectedClients.ContainsKey(owner)) return;
+        var state = new PreparationViewState
         {
-            options[i] = new PreparationOption
+            requestId = requestId, accepted = accepted, error = error,
+            epoch = preparationManager.Epoch, revision = preparationManager.GetRevision(owner),
+            remaining = preparationManager.GetRemainingChoices(owner),
+            cards = Array.Empty<string>(), metadata = Array.Empty<PreparationOptionNetData>(),
+            candidateCards = Array.Empty<string>(), afterCards = Array.Empty<string>()
+        };
+        state.round = 10 - state.remaining;
+        try
+        {
+            CardDefinition[] deck = preparationManager.GetConfirmedDeck(owner);
+            int[] sources = preparationManager.GetConfirmedSources(owner);
+            if (deck.Length != sources.Length) throw new InvalidOperationException("Invalid owner source metadata.");
+            state.cards = new string[deck.Length];
+            for (int i = 0; i < deck.Length; i++) state.cards[i] = cardOptionGenerator.SerializeCard(deck[i], sources[i]);
+            int count = options == null ? 0 : options.Length;
+            state.metadata = new PreparationOptionNetData[count];
+            state.candidateCards = new string[count];
+            state.afterCards = new string[count];
+            for (int i = 0; i < count; i++)
             {
-                Type = (PreparationOptionType)metadata[i].Type, CardPoolIndex = metadata[i].CardPoolIndex,
-                TargetCardIndex = metadata[i].TargetCardIndex, EnhanceId = metadata[i].EnhanceId,
-                Card = string.IsNullOrEmpty(candidateCards[i]) ? null : cardOptionGenerator.DeserializeCard(candidateCards[i])
-            };
+                state.metadata[i] = cardOptionGenerator.ToNetData(options[i]);
+                state.candidateCards[i] = cardOptionGenerator.SerializeCard(options[i].Card, options[i].CardPoolIndex);
+                state.afterCards[i] = options[i].AfterPreview == null ? string.Empty :
+                    cardOptionGenerator.SerializeCard(options[i].AfterPreview, options[i].CardPoolIndex);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception, this);
+            state.error = "Owner snapshot is unavailable; request state again.";
+            state.cards = null; // Typed failure: never replace a confirmed view with an empty deck.
+            state.metadata = Array.Empty<PreparationOptionNetData>();
+            state.candidateCards = state.afterCards = Array.Empty<string>();
+        }
+        state.optionsRetry = state.remaining > 0 && state.metadata.Length == 0;
+        SendPreparationStateClientRpc(JsonUtility.ToJson(state),
+            new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { owner } } });
+    }
+
+    private static CardUpgrade DecodeUpgrade(PreparationOptionNetData data)
+    {
+        if (!Enum.IsDefined(typeof(EffectType), (EffectType)data.EffectType) ||
+            !Enum.IsDefined(typeof(EffectTarget), (EffectTarget)data.Target))
+            throw new InvalidOperationException("Invalid offered effect.");
+        var effect = new CardEffect(Effect.Create((EffectType)data.EffectType, data.Magnitude), (EffectTarget)data.Target);
+        EffectCategory category = (EffectCategory)data.Category;
+        if ((category != EffectCategory.Instant && category != EffectCategory.Continuous) ||
+            (category & ~effect.GetSupportedCategories()) != 0) throw new InvalidOperationException("Invalid offered category.");
+        effect.SetAppliedCategory(category);
+        return new CardUpgrade(effect, data.CostDelta, data.CooldownDelta);
+    }
+
+    [ClientRpc]
+    private void SendPreparationStateClientRpc(string payload, ClientRpcParams clientRpcParams = default)
+    {
+        PreparationViewState state = null;
+        CardDefinition[] deck = null;
+        PreparationOption[] options = null;
+        try
+        {
+            if (payload == null || payload.Length > 262144) throw new InvalidOperationException("Invalid snapshot size.");
+            state = JsonUtility.FromJson<PreparationViewState>(payload);
+            if (state == null || state.requestId <= 0 || state.requestId > nextRequestId ||
+                state.epoch < localEpoch || (state.epoch == localEpoch && state.revision < localRevision)) return;
+            if (state.cards == null) throw new InvalidOperationException(state.error);
+            if (state.cards.Length > 10 || state.metadata == null || state.candidateCards == null || state.afterCards == null ||
+                (state.metadata.Length != 0 && state.metadata.Length != 3) ||
+                state.candidateCards.Length != state.metadata.Length || state.afterCards.Length != state.metadata.Length ||
+                state.round < 0 || state.round > 10 || state.remaining != 10 - state.round || state.cards.Length > state.round ||
+                (state.remaining == 0 && state.metadata.Length != 0) ||
+                state.optionsRetry != (state.remaining > 0 && state.metadata.Length == 0))
+                throw new InvalidOperationException("Invalid preparation snapshot.");
+            deck = new CardDefinition[state.cards.Length];
+            options = new PreparationOption[state.metadata.Length];
+            for (int i = 0; i < deck.Length; i++) deck[i] = cardOptionGenerator.DeserializeCard(state.cards[i]);
+            for (int i = 0; i < options.Length; i++)
+            {
+                PreparationOptionNetData data = state.metadata[i];
+                bool enhance = data.Type == (byte)PreparationOptionType.EnhanceCard;
+                if (data.OfferedSlot != i || (data.Type != (byte)PreparationOptionType.AddCard && !enhance) ||
+                    cardOptionGenerator.GetCardByPoolIndex(data.CardPoolIndex) == null ||
+                    (i == 0 && (enhance || data.NoEnhanceTarget || data.RandomEnhance)) ||
+                    (i == 1 && (data.RandomEnhance || (!enhance && !data.NoEnhanceTarget))) ||
+                    (i == 2 && enhance != (data.RandomEnhance && !data.NoEnhanceTarget)) ||
+                    (data.NoEnhanceTarget && (enhance || i == 0 || (i == 2 && !data.RandomEnhance))) ||
+                    (enhance && (data.TargetCardIndex < 0 || data.TargetCardIndex >= deck.Length || data.EnhanceId < 0)) ||
+                    (!enhance && (data.TargetCardIndex != -1 || data.EnhanceId != -1)))
+                    throw new InvalidOperationException("Invalid candidate metadata.");
+                options[i] = new PreparationOption
+                {
+                    Type = (PreparationOptionType)data.Type, OfferedSlot = data.OfferedSlot,
+                    RandomEnhance = data.RandomEnhance, NoEnhanceTarget = data.NoEnhanceTarget,
+                    CardPoolIndex = data.CardPoolIndex, TargetCardIndex = data.TargetCardIndex, EnhanceId = data.EnhanceId,
+                    Card = cardOptionGenerator.DeserializeCard(state.candidateCards[i])
+                };
+                if (enhance)
+                {
+                    options[i].Upgrade = DecodeUpgrade(data);
+                    options[i].AfterPreview = cardOptionGenerator.DeserializeCard(state.afterCards[i]);
+                    if (!RewardManager.CanEnhance(options[i].Card, options[i].Upgrade) ||
+                        state.candidateCards[i] != cardOptionGenerator.SerializeCard(deck[data.TargetCardIndex], data.CardPoolIndex))
+                        throw new InvalidOperationException("Invalid enhancement target preview.");
+                    CardDefinition expected = CardOptionGenerator.CopyCard(options[i].Card);
+                    try
+                    {
+                        expected.ApplyUpgrade(CardOptionGenerator.CopyUpgrade(options[i].Upgrade));
+                        if (cardOptionGenerator.SerializeCard(expected, data.CardPoolIndex) != state.afterCards[i])
+                            throw new InvalidOperationException("Invalid enhancement after preview.");
+                    }
+                    finally { Destroy(expected); }
+                }
+                else if (!string.IsNullOrEmpty(state.afterCards[i]) || data.EffectType != -1)
+                    throw new InvalidOperationException("Unexpected Add upgrade preview.");
+            }
+            MapManager_Multi.Instance?.ClearPreparationVisuals();
+            CardOptionGenerator.DisposeOptions(localPreparationOptions);
+            foreach (CardDefinition card in localConfirmedDeck) if (card != null) Destroy(card);
+            localConfirmedDeck = deck;
+            localPreparationOptions = options;
+            deck = null;
+            options = null;
+            localPreparationRound = state.round;
+            localRevision = state.revision;
+            localEpoch = state.epoch;
+            localOptionsRetry = state.optionsRetry;
+            hasLocalView = true;
+            if (state.requestId == pendingRequestId) PreparationRequestPending = false;
+            if (!string.IsNullOrEmpty(state.error)) LocalMessage?.Invoke(state.error);
+            PreparationViewChanged?.Invoke();
+            if (state.optionsRetry && !recoveryAttempted && PreparationReady)
+            {
+                recoveryAttempted = true;
+                RequestPreparationResync();
+            }
+        }
+        catch (Exception exception)
+        {
+            if (deck != null) foreach (CardDefinition card in deck) if (card != null) Destroy(card);
+            CardOptionGenerator.DisposeOptions(options);
+            // Only a correlated failure may release the matching transaction.
+            if (state != null && state.requestId == pendingRequestId)
+            {
+                PreparationRequestPending = false;
+                LocalMessage?.Invoke(exception.Message);
+                PreparationViewChanged?.Invoke();
+                if (!recoveryAttempted && PreparationReady)
+                {
+                    recoveryAttempted = true;
+                    RequestPreparationResync();
+                }
+            }
+            Debug.LogException(exception, this);
         }
     }
-    catch (Exception exception)
+
+    public bool RenderCachedPreparation(MapManager_Multi map)
     {
-        foreach (CardDefinition card in deck) if (card != null) Destroy(card);
-        foreach (PreparationOption option in options) if (option.Card != null) Destroy(option.Card);
-        Debug.LogException(exception);
-        return;
+        if (!hasLocalView) return false;
+        map.ApplyConfirmedDeckSnapshot(localConfirmedDeck);
+        map.SetRemainingChoices(10 - localPreparationRound);
+        if (localPreparationOptions != null && localPreparationOptions.Length == 3 && PreparationReady)
+            map.ShowOptions(localPreparationOptions);
+        else map.ShowWaitingForOpponent();
+        return true;
     }
-    if (10 - remaining < localPreparationRound) return;
-    localPreparationRound = 10 - remaining;
-    PreparationRequestPending = false;
-    MapManager_Multi map = MapManager_Multi.Instance;
-    map?.ApplyConfirmedDeckSnapshot(deck);
-    foreach (CardDefinition card in deck) if (card != null) Destroy(card);
-    map?.SetRemainingChoices(remaining);
-    if (options.Length == 3) map?.ShowOptions(options);
-    else map?.ShowWaitingForOpponent();
-    if (localPreparationOptions != null)
-        foreach (PreparationOption option in localPreparationOptions) if (option.Card != null) Destroy(option.Card);
-    localPreparationOptions = options;
-}
 
 }

@@ -1,0 +1,20 @@
+[Unit]
+Description=RealTimeCardGame server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=cardgame
+WorkingDirectory=/opt/cardgame
+ExecStart=/usr/bin/dotnet /opt/cardgame/CardGameServer.dll
+Restart=always
+RestartSec=3
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

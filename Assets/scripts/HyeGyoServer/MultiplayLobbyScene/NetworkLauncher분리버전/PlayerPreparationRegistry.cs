@@ -3,193 +3,97 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Server가 실제 접속 플레이어 2명의
-/// 매치 준비 데이터를 보관한다.
-///
-/// 이 데이터 자체는 Network 동기화하지 않는다.
-/// 필요한 결과만 RPC / NetworkVariable로 전달한다.
-/// </summary>
 public sealed class PlayerPreparationRegistry : MonoBehaviour
 {
-    [SerializeField]
-    private NetworkConnectionMonitor connectionMonitor;
-
-    private readonly Dictionary<
-        ulong,
-        PlayerPreparationData
-    > players = new();
-
+    [SerializeField] private NetworkConnectionMonitor connectionMonitor;
+    private NetworkManager session;
+    private bool subscribed;
+    private readonly Dictionary<ulong, PlayerPreparationData> players = new();
     public int Count => players.Count;
-
-    public IEnumerable<PlayerPreparationData> Players =>
-        players.Values;
-
+    public IEnumerable<PlayerPreparationData> Players => players.Values;
     public event Action<ulong> PlayerRegistered;
     public event Action<ulong> PlayerRemoved;
 
-    private void Awake()
+    public void BindSession(NetworkManager runningSession)
     {
-        EnsureReferences();
+        if (session == runningSession && subscribed) return;
+        Detach();
+        session = runningSession;
+        if (isActiveAndEnabled) Attach();
     }
 
-    private void OnEnable()
-    {
-        EnsureReferences();
+    private void OnEnable() => Attach();
+    private void OnDisable() => Detach();
 
-        if (connectionMonitor == null)
+    private void Attach()
+    {
+        if (subscribed) return;
+        if (session != null)
         {
-            Debug.LogError(
-                "[PlayerPreparationRegistry] " +
-                "NetworkConnectionMonitor가 없습니다."
-            );
-
-            return;
+            session.OnClientConnectedCallback += HandleClientConnected;
+            session.OnClientDisconnectCallback += HandleClientDisconnected;
         }
-
-        connectionMonitor.ClientConnected +=
-            HandleClientConnected;
-
-        connectionMonitor.ClientDisconnected +=
-            HandleClientDisconnected;
-
-        RegisterAlreadyConnectedPlayers();
-    }
-
-    private void OnDisable()
-    {
-        if (connectionMonitor == null)
-            return;
-
-        connectionMonitor.ClientConnected -=
-            HandleClientConnected;
-
-        connectionMonitor.ClientDisconnected -=
-            HandleClientDisconnected;
-    }
-
-    private void EnsureReferences()
-    {
-        if (connectionMonitor != null)
-            return;
-
-        connectionMonitor =
-            FindFirstObjectByType<
-                NetworkConnectionMonitor>();
-    }
-
-    private void HandleClientConnected(
-        ulong clientId)
-    {
-        if (!IsServer())
-            return;
-
-        RegisterPlayer(clientId);
-    }
-
-    private void HandleClientDisconnected(
-        ulong clientId)
-    {
-        if (!IsServer())
-            return;
-
-        RemovePlayer(clientId);
-    }
-
-    private void RegisterAlreadyConnectedPlayers()
-    {
-        if (!IsServer())
-            return;
-
-        if (NetworkManager.Singleton == null)
-            return;
-
-        foreach (
-            NetworkClient client
-            in NetworkManager.Singleton
-                .ConnectedClientsList)
+        else if (connectionMonitor != null)
         {
-            RegisterPlayer(
-                client.ClientId
-            );
+            connectionMonitor.ClientConnected += HandleClientConnected;
+            connectionMonitor.ClientDisconnected += HandleClientDisconnected;
         }
+        else return; // Gameplay explicitly binds the running session before preparation.
+        subscribed = true;
+        NetworkManager network = session != null ? session : NetworkManager.Singleton;
+        if (network != null && network.IsServer)
+            foreach (ulong clientId in network.ConnectedClientsIds) RegisterPlayer(clientId);
     }
 
-    private void RegisterPlayer(
-        ulong clientId)
+    private void Detach()
     {
-        if (players.ContainsKey(clientId))
-            return;
-
-        // 1:1 게임이므로 2명 이상 등록 금지
-        if (players.Count >= 2)
+        if (!subscribed) return;
+        if (session != null)
         {
-            Debug.LogWarning(
-                "[PlayerPreparationRegistry] " +
-                $"3번째 플레이어 등록 거부 | {clientId}"
-            );
-
-            return;
+            session.OnClientConnectedCallback -= HandleClientConnected;
+            session.OnClientDisconnectCallback -= HandleClientDisconnected;
         }
+        else if (connectionMonitor != null)
+        {
+            connectionMonitor.ClientConnected -= HandleClientConnected;
+            connectionMonitor.ClientDisconnected -= HandleClientDisconnected;
+        }
+        subscribed = false;
+    }
 
-        players.Add(
-            clientId,
-            new PlayerPreparationData(
-                clientId
-            )
-        );
+    private void HandleClientConnected(ulong clientId)
+    {
+        if (IsServer()) RegisterPlayer(clientId);
+    }
 
-        Debug.Log(
-            "[PlayerPreparationRegistry] " +
-            $"실제 플레이어 등록 | " +
-            $"ClientId: {clientId} | " +
-            $"Count: {players.Count}/2"
-        );
+    private void HandleClientDisconnected(ulong clientId)
+    {
+        if (IsServer()) RemovePlayer(clientId);
+    }
 
+    private void RegisterPlayer(ulong clientId)
+    {
+        if (players.ContainsKey(clientId) || players.Count >= 2) return;
+        players.Add(clientId, new PlayerPreparationData(clientId));
         PlayerRegistered?.Invoke(clientId);
     }
 
-    private void RemovePlayer(
-        ulong clientId)
+    private void RemovePlayer(ulong clientId)
     {
-        if (!players.TryGetValue(clientId, out PlayerPreparationData removed))
-            return;
+        if (!players.TryGetValue(clientId, out PlayerPreparationData removed)) return;
         foreach (CardDefinition card in removed.FinalDeck)
             if (card != null) Destroy(card);
         players.Remove(clientId);
-
-        Debug.Log(
-            "[PlayerPreparationRegistry] " +
-            $"플레이어 제거 | " +
-            $"ClientId: {clientId} | " +
-            $"Count: {players.Count}/2"
-        );
-
         PlayerRemoved?.Invoke(clientId);
     }
 
-    public bool TryGetPlayer(
-        ulong clientId,
-        out PlayerPreparationData data)
+    private void OnDestroy()
     {
-        return players.TryGetValue(
-            clientId,
-            out data
-        );
+        Detach();
+        foreach (ulong clientId in new List<ulong>(players.Keys)) RemovePlayer(clientId);
     }
 
-    public bool ContainsPlayer(
-        ulong clientId)
-    {
-        return players.ContainsKey(
-            clientId
-        );
-    }
-
-    private bool IsServer()
-    {
-        return
-            NetworkManager.Singleton != null &&
-            NetworkManager.Singleton.IsServer;
-    }
+    public bool TryGetPlayer(ulong clientId, out PlayerPreparationData data) => players.TryGetValue(clientId, out data);
+    public bool ContainsPlayer(ulong clientId) => players.ContainsKey(clientId);
+    private bool IsServer() => (session != null ? session : NetworkManager.Singleton)?.IsServer == true;
 }

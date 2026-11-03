@@ -25,6 +25,10 @@ public sealed class PreparationOptionVisual_Multi
 
     public void SetPopupManager(PopupManager popupManager) => _popupManager = popupManager;
 
+    private TextMeshPro _offerText;
+    private PreparationOption _option;
+    public void ClearOption() => ClearVisual();
+
     private GameObject _highlight;
 
 
@@ -123,6 +127,24 @@ public sealed class PreparationOptionVisual_Multi
             $"TargetIndex: {option.TargetCardIndex}"
         );
 
+        _option = option;
+        if (_offerText == null)
+        {
+            var label = new GameObject("OfferPreview", typeof(TextMeshPro));
+            label.transform.SetParent(transform, false);
+            label.transform.localPosition = new Vector3(0f, -1.8f, 0f);
+            _offerText = label.GetComponent<TextMeshPro>();
+            _offerText.fontSize = 2;
+            _offerText.alignment = TextAlignmentOptions.Center;
+            _offerText.rectTransform.sizeDelta = new Vector2(4f, 1.2f);
+        }
+        string kind = option.OfferedSlot == 2 ? "랜덤 · " : string.Empty;
+        _offerText.text = kind + (option.NoEnhanceTarget ? "강화 대상 없음 · 카드 추가" :
+            option.Type == PreparationOptionType.AddCard ? "카드 추가" : $"카드 {option.TargetCardIndex + 1} 강화");
+        if (option.Upgrade != null)
+            _offerText.text += $"\n{option.Upgrade.effect.GetEffect().GetEffectType()} {option.Upgrade.effect.GetEffect().GetMagnitude():+0;-0;0} " +
+                $"{option.Upgrade.effect.GetEffectTarget()} / {option.Upgrade.effect.GetAppliedCategory()}" +
+                $"\nCost {option.Card.GetCost()}→{option.AfterPreview.GetCost()} · CD {option.Card.GetCooldown()}→{option.AfterPreview.GetCooldown()}";
         switch (option.Type)
         {
             case PreparationOptionType.AddCard:
@@ -195,7 +217,7 @@ public sealed class PreparationOptionVisual_Multi
     private void ShowEnhance(
         PreparationOption option)
     {
-        ShowCard(option.Card);
+        ShowCard(option.AfterPreview);
         if (_hpText != null) _hpText.text = "UP";
     }
 
@@ -213,7 +235,11 @@ public sealed class PreparationOptionVisual_Multi
             return;
         }
 
-        if (_cardObject != null) Destroy(_cardObject);
+        if (_cardObject != null)
+        {
+            _cardObject.SetActive(false);
+            Destroy(_cardObject);
+        }
         GameObject prefab = Resources.Load<GameObject>("Prefabs/Card");
         if (prefab != null)
         {
@@ -479,6 +505,8 @@ public sealed class PreparationOptionVisual_Multi
 
     private void ClearVisual()
     {
+        if (_offerText != null) _offerText.text = string.Empty;
+        if (_cardObject != null) _cardObject.SetActive(false);
         if (_cardObject != null) Destroy(_cardObject);
         _cardObject = null;
         _card = null;

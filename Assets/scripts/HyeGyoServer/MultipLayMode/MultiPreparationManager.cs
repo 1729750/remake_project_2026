@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
@@ -8,27 +9,95 @@ public sealed class MultiPreparationManager : MonoBehaviour
     private const int MaxRounds = 10;
     [SerializeField] private PlayerPreparationRegistry preparationRegistry;
     [SerializeField] private NetworkMatchState matchState;
+    [SerializeField] private NetworkMatchBridge networkMatchBridge;
     [SerializeField] private CardOptionGenerator cardOptionGenerator;
     [SerializeField, Min(0f)] private float transitionDelaySeconds = 1f;
-    private bool transitionStarted;
+    private bool initializationRequested, initializing, transitionStarted, transitionCancelled;
+    private Coroutine transition;
     private readonly Dictionary<ulong, int> currentRoundByClient = new();
     private readonly Dictionary<ulong, PreparationOption[]> currentOptionsByClient = new();
+    private readonly Dictionary<ulong, int> revisionByClient = new();
+    private readonly Dictionary<ulong, long> lastRequestByClient = new();
+    public int Epoch => matchState.PreparationEpoch;
+
+    private void OnEnable()
+    {
+        if (matchState != null) matchState.LifecycleChanged += TryInitialize;
+        if (networkMatchBridge != null) networkMatchBridge.PreparationAvailabilityChanged += TryInitialize;
+        if (preparationRegistry != null)
+        {
+            preparationRegistry.PlayerRegistered += HandleRegistered;
+            preparationRegistry.PlayerRemoved += HandleRemoved;
+        }
+        TryInitialize();
+    }
+
+    public void RequestInitialization()
+    {
+        initializationRequested = true;
+        TryInitialize();
+    }
+
+    private void HandleRegistered(ulong clientId) => TryInitialize();
+    private void TryInitialize()
+    {
+        if (!initializationRequested || initializing || !isActiveAndEnabled) return;
+        NetworkManager network = NetworkManager.Singleton;
+        if (network != null && network.IsServer && matchState != null && matchState.IsSpawned &&
+            networkMatchBridge != null && (!networkMatchBridge.IsSpawned || !networkMatchBridge.IsMultiGameMode))
+            matchState.ServerSetPreparationReady(false);
+        if (transitionStarted || transitionCancelled) return;
+        if (network == null || !network.IsServer || matchState == null || !matchState.IsSpawned ||
+            networkMatchBridge == null || !networkMatchBridge.IsSpawned || !networkMatchBridge.IsMultiGameMode ||
+            preparationRegistry == null || cardOptionGenerator == null || matchState.PreparationReady) return;
+        initializing = true;
+        try
+        {
+            preparationRegistry.BindSession(network);
+            if (preparationRegistry.Count != 2) return;
+            if (!cardOptionGenerator.ValidateConfiguration(out string reason))
+                throw new InvalidOperationException(reason);
+            foreach (PlayerPreparationData player in preparationRegistry.Players)
+            {
+                if (!network.ConnectedClients.ContainsKey(player.ClientId)) return;
+                if (!ValidateDeck(player)) throw new InvalidOperationException("Existing owner deck has invalid source metadata.");
+            }
+            matchState.ServerBeginCardSelection();
+            matchState.ServerSetPreparationReady(true);
+        }
+        catch (Exception exception) { Debug.LogException(exception, this); }
+        finally { initializing = false; }
+    }
+
+    private bool ValidateDeck(PlayerPreparationData player)
+    {
+        if (player.FinalDeck.Count > MaxRounds || player.FinalDeck.Count != player.FinalDeckSourceIndices.Count) return false;
+        for (int i = 0; i < player.FinalDeck.Count; i++)
+            if (player.FinalDeck[i] == null || !player.FinalDeck[i].TryGetValidatedEffects(out _) ||
+                cardOptionGenerator.GetCardByPoolIndex(player.FinalDeckSourceIndices[i]) == null) return false;
+        return true;
+    }
 
     private bool Validate(ulong clientId, out PlayerPreparationData player, out string reason)
     {
         player = null;
         reason = string.Empty;
-        var network = NetworkManager.Singleton;
+        NetworkManager network = NetworkManager.Singleton;
         if (network == null || !network.IsServer || !network.ConnectedClients.ContainsKey(clientId) ||
             preparationRegistry == null || !preparationRegistry.TryGetPlayer(clientId, out player))
         {
             reason = "Unregistered preparation owner.";
             return false;
         }
-        if (matchState == null || cardOptionGenerator == null ||
+        if (matchState == null || !matchState.PreparationReady || cardOptionGenerator == null ||
             (matchState.CurrentPhase != MatchPhase.ChoosingCard && matchState.CurrentPhase != MatchPhase.ChoosingCondition))
         {
             reason = "Preparation is not active.";
+            return false;
+        }
+        if (!ValidateDeck(player))
+        {
+            reason = "Existing owner deck has invalid source metadata.";
             return false;
         }
         return true;
@@ -38,124 +107,147 @@ public sealed class MultiPreparationManager : MonoBehaviour
     {
         options = null;
         if (!Validate(clientId, out PlayerPreparationData player, out rejectReason)) return false;
-        if (player.FinalDeck.Count != player.FinalDeckSourceIndices.Count)
-        {
-            rejectReason = "Existing deck has no source metadata.";
-            return false;
-        }
         if (player.ConditionCompleted) return true;
         if (currentOptionsByClient.TryGetValue(clientId, out options)) return true;
-        options = cardOptionGenerator.GenerateOptions(player, MaxRounds - GetRemainingChoices(clientId));
-        if (options == null || options.Length != 3)
+        try
         {
-            rejectReason = "Invalid candidate pool.";
+            options = cardOptionGenerator.GenerateOptions(player, MaxRounds - GetRemainingChoices(clientId));
+            currentOptionsByClient[clientId] = options;
+            revisionByClient[clientId] = GetRevision(clientId) + 1;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            rejectReason = "Candidate generation failed; owner state can be requested again.";
+            Debug.LogException(exception, this);
             return false;
         }
-        currentOptionsByClient[clientId] = options;
-        return true;
     }
 
-    public bool TryConfirmOption(ulong clientId, int optionIndex, int expectedRound,
-        out PreparationOption selectedOption, out PreparationOption[] nextOptions,
-        out int remaining, out string rejectReason)
+    public bool TryConfirmOption(ulong clientId, int optionIndex, int expectedRound, int expectedRevision,
+        int expectedEpoch, long requestId, out PreparationOption[] nextOptions, out string rejectReason)
     {
-        selectedOption = default;
         nextOptions = null;
-        remaining = GetRemainingChoices(clientId);
         if (!Validate(clientId, out PlayerPreparationData player, out rejectReason)) return false;
-        if (player.ConditionCompleted || expectedRound != MaxRounds - remaining ||
-            !currentOptionsByClient.TryGetValue(clientId, out PreparationOption[] options) ||
+        int remaining = GetRemainingChoices(clientId);
+        if (requestId <= GetLastRequest(clientId))
+        {
+            rejectReason = "Duplicate preparation request.";
+            return false;
+        }
+        lastRequestByClient[clientId] = requestId;
+        if (player.ConditionCompleted || expectedRound != MaxRounds - remaining || expectedRevision != GetRevision(clientId) ||
+            expectedEpoch != Epoch || !currentOptionsByClient.TryGetValue(clientId, out PreparationOption[] options) ||
             optionIndex < -1 || optionIndex >= options.Length)
         {
             rejectReason = "Stale or invalid preparation request.";
             return false;
         }
-        selectedOption = optionIndex == -1
+        PreparationOption selected = optionIndex == -1
             ? new PreparationOption { Type = PreparationOptionType.Skip } : options[optionIndex];
-        switch (selectedOption.Type)
+        switch (selected.Type)
         {
             case PreparationOptionType.AddCard:
-                if (selectedOption.Card == null || cardOptionGenerator.GetCardByPoolIndex(selectedOption.CardPoolIndex) == null)
+                if (selected.Card == null || !selected.Card.TryGetValidatedEffects(out _) ||
+                    cardOptionGenerator.GetCardByPoolIndex(selected.CardPoolIndex) == null)
                 {
                     rejectReason = "Invalid card source.";
                     return false;
                 }
-                player.FinalDeck.Add(selectedOption.Card.Clone());
-                player.FinalDeckSourceIndices.Add(selectedOption.CardPoolIndex);
+                player.FinalDeck.Add(CardOptionGenerator.CopyCard(selected.Card));
+                player.FinalDeckSourceIndices.Add(selected.CardPoolIndex);
                 break;
             case PreparationOptionType.EnhanceCard:
-                int target = selectedOption.TargetCardIndex;
-                if (target < 0 || target >= player.FinalDeck.Count || selectedOption.Upgrade == null ||
-                    !RewardManager.CanEnhance(player.FinalDeck[target], selectedOption.Upgrade))
+                int target = selected.TargetCardIndex;
+                if (target < 0 || target >= player.FinalDeck.Count || selected.Upgrade == null ||
+                    selected.CardPoolIndex != player.FinalDeckSourceIndices[target] ||
+                    !RewardManager.CanEnhance(player.FinalDeck[target], selected.Upgrade))
                 {
                     rejectReason = "Invalid owner upgrade target.";
                     return false;
                 }
-                player.FinalDeck[target].ApplyUpgrade(selectedOption.Upgrade);
+                player.FinalDeck[target].ApplyUpgrade(CardOptionGenerator.CopyUpgrade(selected.Upgrade));
                 break;
-            case PreparationOptionType.Skip:
-                break;
+            case PreparationOptionType.Skip: break;
             default:
                 rejectReason = "Unknown preparation option.";
                 return false;
         }
-
-        int round = expectedRound + 1;
-        currentRoundByClient[clientId] = round;
+        currentRoundByClient[clientId] = expectedRound + 1;
+        revisionByClient[clientId] = GetRevision(clientId) + 1;
         currentOptionsByClient.Remove(clientId);
-        foreach (PreparationOption option in options)
-            if (option.Card != null) Destroy(option.Card);
-        remaining = MaxRounds - round;
-        player.ConditionCompleted = remaining == 0;
-        if (!player.ConditionCompleted)
-        {
-            nextOptions = cardOptionGenerator.GenerateOptions(player, round);
-            if (nextOptions != null) currentOptionsByClient[clientId] = nextOptions;
-            // The decision is already committed; candidate retry must never consume it twice.
-        }
+        CardOptionGenerator.DisposeOptions(options);
+        player.ConditionCompleted = GetRemainingChoices(clientId) == 0;
+        if (!player.ConditionCompleted) TryBeginForPlayer(clientId, out nextOptions, out _);
+        // A failed next-offer generation cannot undo or repeat the committed decision.
         return true;
     }
 
-    public bool TrySkip(ulong clientId, int expectedRound, out PreparationOption[] nextOptions,
-        out int remaining, out string rejectReason) => TryConfirmOption(clientId, -1, expectedRound,
-            out _, out nextOptions, out remaining, out rejectReason);
-
     public CardDefinition[] GetConfirmedDeck(ulong clientId) =>
-        preparationRegistry.TryGetPlayer(clientId, out PlayerPreparationData player) ? player.FinalDeck.ToArray() : null;
-
+        preparationRegistry.TryGetPlayer(clientId, out PlayerPreparationData player) ? player.FinalDeck.ToArray() : Array.Empty<CardDefinition>();
     public int[] GetConfirmedSources(ulong clientId) =>
-        preparationRegistry.TryGetPlayer(clientId, out PlayerPreparationData player) ? player.FinalDeckSourceIndices.ToArray() : null;
-
-    public int GetRemainingChoices(ulong clientId) =>
-        MaxRounds - (currentRoundByClient.TryGetValue(clientId, out int round) ? round : 0);
+        preparationRegistry.TryGetPlayer(clientId, out PlayerPreparationData player) ? player.FinalDeckSourceIndices.ToArray() : Array.Empty<int>();
+    public int GetRemainingChoices(ulong clientId) => MaxRounds - (currentRoundByClient.TryGetValue(clientId, out int round) ? round : 0);
+    public int GetRevision(ulong clientId) => revisionByClient.TryGetValue(clientId, out int revision) ? revision : 0;
+    private long GetLastRequest(ulong clientId) => lastRequestByClient.TryGetValue(clientId, out long request) ? request : 0;
 
     public void CheckAllPlayersCompleted()
     {
-        if (transitionStarted || !AllCompleted()) return;
+        if (transitionStarted || transitionCancelled || !AllCompleted()) return;
         transitionStarted = true;
-        StartCoroutine(CompleteAfterDelay());
+        transition = StartCoroutine(CompleteAfterDelay());
     }
 
     private bool AllCompleted()
     {
-        var network = NetworkManager.Singleton;
+        NetworkManager network = NetworkManager.Singleton;
         if (network == null || !network.IsServer || preparationRegistry.Count != 2) return false;
         foreach (PlayerPreparationData player in preparationRegistry.Players)
             if (!player.ConditionCompleted || !network.ConnectedClients.ContainsKey(player.ClientId)) return false;
         return true;
     }
 
+    private void HandleRemoved(ulong clientId)
+    {
+        matchState.ServerSetPreparationReady(false);
+        transitionCancelled = true;
+        if (transition != null) StopCoroutine(transition);
+        transition = null;
+        if (currentOptionsByClient.TryGetValue(clientId, out PreparationOption[] choices)) CardOptionGenerator.DisposeOptions(choices);
+        currentOptionsByClient.Remove(clientId);
+        currentRoundByClient.Remove(clientId);
+        revisionByClient.Remove(clientId);
+        lastRequestByClient.Remove(clientId);
+    }
+
+    private void OnDisable()
+    {
+        if (matchState != null)
+        {
+            matchState.LifecycleChanged -= TryInitialize;
+            matchState.ServerSetPreparationReady(false);
+        }
+        if (networkMatchBridge != null) networkMatchBridge.PreparationAvailabilityChanged -= TryInitialize;
+        if (preparationRegistry != null)
+        {
+            preparationRegistry.PlayerRegistered -= HandleRegistered;
+            preparationRegistry.PlayerRemoved -= HandleRemoved;
+        }
+        if (transition != null) StopCoroutine(transition);
+        transition = null;
+    }
+
     private void OnDestroy()
     {
-        foreach (PreparationOption[] choices in currentOptionsByClient.Values)
-            foreach (PreparationOption option in choices)
-                if (option.Card != null) Destroy(option.Card);
+        foreach (PreparationOption[] choices in currentOptionsByClient.Values) CardOptionGenerator.DisposeOptions(choices);
     }
 
     private IEnumerator CompleteAfterDelay()
     {
         yield return new WaitForSeconds(Mathf.Max(0f, transitionDelaySeconds));
-        if (AllCompleted()) MapManager_Multi.Instance?.NotifyBothPlayersConfirmed();
-        else Debug.LogWarning("[MultiPreparationManager] Transition cancelled: owner disconnected.");
+        transition = null;
+        if (transitionCancelled || !AllCompleted()) yield break;
+        matchState.ServerSetPhase(MatchPhase.Battle);
+        MapManager_Multi.Instance?.NotifyBothPlayersConfirmed();
     }
 }
