@@ -1364,6 +1364,7 @@ MonoBehaviour:
   preparationRegistry: {fileID: 1431684837}
   matchState: {fileID: 806387327}
   cardOptionGenerator: {fileID: 224265908}
+  networkMatchBridge: {fileID: 1201366208}
 --- !u!4 &331795912
 Transform:
   m_ObjectHideFlags: 0
@@ -4447,7 +4448,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1201366207}
   - component: {fileID: 1201366206}
-  - component: {fileID: 1201366209}
   - component: {fileID: 1201366208}
   m_Layer: 0
   m_Name: NetworkMatchBridge
@@ -4510,24 +4510,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkMatchBridge
   ShowTopMostFoldoutHeaderGroup: 1
-  networkModeGate: {fileID: 1815648695}
+  networkModeGate: {fileID: 0}
   serverController: {fileID: 20076621}
   matchState: {fileID: 806387327}
   preparationManager: {fileID: 331795911}
   cardOptionGenerator: {fileID: 224265908}
---- !u!114 &1201366209
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1201366205}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 23bbad0218527fe4087faaa16beab0ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkMatchState
-  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &1216894064
 GameObject:
   m_ObjectHideFlags: 0
@@ -6433,7 +6420,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 810e8dfff3d9085449beb245476b7df2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerPreparationRegistry
-  connectionMonitor: {fileID: 1815648692}
+  connectionMonitor: {fileID: 0}
 --- !u!1 &1474451736
 GameObject:
   m_ObjectHideFlags: 0
@@ -6485,8 +6472,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapManager_Multi
   preparationViewRoot: {fileID: 1924148766}
-  preparationManager: {fileID: 1924148768}
-  networkMatchBridge: {fileID: 0}
+  preparationManager: {fileID: 331795911}
+  networkMatchBridge: {fileID: 1201366208}
   panelGameObject: {fileID: 885946566}
   myDeckDisplay: {fileID: 885946571}
   deckCardSize: 0.7
@@ -7051,7 +7038,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1815648692
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7774,7 +7761,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1924148767}
-  - component: {fileID: 1924148768}
   m_Layer: 0
   m_Name: PreparationPanel
   m_TagString: Untagged
@@ -7797,21 +7783,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 772567245}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1924148768
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1924148766}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9386454d1da56d34691ebe93c15ea94f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MultiPreparationManager
-  preparationRegistry: {fileID: 1431684837}
-  matchState: {fileID: 806387327}
-  cardOptionGenerator: {fileID: 224265908}
 --- !u!1 &1932673635
 GameObject:
   m_ObjectHideFlags: 0
@@ -8071,7 +8042,8 @@ MonoBehaviour:
   gameNetworkState: {fileID: 43848199}
   battleManager: {fileID: 955717471}
   fadeIn: {fileID: 896569714}
-  preparationMatchState: {fileID: 0}
+  preparationMatchState: {fileID: 806387327}
+  preparationManager: {fileID: 331795911}
 --- !u!1 &2052035366
 GameObject:
   m_ObjectHideFlags: 0

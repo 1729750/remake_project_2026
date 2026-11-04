@@ -14,6 +14,21 @@ public sealed class NetworkMatchState : NetworkBehaviour
     /// 현재 유효한 ClientId가 없음을 나타내는 값.
     /// 새 카드 선택 방식에서는 턴을 사용하지 않는다.
     /// </summary>
+    private readonly NetworkVariable<bool> preparationReady = new(false,
+        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private readonly NetworkVariable<int> preparationEpoch = new(0,
+        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public bool PreparationReady => IsSpawned && preparationReady.Value;
+    public int PreparationEpoch => preparationEpoch.Value;
+    public event Action LifecycleChanged;
+
+    public void ServerSetPreparationReady(bool ready)
+    {
+        if (!IsServer || !IsSpawned || preparationReady.Value == ready) return;
+        if (ready) preparationEpoch.Value++;
+        preparationReady.Value = ready;
+    }
+
     public const ulong NoClientId =
         ulong.MaxValue;
 
@@ -74,12 +89,21 @@ public sealed class NetworkMatchState : NetworkBehaviour
         selectedCards.OnListChanged +=
             HandleSelectedCardsChanged;
 
+        preparationReady.OnValueChanged += HandlePreparationReadyChanged;
+        preparationEpoch.OnValueChanged += HandlePreparationEpochChanged;
+        LifecycleChanged?.Invoke();
         MatchStateChanged?.Invoke();
     }
+
+    private void HandlePreparationReadyChanged(bool previous, bool current) => MatchStateChanged?.Invoke();
+    private void HandlePreparationEpochChanged(int previous, int current) => MatchStateChanged?.Invoke();
 
 
     public override void OnNetworkDespawn()
     {
+        preparationReady.OnValueChanged -= HandlePreparationReadyChanged;
+        preparationEpoch.OnValueChanged -= HandlePreparationEpochChanged;
+        LifecycleChanged?.Invoke();
         matchPhase.OnValueChanged -=
             HandleMatchPhaseChanged;
 
@@ -105,6 +129,7 @@ public sealed class NetworkMatchState : NetworkBehaviour
             return;
         }
 
+        ServerSetPreparationReady(false);
         // 먼저 상태 변경
         matchPhase.Value =
             MatchPhase.WaitingForPlayers;
@@ -215,6 +240,8 @@ public sealed class NetworkMatchState : NetworkBehaviour
             return;
         }
 
+        if (phase != MatchPhase.ChoosingCard && phase != MatchPhase.ChoosingCondition)
+            ServerSetPreparationReady(false);
         matchPhase.Value =
             phase;
     }

@@ -19,7 +19,8 @@ public sealed class MapManager_Multi : MonoBehaviour
     private PreparationOption[] options;
     private readonly List<CardDefinition> localDeck = new();
     private int selectedIndex;
-    private bool ownsInput, deckOpen, pending;
+    private bool ownsInput, deckOpen;
+    private bool pending => networkMatchBridge != null && networkMatchBridge.PreparationRequestPending;
 
     private void Awake()
     {
@@ -65,26 +66,49 @@ public sealed class MapManager_Multi : MonoBehaviour
         }
     }
 
-    private void Start()
+    private void OnEnable()
     {
-        if (popupManager != null && !popupManager.enabled) popupManager.enabled = true;
-        if (networkMatchBridge == null) networkMatchBridge = FindFirstObjectByType<NetworkMatchBridge>();
-        SetRemainingChoices(10);
-        networkMatchBridge?.RequestBeginPreparation();
+        if (Instance != this) return;
+        popupManager.gameObject.SetActive(true);
+        networkMatchBridge.PreparationAvailabilityChanged += HandlePreparationAvailability;
+        networkMatchBridge.PreparationViewChanged += HandlePreparationView;
+        networkMatchBridge.LocalMessage += HandleLocalMessage;
+        HandlePreparationAvailability();
+    }
+
+    private void HandlePreparationAvailability()
+    {
+        if (!networkMatchBridge.PreparationReady)
+        {
+            ShowWaitingForOpponent();
+            if (networkMatchBridge.CurrentPhase == MatchPhase.Battle) SetPreparationViewActive(false);
+            return;
+        }
+        SetPreparationViewActive(true);
+        if (!networkMatchBridge.RenderCachedPreparation(this)) networkMatchBridge.TryBeginLocalPreparation();
+    }
+
+    private void HandlePreparationView()
+    {
+        if (isActiveAndEnabled) networkMatchBridge.RenderCachedPreparation(this);
+    }
+
+    private void HandleLocalMessage(string message)
+    {
+        Debug.LogWarning($"[MapManager_Multi] {message}", this);
     }
 
     public void ShowOptions(PreparationOption[] newOptions)
     {
         options = newOptions;
         selectedIndex = Mathf.Clamp(selectedIndex, 0, options.Length - 1);
-        pending = false;
         for (int i = 0; i < optionVisuals.Length; i++)
         {
             if (optionVisuals[i] == null) continue;
             optionVisuals[i].gameObject.SetActive(true);
             optionVisuals[i].SetOption(options[i]);
         }
-        if (!ownsInput && PlayerInputManager.Instance != null)
+        if (!ownsInput && !deckOpen && PlayerInputManager.Instance != null)
         {
             PlayerInputManager.Instance.Load("Select", new Dictionary<string, Action>
             {
@@ -96,11 +120,21 @@ public sealed class MapManager_Multi : MonoBehaviour
             ownsInput = true;
         }
         if (!deckOpen) RefreshSelection();
+        else RefreshDeckPopup();
+    }
+
+    private void RefreshDeckPopup()
+    {
+        int index = myDeckDisplay.GetSelectedIndex();
+        if (index < 0 || index >= localDeck.Count) { popupManager.Hide(); return; }
+        var effects = new List<EffectType>();
+        foreach (CardEffect effect in localDeck[index].GetEffects()) effects.Add(effect.GetEffect().GetEffectType());
+        popupManager.Show(effects);
     }
 
     public void MoveSelection(int delta)
     {
-        if (pending || deckOpen || options == null || options.Length == 0) return;
+        if (pending || !networkMatchBridge.PreparationReady || deckOpen || options == null || options.Length == 0) return;
         selectedIndex = (selectedIndex + delta + options.Length) % options.Length;
         RefreshSelection();
     }
@@ -114,7 +148,6 @@ public sealed class MapManager_Multi : MonoBehaviour
     public void ConfirmLocalPreparation()
     {
         if (pending || deckOpen || options == null || options.Length == 0 || networkMatchBridge == null) return;
-        pending = true;
         networkMatchBridge.RequestConfirmPreparationOption(selectedIndex);
     }
 
@@ -153,9 +186,10 @@ public sealed class MapManager_Multi : MonoBehaviour
         var previous = localDeck.ToArray();
         localDeck.Clear();
         if (deck != null)
-            foreach (CardDefinition card in deck) localDeck.Add(card.Clone());
+            foreach (CardDefinition card in deck) localDeck.Add(CardOptionGenerator.CopyCard(card));
         RefreshMyDeck(localDeck);
         foreach (CardDefinition card in previous) Destroy(card);
+        if (!deckOpen) RefreshSelection();
     }
 
     public void RefreshMyDeck(List<CardDefinition> deck)
@@ -189,7 +223,6 @@ public sealed class MapManager_Multi : MonoBehaviour
 
     public void ShowWaitingForOpponent()
     {
-        pending = false;
         options = null;
         CloseDeck();
         if (ownsInput) PlayerInputManager.Instance?.Unload();
@@ -210,9 +243,18 @@ public sealed class MapManager_Multi : MonoBehaviour
         GameManager_Multi.Instance?.StartBattle();
     }
 
+    public void ClearPreparationVisuals()
+    {
+        foreach (PreparationOptionVisual_Multi visual in optionVisuals) visual?.ClearOption();
+        options = null;
+    }
+
     private void OnDisable()
     {
         if (Instance != this) return;
+        networkMatchBridge.PreparationAvailabilityChanged -= HandlePreparationAvailability;
+        networkMatchBridge.PreparationViewChanged -= HandlePreparationView;
+        networkMatchBridge.LocalMessage -= HandleLocalMessage;
         CloseDeck();
         if (ownsInput) PlayerInputManager.Instance?.Unload();
         ownsInput = false;

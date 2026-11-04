@@ -1,0 +1,547 @@
+{
+  "maxHealth": 100,
+  "startDeck": [
+    "attack",
+    "attack-medium",
+    "attack-big",
+    "attack-medium",
+    "defense",
+    "defense-buff",
+    "defense-medium",
+    "defense"
+  ],
+  "cards": [
+    {
+      "name": "adrenal-surge",
+      "cost": 4,
+      "cooldown": 10,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Strength",
+          "magnitude": 10,
+          "target": "User",
+          "appliedCategory": 1
+        },
+        {
+          "type": "Harden",
+          "magnitude": -5,
+          "target": "Opponent",
+          "appliedCategory": 1
+        },
+        {
+          "type": "Vulnerable",
+          "magnitude": 1,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "aegis-plate",
+      "cost": 6,
+      "cooldown": 3,
+      "cardType": "Mix",
+      "effects": [
+        {
+          "type": "Defend",
+          "magnitude": 5,
+          "target": "User",
+          "appliedCategory": 2
+        },
+        {
+          "type": "Harden",
+          "magnitude": 3,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "attack",
+      "cost": 2,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Attack",
+          "magnitude": 10,
+          "target": "Opponent",
+          "appliedCategory": 0
+        }
+      ]
+    },
+    {
+      "name": "attack-big",
+      "cost": 8,
+      "cooldown": 7,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Attack",
+          "magnitude": 40,
+          "target": "Opponent",
+          "appliedCategory": 0
+        }
+      ]
+    },
+    {
+      "name": "attack-down",
+      "cost": 5,
+      "cooldown": 4,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Strength",
+          "magnitude": -3,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "attack-medium",
+      "cost": 6,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Attack",
+          "magnitude": 20,
+          "target": "Opponent",
+          "appliedCategory": 0
+        }
+      ]
+    },
+    {
+      "name": "attack-up",
+      "cost": 5,
+      "cooldown": 4,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Strength",
+          "magnitude": 3,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "bastion-core",
+      "cost": 3,
+      "cooldown": 1,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Harden",
+          "magnitude": 5,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "blight-bomb",
+      "cost": 2,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "AddDump",
+          "magnitude": 6,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "bloodwardens-toll",
+      "cost": 4,
+      "cooldown": 50,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "DefenseToCooldown",
+          "magnitude": 1,
+          "target": "User",
+          "appliedCategory": 1
+        },
+        {
+          "type": "Attack",
+          "magnitude": 60,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "chrono-fracture",
+      "cost": 20,
+      "cooldown": 1,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "DivideCooldown",
+          "magnitude": 1,
+          "target": "User",
+          "appliedCategory": 1
+        },
+        {
+          "type": "Quicker",
+          "magnitude": 10,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "corrosive-spores",
+      "cost": 5,
+      "cooldown": 4,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Burning",
+          "magnitude": 20,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "CostGet",
+      "cost": 3,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "EnergyHeal",
+          "magnitude": 6,
+          "target": "User",
+          "appliedCategory": 0
+        }
+      ]
+    },
+    {
+      "name": "defense",
+      "cost": 3,
+      "cooldown": 4,
+      "cardType": "Continuous",
+      "effects": [
+        {
+          "type": "Defend",
+          "magnitude": 15,
+          "target": "User",
+          "appliedCategory": 2
+        }
+      ]
+    },
+    {
+      "name": "defense-buff",
+      "cost": 6,
+      "cooldown": 3,
+      "cardType": "Mix",
+      "effects": [
+        {
+          "type": "Strength",
+          "magnitude": 3,
+          "target": "User",
+          "appliedCategory": 1
+        },
+        {
+          "type": "Defend",
+          "magnitude": 10,
+          "target": "User",
+          "appliedCategory": 2
+        }
+      ]
+    },
+    {
+      "name": "defense-down",
+      "cost": 1,
+      "cooldown": 5,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Harden",
+          "magnitude": -5,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "defense-medium",
+      "cost": 5,
+      "cooldown": 7,
+      "cardType": "Continuous",
+      "effects": [
+        {
+          "type": "Defend",
+          "magnitude": 25,
+          "target": "User",
+          "appliedCategory": 2
+        }
+      ]
+    },
+    {
+      "name": "defense-up",
+      "cost": 5,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Harden",
+          "magnitude": 5,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "flicker-blade",
+      "cost": 5,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Attack",
+          "magnitude": 5,
+          "target": "Opponent",
+          "appliedCategory": 1
+        },
+        {
+          "type": "Strength",
+          "magnitude": 5,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "GreatWall",
+      "cost": 10,
+      "cooldown": 20,
+      "cardType": "Continuous",
+      "effects": [
+        {
+          "type": "Defend",
+          "magnitude": 50,
+          "target": "User",
+          "appliedCategory": 2
+        }
+      ]
+    },
+    {
+      "name": "guarded-riposte",
+      "cost": 5,
+      "cooldown": 5,
+      "cardType": "Mix",
+      "effects": [
+        {
+          "type": "Defend",
+          "magnitude": 10,
+          "target": "User",
+          "appliedCategory": 2
+        },
+        {
+          "type": "Attack",
+          "magnitude": 10,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "iron-resolve",
+      "cost": 2,
+      "cooldown": 1,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Harden",
+          "magnitude": 1,
+          "target": "User",
+          "appliedCategory": 1
+        },
+        {
+          "type": "Strength",
+          "magnitude": 1,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "junk-overflow",
+      "cost": 7,
+      "cooldown": 5,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "AddDump",
+          "magnitude": 2,
+          "target": "Opponent",
+          "appliedCategory": 1
+        },
+        {
+          "type": "AddDump",
+          "magnitude": 2,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "overclock-core",
+      "cost": 14,
+      "cooldown": 1,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "DivideCooldown",
+          "magnitude": 1,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "overheal-core",
+      "cost": 0,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "EnergyHeal",
+          "magnitude": 10,
+          "target": "User",
+          "appliedCategory": 1
+        },
+        {
+          "type": "PoseBreak",
+          "magnitude": 3,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "rift-fang",
+      "cost": 1,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Strength",
+          "magnitude": 2,
+          "target": "User",
+          "appliedCategory": 1
+        },
+        {
+          "type": "Vulnerable",
+          "magnitude": 2,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "Sap",
+      "cost": 5,
+      "cooldown": 4,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "EnergyHeal",
+          "magnitude": 5,
+          "target": "User",
+          "appliedCategory": 1
+        },
+        {
+          "type": "EnergyDrain",
+          "magnitude": 5,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "second-wind",
+      "cost": 0,
+      "cooldown": 5,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "EnergyHeal",
+          "magnitude": 10,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "slow-burn",
+      "cost": 0,
+      "cooldown": 1,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Burning",
+          "magnitude": 5,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "sunder-pose",
+      "cost": 0,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "PoseBreak",
+          "magnitude": 1,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "temporal-snare",
+      "cost": 15,
+      "cooldown": 3,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "TimeSkip",
+          "magnitude": 6,
+          "target": "User",
+          "appliedCategory": 1
+        }
+      ]
+    },
+    {
+      "name": "weakpoint-strike",
+      "cost": 7,
+      "cooldown": 2,
+      "cardType": "Instant",
+      "effects": [
+        {
+          "type": "Attack",
+          "magnitude": 10,
+          "target": "Opponent",
+          "appliedCategory": 1
+        },
+        {
+          "type": "PoseBreak",
+          "magnitude": 2,
+          "target": "Opponent",
+          "appliedCategory": 1
+        }
+      ]
+    }
+  ]
+}

@@ -34,6 +34,7 @@ public sealed class GameManager_Multi : NetworkBehaviour
     [Header("Preparation State")]
     [SerializeField]
     private NetworkMatchState preparationMatchState;
+    [SerializeField] private MultiPreparationManager preparationManager;
 
     private void Awake()
     {
@@ -182,76 +183,12 @@ public void GameStart()
     if (_initialized)
         return;
 
+    if (preparationMatchState == null || preparationManager == null || mapManagerObject == null || rewardManagerObject == null)
+        throw new InvalidOperationException("GameManager preparation scene references are incomplete.");
+    mapManagerObject.SetActive(true);
+    rewardManagerObject.SetActive(true);
+    if (IsServer) preparationManager.RequestInitialization();
     _initialized = true;
-
-    Debug.Log(
-        "[GameManager_Multi] GameStart 실행"
-    );
-
-    // ==========================================
-    // 1. 서버가 먼저 Preparation Phase 설정
-    // ==========================================
-    if (IsServer)
-    {
-        if (preparationMatchState != null)
-        {
-            preparationMatchState.ServerSetPhase(
-                MatchPhase.ChoosingCard
-            );
-
-            Debug.Log(
-                "[GameManager_Multi] " +
-                "Preparation Phase 먼저 설정 → ChoosingCard"
-            );
-        }
-        else
-        {
-            Debug.LogError(
-                "[GameManager_Multi] " +
-                "Preparation NetworkMatchState가 없습니다."
-            );
-        }
-    }
-
-    // ==========================================
-    // 2. 그 다음 MapManager 활성화
-    // ==========================================
-    if (mapManagerObject != null)
-    {
-        mapManagerObject.SetActive(true);
-
-        Debug.Log(
-            "[GameManager_Multi] " +
-            $"MapManager 활성화: {mapManagerObject.activeSelf}"
-        );
-    }
-    else
-    {
-        Debug.LogError(
-            "[GameManager_Multi] " +
-            "mapManagerObject가 Inspector에 연결되지 않았습니다."
-        );
-    }
-
-    // ==========================================
-    // 3. RewardManager 활성화
-    // ==========================================
-    if (rewardManagerObject != null)
-    {
-        rewardManagerObject.SetActive(true);
-
-        Debug.Log(
-            "[GameManager_Multi] " +
-            $"RewardManager 활성화: {rewardManagerObject.activeSelf}"
-        );
-    }
-    else
-    {
-        Debug.LogError(
-            "[GameManager_Multi] " +
-            "rewardManagerObject가 Inspector에 연결되지 않았습니다."
-        );
-    }
 }
     private void HandleNetworkStateChanged()
     {
