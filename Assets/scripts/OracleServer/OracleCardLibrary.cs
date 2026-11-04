@@ -50,6 +50,78 @@ public sealed class OracleCardLibrary
         visual.SetSelected(selected);
     }
 
+    // =========================================================
+    // Deck (DeckDisplay 프리팹)
+    // =========================================================
+
+    private static Vector2 nativeCardSize;
+
+    /// <summary>Card 프리팹 한 장의 기본 크기 (월드 단위, 스케일 1).</summary>
+    public static Vector2 NativeCardSize()
+    {
+        if (nativeCardSize != Vector2.zero) return nativeCardSize;
+
+        GameObject prefab = Resources.Load<GameObject>("Prefabs/Card");
+        if (prefab == null) return Vector2.one;
+
+        GameObject probe = UnityEngine.Object.Instantiate(prefab, new Vector3(0f, -1000f, 0f), Quaternion.identity);
+        nativeCardSize = probe.GetComponent<CardVisual>().GetBackgroundSize();
+        UnityEngine.Object.Destroy(probe);
+        return nativeCardSize;
+    }
+
+    /// <summary>
+    /// 덱 카드 이름 목록을 DeckDisplay에 띄운다. 처음이면 Resources/Prefabs/DeckDisplay를 만든다.
+    /// center/size(월드 단위) 안에 다 들어가도록 카드가 많을수록 칸을 늘려 작게 놓는다.
+    /// </summary>
+    public DeckDisplay ShowDeck(DeckDisplay display, Transform parent, Vector3 center, Vector2 size, string[] cardNames)
+    {
+        if (display == null)
+        {
+            GameObject prefab = Resources.Load<GameObject>("Prefabs/DeckDisplay");
+            if (prefab == null) return null;
+            display = UnityEngine.Object.Instantiate(prefab, parent).GetComponent<DeckDisplay>();
+        }
+
+        display.transform.position = center;
+        display.SetSize(size);
+
+        var cards = new List<CardDefinition>();
+        if (cardNames != null)
+        {
+            foreach (string name in cardNames)
+            {
+                CardDefinition definition = Find(new CardView { name = name });
+                if (definition != null) cards.Add(definition);
+            }
+        }
+
+        (int columns, float cardSize) = FitGrid(cards.Count, size);
+        display.SetDeck(cards, null, cardSize, columns);
+        return display;
+    }
+
+    // 몇 줄로 놓아야 카드가 가장 크게 보이는지
+    private static (int columns, float cardSize) FitGrid(int count, Vector2 area)
+    {
+        Vector2 card = NativeCardSize();
+        if (count <= 0 || card.x <= 0f || card.y <= 0f) return (1, 1f);
+
+        int bestColumns = count;
+        float bestSize = 0f;
+        for (int rows = 1; rows <= count; rows++)
+        {
+            int columns = Mathf.CeilToInt((float)count / rows);
+            float size = Mathf.Min(area.x / columns * 0.9f / card.x, area.y / rows * 0.9f / card.y);
+            if (size > bestSize)
+            {
+                bestSize = size;
+                bestColumns = columns;
+            }
+        }
+        return (Mathf.Max(bestColumns, 2), bestSize);
+    }
+
     private static List<CardEffect> ToCardEffects(CardEffectView[] effects)
     {
         var result = new List<CardEffect>();

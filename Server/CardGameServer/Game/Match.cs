@@ -3,14 +3,14 @@ namespace CardGameServer.Game;
 public enum MatchPhase { Picking, Countdown, Battle, Finished }
 
 /// <summary>
-/// 방 하나의 게임 진행: 카드 선택(라운드마다 3장 중 1장) → 카운트다운 → 전투 → 결과.
+/// 방 하나의 게임 진행: 카드 선택(라운드마다 3장 중 1장, 또는 건너뛰기) → 카운트다운 → 전투 → 결과.
 /// 모든 판정은 여기서 하고, 바뀔 때마다 두 플레이어에게 각자 시점의 상태를 보낸다.
 ///
 /// 스레드: Tick(타이머)과 입력(소켓)이 다른 스레드에서 오므로 공개 메서드는 전부 lock 안에서 처리한다.
 /// </summary>
 public sealed class Match
 {
-    public const int PickRounds = 3;
+    public const int PickRounds = 10;
     public const double PickSeconds = 15;
     public const double CountdownSeconds = 3;   // Unity BattleManager.startDelay
     public const double TurnSeconds = 1.5;      // SinglePlayMode 씬의 turnDuration
@@ -105,6 +105,21 @@ public sealed class Match
             if (index < 0 || index >= seat.Offers.Length) return;
 
             Pick(seat, index);
+            if (seats.All(s => s.Picked))
+                AdvancePicking();
+            BroadcastState();
+        }
+    }
+
+    /// <summary>이번 라운드는 카드를 받지 않는다.</summary>
+    public void HandleSkip(PlayerConnection player)
+    {
+        lock (gate)
+        {
+            Seat? seat = Find(player);
+            if (seat == null || phase != MatchPhase.Picking || seat.Picked) return;
+
+            seat.Picked = true;
             if (seats.All(s => s.Picked))
                 AdvancePicking();
             BroadcastState();

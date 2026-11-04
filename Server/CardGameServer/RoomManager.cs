@@ -151,6 +151,8 @@ public sealed class RoomManager
 
     public void Pick(PlayerConnection player, int index) => CurrentMatch(player)?.HandlePick(player, index);
 
+    public void Skip(PlayerConnection player) => CurrentMatch(player)?.HandleSkip(player);
+
     public void Play(PlayerConnection player, int index) => CurrentMatch(player)?.HandlePlay(player, index);
 
     public void Rematch(PlayerConnection player)

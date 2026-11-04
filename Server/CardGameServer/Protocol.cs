@@ -15,6 +15,7 @@ namespace CardGameServer;
 ///   { "type": "leave_room" }
 ///   { "type": "ping" }
 ///   { "type": "pick", "index": 0 }        // 카드 선택 단계: 제시된 3장 중 하나
+///   { "type": "skip" }                    // 카드 선택 단계: 이번 라운드 건너뛰기
 ///   { "type": "play", "index": 0 }        // 전투: 0~3 손패 카드, -2 리드로우, -1 가드 토글
 ///   { "type": "rematch" }                 // 결과 화면에서 다시 하기 (둘 다 누르면 새 게임)
 ///

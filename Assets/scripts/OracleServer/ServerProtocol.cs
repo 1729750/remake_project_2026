@@ -22,6 +22,9 @@ public sealed class ClientMessage
     /// <summary>카드 선택 단계: 제시된 3장 중 index번.</summary>
     public static ClientMessage Pick(int index) => new ClientMessage { type = "pick", index = index };
 
+    /// <summary>카드 선택 단계: 이번 라운드는 받지 않는다.</summary>
+    public static ClientMessage Skip() => new ClientMessage { type = "skip" };
+
     /// <summary>전투: 0~3 손패 카드, -2 리드로우, -1 가드 토글.</summary>
     public static ClientMessage Play(int index) => new ClientMessage { type = "play", index = index };
 

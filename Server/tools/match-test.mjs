@@ -26,9 +26,14 @@ const results = {};
 function makeBrain(name) {
   return (s, send) => {
     if (s.phase === "picking" && !s.picked) {
-      const pick = Math.floor(Math.random() * s.offers.length);
-      console.log(`[${name}] 라운드 ${s.round}/${s.totalRounds}: ${s.offers.map((o) => o.name).join(", ")} → ${s.offers[pick].name}`);
-      send({ type: "pick", index: pick });
+      if (Math.random() < 0.2) {
+        console.log(`[${name}] 라운드 ${s.round}/${s.totalRounds}: 건너뛰기`);
+        send({ type: "skip" });
+      } else {
+        const pick = Math.floor(Math.random() * s.offers.length);
+        console.log(`[${name}] 라운드 ${s.round}/${s.totalRounds}: ${s.offers.map((o) => o.name).join(", ")} → ${s.offers[pick].name}`);
+        send({ type: "pick", index: pick });
+      }
     }
     if (s.phase === "battle" && lastTurnPlayed[name] !== s.turn) {
       lastTurnPlayed[name] = s.turn;

@@ -78,6 +78,9 @@ app.Map("/ws", async (HttpContext context, RoomManager rooms, ILogger<Program> l
                 case "pick":
                     rooms.Pick(player, message.Index);
                     break;
+                case "skip":
+                    rooms.Skip(player);
+                    break;
                 case "play":
                     rooms.Play(player, message.Index);
                     break;
