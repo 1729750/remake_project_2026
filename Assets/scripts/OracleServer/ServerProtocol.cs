@@ -86,7 +86,7 @@ public sealed class CombatantView
     public int deckCount;
     public int handCount;
     public EffectView[] effects;
-    public CardView[] hand;         // 빈 칸은 name == ""
+    public CardView[] hand;         // 빈 칸은 id == 0
     public CardView[] queue;
 }
 
@@ -101,6 +101,7 @@ public sealed class EffectView
 [Serializable]
 public sealed class CardView
 {
+    public int id;                  // 0이면 빈 칸. 상대 손패는 id만 있다 (뒷면)
     public string name;
     public string cardType;
     public int cost;
@@ -109,7 +110,8 @@ public sealed class CardView
     public bool playable;
     public CardEffectView[] effects;
 
-    public bool IsEmpty => string.IsNullOrEmpty(name);
+    public bool IsEmpty => id == 0;
+    public bool IsHidden => id != 0 && string.IsNullOrEmpty(name);
 }
 
 [Serializable]

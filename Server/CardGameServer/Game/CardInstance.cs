@@ -44,10 +44,14 @@ public sealed class CardEffect
 /// <summary>Unity CardInstance에서 화면 관련 코드를 뺀 것.</summary>
 public sealed class CardInstance
 {
+    private static int nextId;
+
     private float costMultiplier = 1f;
     private int costAdder;
     private readonly Dictionary<CardEffect, int> queuedMagnitudes = new();
 
+    /// <summary>클라이언트가 같은 카드를 손패→큐로 따라가며 움직일 수 있게 주는 고유 번호.</summary>
+    public int Id { get; } = Interlocked.Increment(ref nextId);
     public CardDef Def { get; }
     public Combatant Owner { get; }
     public List<CardEffect> Effects { get; private set; }
