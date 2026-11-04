@@ -10,12 +10,12 @@
 
 방에 2명이 모이면 서버가 `Game/Match.cs`로 한 판을 진행한다.
 
-1. 카드 선택 3라운드 — 라운드마다 각자 무작위 3장 중 1장을 덱에 추가 (15초, 시간 초과 시 무작위)
+1. 카드 선택 10라운드 — 라운드마다 각자 무작위 3장 중 1장을 덱에 추가하거나 건너뛰기 (15초, 시간 초과 시 무작위)
 2. 카운트다운 3초
 3. 전투 — 1.5초 턴, 규칙은 Unity 싱글 전투(`Assets/scripts/Battles`, `Cards`)를 `Game/`으로 옮긴 것
 4. 결과 — 턴 종료 후 HP 0 이하인 쪽이 패배, 둘 다면 무승부. 둘 다 "다시 하기"를 누르면 새 판
 
-Unity 클라이언트는 `Assets/Scenes/MultiPlayMode_Oracle.unity` (`Assets/scripts/OracleServer/`).
+Unity 클라이언트는 `Assets/Scenes/MultiplayLobby_Oracle.unity`(로비) → `MultiPlayMode_Oracle.unity`(게임), 스크립트는 `Assets/scripts/OracleServer/`.
 
 카드 데이터는 `CardGameServer/Data/cards.json`. Unity에서 카드 에셋을 고쳤으면 다시 만든 뒤 배포한다:
 

@@ -3,15 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 /// <summary>
 /// MultiPlayMode_Oracle 씬의 진행 담당.
 /// MultiplayLobby_Oracle 에서 방을 잡고 넘어온 뒤, 오라클 서버가 보내는 state에 따라
 /// SinglePlayMode와 같은 화면을 켜고 끈다.
-///   picking   → RewardPanel(OracleCardPickView)에서 카드 3장 중 1장 선택, TurnText에 남은 초
+///   picking   → 전투 HUD를 숨기고 RewardPanel(OracleCardPickView): 내 덱, 남은 횟수, 선택지 3장, 건너뛰기
 ///   countdown → TurnText 카운트다운 + 턴 타이머 (싱글 전투 시작과 같음)
 ///   battle    → Player/Enemy(OracleCharacterView)를 서버 값으로 그림, 싱글과 같은 키(Q W E R / D / F)
+///               Tab: 현재 덱 보기 (DeckDisplay, 화면의 4/5 크기)
 ///   finished  → TurnText에 승리/패배/무승부 → GameEndManager(OracleGameEndView) 다시하기/나가기
 /// 게임 판정은 전부 서버가 하고, 여기서는 입력만 보낸다.
 /// </summary>
@@ -19,6 +21,8 @@ public sealed class OracleMatchView : MonoBehaviour
 {
     [Header("Scene")]
     [SerializeField] private GameObject battleRoot;
+    [Tooltip("카드 선택 중에는 숨길 전투 화면 요소 (Player, Enemy, turnDisplay)")]
+    [SerializeField] private GameObject[] battleHud;
     [SerializeField] private TextMeshPro turnText;
     [SerializeField] private OracleCharacterView me;
     [SerializeField] private OracleCharacterView opponent;
@@ -28,6 +32,12 @@ public sealed class OracleMatchView : MonoBehaviour
     [Header("Cards")]
     [Tooltip("서버 카드 이름 → CardDefinition 에셋 (그림/카드 종류 배경)")]
     [SerializeField] private CardDefinition[] cardLibrary;
+
+    [Tooltip("TurnText에 승리/패배를 쓸 때 잠시 바꿔 쓸 한글 폰트 (TurnText 기본 폰트에는 한글이 없다)")]
+    [SerializeField] private TMP_FontAsset resultFont;
+
+    [Header("Deck View (Tab)")]
+    [SerializeField, Range(0.3f, 1f)] private float deckViewScreenRatio = 0.8f;
 
     [Header("Timing")]
     [SerializeField] private float resultDelay = 2.5f;
@@ -41,13 +51,20 @@ public sealed class OracleMatchView : MonoBehaviour
     private string shownPhase;
     private bool battleInputLoaded;
     private Coroutine resultRoutine;
+    private DeckDisplay deckView;
+    private TMP_FontAsset turnTextFont;
 
     private void Awake()
     {
         library = new OracleCardLibrary(cardLibrary);
         CreateTurnTimer();
+        if (turnText != null) turnTextFont = turnText.font;
 
-        if (pickView != null) pickView.Picked += index => client?.Send(ClientMessage.Pick(index));
+        if (pickView != null)
+        {
+            pickView.Picked += index => client?.Send(ClientMessage.Pick(index));
+            pickView.Skipped += () => client?.Send(ClientMessage.Skip());
+        }
         if (gameEndView != null)
         {
             gameEndView.RematchSelected += () => client?.Send(ClientMessage.Rematch());
@@ -93,8 +110,7 @@ public sealed class OracleMatchView : MonoBehaviour
         switch (state.phase)
         {
             case "picking":
-                SetTurnText(Mathf.CeilToInt(timeLeft).ToString());
-                turnTimer?.SetFill(0f);
+                pickView?.SetTimeLeft(timeLeft);
                 break;
 
             case "countdown":
@@ -104,8 +120,44 @@ public sealed class OracleMatchView : MonoBehaviour
 
             case "battle":
                 turnTimer?.SetFill(state.turnDuration > 0 ? 1f - timeLeft / state.turnDuration : 0f);
+                if (Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame)
+                    ToggleDeckView();
                 break;
         }
+    }
+
+    // =========================================================
+    // Deck View (Tab)
+    // =========================================================
+
+    private void ToggleDeckView()
+    {
+        if (deckView != null)
+        {
+            CloseDeckView();
+            return;
+        }
+
+        Camera cam = Camera.main;
+        if (cam == null || state == null) return;
+
+        float height = cam.orthographicSize * 2f * deckViewScreenRatio;
+        float width = height * cam.aspect;
+        var center = new Vector3(cam.transform.position.x, cam.transform.position.y, 0f);
+        deckView = library.ShowDeck(null, transform, center, new Vector2(width, height), state.myDeck);
+    }
+
+    private void CloseDeckView()
+    {
+        if (deckView != null) Destroy(deckView.gameObject);
+        deckView = null;
+    }
+
+    private void SetBattleHudVisible(bool visible)
+    {
+        if (battleHud == null) return;
+        foreach (GameObject hud in battleHud)
+            if (hud != null) hud.SetActive(visible);
     }
 
     // BattleManager.Init이 만들던 것과 같은 턴 타이머(파이 모양)를 TurnText 자리에 만든다
@@ -183,6 +235,7 @@ public sealed class OracleMatchView : MonoBehaviour
                 if (phaseChanged)
                 {
                     pickView?.Hide();
+                    SetBattleHudVisible(true);
                     SetTurnText("");
                 }
                 break;
@@ -203,7 +256,12 @@ public sealed class OracleMatchView : MonoBehaviour
         StopResultRoutine();
         gameEndView?.Hide();
         UnloadBattleInput();
+        CloseDeckView();
+        RestoreTurnTextFont();
+        SetTurnText("");
+        turnTimer?.SetFill(0f);
         if (battleRoot != null) battleRoot.SetActive(true);
+        SetBattleHudVisible(false);
         me?.ClearCards();
         opponent?.ClearCards();
     }
@@ -211,6 +269,7 @@ public sealed class OracleMatchView : MonoBehaviour
     private void EnterBattle()
     {
         pickView?.Hide();
+        SetBattleHudVisible(true);
         SetTurnText("");
         SoundManager.Instance?.Play(EffectSound.BattleStart);
         SoundManager.Instance?.Play(BgmName.BattleBGM);
@@ -220,7 +279,10 @@ public sealed class OracleMatchView : MonoBehaviour
     private void EnterFinished()
     {
         UnloadBattleInput();
+        CloseDeckView();
         pickView?.Hide();
+        SetBattleHudVisible(true);
+        if (turnText != null && resultFont != null) turnText.font = resultFont;
         if (state.me != null) RenderCombatants();
         turnTimer?.SetFill(0f);
 
@@ -268,6 +330,12 @@ public sealed class OracleMatchView : MonoBehaviour
     {
         if (state.me != null) me?.Render(state.me, library, isMe: true);
         if (state.opponent != null) opponent?.Render(state.opponent, library, isMe: false);
+    }
+
+    private void RestoreTurnTextFont()
+    {
+        if (turnText != null && turnTextFont != null && turnText.font != turnTextFont)
+            turnText.font = turnTextFont;
     }
 
     private void SetTurnText(string text)
