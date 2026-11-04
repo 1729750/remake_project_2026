@@ -269,7 +269,7 @@ public sealed class Match
             TimeLeft = Math.Max(timeLeft, 0),
             Round = round,
             TotalRounds = PickRounds,
-            Offers = phase == MatchPhase.Picking ? seat.Offers.Select(CardView.FromDef).ToArray() : [],
+            Offers = phase == MatchPhase.Picking ? seat.Offers.Select((c, i) => CardView.FromDef(c, i + 1)).ToArray() : [],
             Picked = seat.Picked,
             OpponentPicked = other.Picked,
             MyDeck = seat.Deck.Select(c => c.Name).ToArray(),
@@ -303,9 +303,8 @@ public sealed class Match
             DeckCount = c.Deck.Count,
             HandCount = c.Hand.Count(h => h != null),
             Effects = c.Effects.Select(e => new EffectView(e.Type.ToString(), e.Magnitude, e.IsInfinite)).ToArray(),
-            Hand = showHand
-                ? c.Hand.Select(h => h == null ? CardView.Empty : CardView.FromHand(h, c, queueHasSpace)).ToArray()
-                : [],
+            Hand = c.Hand.Select(h => h == null ? CardView.Empty
+                : showHand ? CardView.FromHand(h, c, queueHasSpace) : CardView.Hidden(h)).ToArray(),
             Queue = c.Queue.Where(q => q != null).Select(q => CardView.FromQueue(q!)).ToArray(),
         };
     }

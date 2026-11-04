@@ -44,7 +44,7 @@ public sealed record CombatantView
     public int DeckCount { get; init; }
     public int HandCount { get; init; }
     public EffectView[] Effects { get; init; } = [];
-    public CardView[] Hand { get; init; } = [];              // 상대 것은 비워서 보낸다
+    public CardView[] Hand { get; init; } = [];              // 상대 것은 Id만 (뒷면 표시용)
     public CardView[] Queue { get; init; } = [];
 }
 
@@ -54,7 +54,8 @@ public sealed record CardEffectView(string Type, int Magnitude, string Target, s
 
 public sealed record CardView
 {
-    public string Name { get; init; } = "";
+    public int Id { get; init; }                             // 0이면 빈 칸
+    public string Name { get; init; } = "";                  // 상대 손패는 Id만 있고 Name은 ""
     public string CardType { get; init; } = "";
     public int Cost { get; init; }
     public int Cooldown { get; init; }
@@ -68,8 +69,9 @@ public sealed record CardView
         category == (EffectCategory.Instant | EffectCategory.Continuous) ? "Mix" : category.ToString();
 
     /// <summary>선택지처럼 아직 덱에 없는 카드: 정의 그대로.</summary>
-    public static CardView FromDef(CardDef def) => new()
+    public static CardView FromDef(CardDef def, int id) => new()
     {
+        Id = id,
         Name = def.Name,
         CardType = def.CardType.ToString(),
         Cost = def.Cost,
@@ -91,8 +93,11 @@ public sealed record CardView
             ? card.GetQueuedMagnitude(e)
             : e.Def.Magnitude).ToArray());
 
+    public static CardView Hidden(CardInstance card) => new() { Id = card.Id };
+
     private static CardView FromInstance(CardInstance card, int cost, int[] magnitudes) => new()
     {
+        Id = card.Id,
         Name = card.Def.Name,
         CardType = card.Def.CardType.ToString(),
         Cost = cost,
