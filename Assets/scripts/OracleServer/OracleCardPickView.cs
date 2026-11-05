@@ -22,9 +22,9 @@ public sealed class OracleCardPickView : MonoBehaviour
     [Header("Layout (카메라 중심 기준)")]
     [SerializeField] private Vector2 deckCenter = new Vector2(0f, 2.4f);
     [SerializeField] private Vector2 deckSize = new Vector2(13f, 3.6f);
-    [SerializeField] private float optionsY = -1.8f;
-    [SerializeField] private float optionHeight = 3f;
-    [SerializeField] private float optionSpacing = 1.6f;   // 카드 폭의 몇 배 간격
+    [SerializeField] private float optionsY = -1.6f;
+    [SerializeField] private float optionHeight = 3.6f;
+    [SerializeField] private float optionSpacing = 1.5f;   // 카드 폭의 몇 배 간격
     [SerializeField] private float popupGap = 0.1f;
 
     private GameObject cardPrefab;

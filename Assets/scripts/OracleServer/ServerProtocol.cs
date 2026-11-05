@@ -73,6 +73,25 @@ public sealed class MatchStateView
     public string reason;
     public bool rematchRequested;
     public bool opponentRematchRequested;
+
+    public EventView[] events;      // 지난 state 이후 일어난 일 (효과음/연출용)
+}
+
+/// <summary>
+/// kind: use(카드 사용 시도, ok=성공) | play(큐에서 발동, ok=공격 카드) | damage(피격, guarded=가드 중)
+///       | shield(방어도로 막음) | effect(효과 획득, effect=종류) | turnEnd
+/// mine: 내 쪽에서 일어난 일인지
+/// </summary>
+[Serializable]
+public sealed class EventView
+{
+    public string kind;
+    public bool mine;
+    public string card;
+    public int amount;
+    public string effect;
+    public bool guarded;
+    public bool ok;
 }
 
 [Serializable]

@@ -29,7 +29,18 @@ public sealed record StateView
     public string Reason { get; init; } = "";
     public bool RematchRequested { get; init; }
     public bool OpponentRematchRequested { get; init; }
+
+    // 지난 상태 이후 일어난 일 (소리/연출용). 받는 사람 기준으로 Mine을 채운다.
+    public EventView[] Events { get; init; } = [];
 }
+
+/// <summary>
+/// Kind: use(카드 사용 시도, Ok=성공) | play(큐에서 발동, Ok=공격 카드) | damage(피격, Guarded=가드 중)
+///       | shield(방어도로 막음) | effect(효과 획득, Effect=종류) | turnEnd
+/// </summary>
+public sealed record EventView(string Kind, bool Mine, string Card, int Amount, string Effect, bool Guarded, bool Ok);
+
+public sealed record MatchEvent(string Kind, string PlayerId, string? Card, int Amount, string? Effect, bool Guarded, bool Ok);
 
 public sealed record CombatantView
 {

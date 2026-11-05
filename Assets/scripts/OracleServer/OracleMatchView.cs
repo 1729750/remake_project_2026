@@ -53,6 +53,9 @@ public sealed class OracleMatchView : MonoBehaviour
     private Coroutine resultRoutine;
     private DeckDisplay deckView;
     private TMP_FontAsset turnTextFont;
+    private bool nextTurnEndIsFirst = true;
+    private int countdownShown;
+    private int warnedTurn = -1;
 
     private void Awake()
     {
@@ -114,7 +117,14 @@ public sealed class OracleMatchView : MonoBehaviour
                 break;
 
             case "countdown":
-                SetTurnText(Mathf.Max(1, Mathf.CeilToInt(timeLeft)).ToString());
+                int second = Mathf.Max(1, Mathf.CeilToInt(timeLeft));
+                // 싱글 BattleManager처럼 카운트다운 1초마다 턴 종료음
+                if (second != countdownShown)
+                {
+                    countdownShown = second;
+                    PlayAlternatingTurnEnd();
+                }
+                SetTurnText(second.ToString());
                 turnTimer?.SetFill(1f - timeLeft / 3f);
                 break;
 
@@ -184,7 +194,8 @@ public sealed class OracleMatchView : MonoBehaviour
         {
             case "state":
                 state = message.state;
-                stateReceivedAt = Time.unscaledTime;
+                // 서버가 이 state를 만든 건 왕복 시간의 절반쯤 전이다. 그만큼 타이머를 앞당겨 두 화면을 맞춘다
+                stateReceivedAt = Time.unscaledTime - client.RoundTripTime / 2f;
                 Render();
                 break;
 
@@ -243,16 +254,104 @@ public sealed class OracleMatchView : MonoBehaviour
             case "battle":
                 if (phaseChanged) EnterBattle();
                 RenderCombatants();
+                WarnUpcomingAttack();
                 break;
 
             case "finished":
                 if (phaseChanged) EnterFinished();
                 break;
         }
+
+        PlayEventSounds(state.events);
+    }
+
+    // =========================================================
+    // Sounds (싱글에서 같은 순간에 나던 소리를 서버 이벤트로 낸다)
+    // =========================================================
+
+    private void PlayEventSounds(EventView[] events)
+    {
+        SoundManager sound = SoundManager.Instance;
+        if (events == null || sound == null) return;
+
+        foreach (EventView e in events)
+        {
+            switch (e.kind)
+            {
+                case "use": // HandManager.UseCardImmediately
+                    if (e.mine) sound.Play(e.ok ? EffectSound.UseCard : EffectSound.PlayDenied);
+                    break;
+
+                case "play": // CardInstance.Play
+                    sound.Play(EffectSound.PlayCard);
+                    if (e.ok) sound.Play(EffectSound.Attack);
+                    break;
+
+                case "damage": // CharacterManager.PlayDamageSound
+                    sound.Play(e.guarded ? EffectSound.DamageGuarded
+                        : e.amount <= 10 ? EffectSound.DamageWeak
+                        : e.amount <= 30 ? EffectSound.Damage
+                        : EffectSound.DamageBig);
+                    break;
+
+                case "shield": // CharacterManager.ConsumeQueuedDefense
+                    sound.Play(EffectSound.DamageShielded);
+                    break;
+
+                case "effect": // Effect.PlayApplySound
+                    if (Enum.TryParse(e.effect, out EffectType type))
+                        sound.Play(ApplySound(type));
+                    break;
+
+                case "turnEnd": // BattleManager.PlayAlternatingTurnEnd
+                    PlayAlternatingTurnEnd();
+                    break;
+            }
+        }
+    }
+
+    private static EffectSound ApplySound(EffectType type)
+    {
+        switch (type)
+        {
+            case EffectType.Burning: return EffectSound.Burn;
+            case EffectType.Defend: return EffectSound.ShieldGet;
+            case EffectType.TimeSkip:
+            case EffectType.Quicker: return EffectSound.TimeSkip;
+            default:
+                return Effect.Create(type, 0).TargetPolarity == EffectTargetPolarity.Positive ? EffectSound.Buff : EffectSound.Debuff;
+        }
+    }
+
+    private void PlayAlternatingTurnEnd()
+    {
+        SoundManager.Instance?.Play(nextTurnEndIsFirst ? EffectSound.TurnEnd1 : EffectSound.TurnEnd2);
+        nextTurnEndIsFirst = !nextTurnEndIsFirst;
+    }
+
+    // CharacterManager.PlayUpcomingAttackSoundIfNeeded: 턴 시작 때 상대 큐에 곧 나갈 공격 카드가 있으면 경고음
+    private void WarnUpcomingAttack()
+    {
+        if (state.turn == warnedTurn || state.opponent?.queue == null) return;
+        warnedTurn = state.turn;
+
+        foreach (CardView queued in state.opponent.queue)
+        {
+            if (queued.cooldownLeft > 1 || queued.effects == null) continue;
+            foreach (CardEffectView effect in queued.effects)
+            {
+                if (effect.type != "Attack") continue;
+                SoundManager.Instance?.Play(EffectSound.UpcomingAttack);
+                return;
+            }
+        }
     }
 
     private void EnterPicking()
     {
+        countdownShown = 0;
+        warnedTurn = -1;
+        nextTurnEndIsFirst = true;
         StopResultRoutine();
         gameEndView?.Hide();
         UnloadBattleInput();
@@ -351,7 +450,7 @@ public sealed class OracleMatchView : MonoBehaviour
     {
         if (state == null || state.phase != "battle") return;
         client.Send(ClientMessage.Play(index));
-        SoundManager.Instance?.Play(EffectSound.UseCard);
+        // 성공/실패 소리는 서버의 use 이벤트를 받고 낸다
     }
 
     private void LoadBattleInput()

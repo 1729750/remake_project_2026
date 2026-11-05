@@ -26,6 +26,7 @@ public sealed class Match
     private int turn = -1;
     private string result = "";      // winner playerId, "draw"
     private string reason = "";
+    private readonly List<MatchEvent> events = new();
 
     public bool IsFinished
     {
@@ -70,6 +71,9 @@ public sealed class Match
             timeLeft -= deltaSeconds;
             if (timeLeft > 0) return;
 
+            // 타이머는 50ms마다 확인하므로 조금 넘쳐서 끝난다. 넘친 만큼 다음 단계에서 빼서 턴 길이가 밀리지 않게 한다
+            double overshoot = -timeLeft;
+
             switch (phase)
             {
                 case MatchPhase.Picking:
@@ -87,6 +91,9 @@ public sealed class Match
                     EndTurn();
                     break;
             }
+
+            if (phase != MatchPhase.Finished)
+                timeLeft = Math.Max(timeLeft - overshoot, 0.01);
 
             BroadcastState();
         }
@@ -216,7 +223,10 @@ public sealed class Match
     private void StartBattle()
     {
         foreach (Seat seat in seats)
-            seat.Combatant = new Combatant(seat.Player.PlayerId, seat.Player.Name, library.MaxHealth, seat.Deck, random);
+            seat.Combatant = new Combatant(seat.Player.PlayerId, seat.Player.Name, library.MaxHealth, seat.Deck, random)
+            {
+                Events = events.Add,
+            };
 
         seats[0].Combatant!.Opponent = seats[1].Combatant!;
         seats[1].Combatant!.Opponent = seats[0].Combatant!;
@@ -237,6 +247,7 @@ public sealed class Match
     {
         // Unity는 플레이어 쪽이 먼저 처리되고 먼저 죽은 쪽이 지는데, 멀티에서는 순서가 불공평하니
         // 양쪽 턴 종료를 모두 처리한 뒤 한꺼번에 판정한다 (둘 다 쓰러지면 무승부).
+        events.Add(new MatchEvent("turnEnd", "", null, 0, null, false, false));
         foreach (Seat seat in seats)
             seat.Combatant!.OnTurnEnd();
 
@@ -271,6 +282,7 @@ public sealed class Match
     {
         foreach (Seat seat in seats)
             seat.Player.Send(new ServerMessage("state", State: BuildState(seat)));
+        events.Clear();
     }
 
     private StateView BuildState(Seat seat)
@@ -298,6 +310,8 @@ public sealed class Match
             Reason = reason,
             RematchRequested = seat.WantsRematch,
             OpponentRematchRequested = other.WantsRematch,
+            Events = events.Select(e => new EventView(e.Kind, e.PlayerId == seat.Player.PlayerId, e.Card ?? "", e.Amount,
+                e.Effect ?? "", e.Guarded, e.Ok)).ToArray(),
         };
     }
 

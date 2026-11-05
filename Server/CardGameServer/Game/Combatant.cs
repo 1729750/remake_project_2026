@@ -21,6 +21,12 @@ public sealed class Combatant
     public string Name { get; }
     public Combatant Opponent { get; set; } = null!;
 
+    /// <summary>카드 발동/피해/효과 획득 같은 순간을 Match에 알린다. (클라이언트가 같은 순간에 싱글과 같은 소리를 내도록)</summary>
+    public Action<MatchEvent>? Events { get; set; }
+
+    public void Emit(string kind, string? card = null, int amount = 0, string? effect = null, bool guarded = false, bool ok = false) =>
+        Events?.Invoke(new MatchEvent(kind, PlayerId, card, amount, effect, guarded, ok));
+
     public int MaxHealth { get; }
     public int Health { get; private set; }
     public int Cost { get; private set; }
@@ -74,7 +80,9 @@ public sealed class Combatant
         EnergyHeal(healEnergyAmount);
 
         // 지난 턴에 코스트가 모자라 "선택"만 해 둔 카드를 이번 턴 시작에 다시 시도한다
-        UseCardImmediately(SelectedIndex);
+        string? selected = SelectedIndex >= 0 ? Hand[SelectedIndex]?.Def.Name : null;
+        if (UseCardImmediately(SelectedIndex))
+            Emit("use", card: selected, ok: true);
         FillHand();
     }
 
@@ -143,7 +151,10 @@ public sealed class Combatant
         IsGuard = false;
         if (index < 0 || index >= HandSize || Hand[index] == null) return;
 
-        if (!UseCardImmediately(index))
+        string cardName = Hand[index]!.Def.Name;
+        bool used = UseCardImmediately(index);
+        Emit("use", card: cardName, ok: used);
+        if (!used)
         {
             // 지금은 못 쓰면 선택(토글)만 해 두고 다음 턴 시작에 다시 시도한다
             SelectedIndex = SelectedIndex == index ? -1 : index;
@@ -237,6 +248,7 @@ public sealed class Combatant
 
     private void PlayCard(CardInstance card)
     {
+        Emit("play", card: card.Def.Name, ok: card.Effects.Any(e => e.Type == EffectType.Attack));
         card.Play(this);
         if (card.Effects.Any(e => e.Type == EffectType.Disposable)) return;
         ReturnToDeck(card);
@@ -249,6 +261,7 @@ public sealed class Combatant
     public void Attacked(int damage)
     {
         if (IsGuard) damage /= 2;
+        Emit("damage", amount: damage, guarded: IsGuard);
         TakeDamage(damage);
     }
 
@@ -289,6 +302,7 @@ public sealed class Combatant
 
     private int ConsumeQueuedDefense(int incomingDamage)
     {
+        int before = incomingDamage;
         foreach (CardInstance? queued in Queue)
         {
             if (queued == null || incomingDamage <= 0) continue;
@@ -299,6 +313,7 @@ public sealed class Combatant
                 incomingDamage -= queued.ConsumeQueuedMagnitude(cardEffect, incomingDamage);
             }
         }
+        if (before > incomingDamage) Emit("shield", amount: before - incomingDamage);
         return incomingDamage;
     }
 

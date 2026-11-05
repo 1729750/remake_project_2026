@@ -30,6 +30,7 @@ dotnet run --project CardGameServer
 node tools/smoke-test.mjs                     # 로컬 서버 테스트
 node tools/smoke-test.mjs ws://161.33.142.112:7777/ws   # 오라클 서버 테스트
 node tools/match-test.mjs ws://161.33.142.112:7777/ws   # 봇 두 개로 한 판 끝까지
+node tools/sync-test.mjs ws://161.33.142.112:7777/ws    # 두 클라이언트 턴 수신 시각 차이, 이벤트 확인
 ```
 
 ## 배포
