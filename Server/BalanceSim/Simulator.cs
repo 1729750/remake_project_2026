@@ -55,7 +55,8 @@ public static class Simulator
     public const int MaxTurns = 400;     // 1.5초 턴 기준 10분. 넘으면 무승부(시간 초과)
     private const int MaxActionsPerTurn = 8;
 
-    public static GameRecord Play(CardLibrary library, AiProfile aiA, AiProfile aiB, int seed)
+    /// <summary>replay를 주면 관전용으로 카드 선택과 매 턴 상태/로그를 기록한다.</summary>
+    public static GameRecord Play(CardLibrary library, AiProfile aiA, AiProfile aiB, int seed, Replay? replay = null)
     {
         var random = new Random(seed);
         var a = new SideRecord { Ai = aiA.Name };
@@ -65,8 +66,17 @@ public static class Simulator
 
         for (int round = 0; round < Draft.Rounds; round++)
         {
-            DraftRound(library, aiA.Draft, a, random);
-            DraftRound(library, aiB.Draft, b, random);
+            DraftRound(library, aiA.Draft, a, random, replay?.DraftA, round);
+            DraftRound(library, aiB.Draft, b, random, replay?.DraftB, round);
+        }
+
+        if (replay != null)
+        {
+            replay.AiA = aiA.Name;
+            replay.AiB = aiB.Name;
+            replay.Seed = seed;
+            replay.DeckA = a.Deck.Select(Replay.Describe).ToList();
+            replay.DeckB = b.Deck.Select(Replay.Describe).ToList();
         }
 
         var events = new List<MatchEvent>();
@@ -102,6 +112,8 @@ public static class Simulator
 
             battle.EndTurn();
 
+            replay?.Turns.Add(new TurnFrame(battle.Turn + 1, Replay.Capture(first), Replay.Capture(second),
+                events.Select(Replay.Describe).ToList()));
             Attribute(events, a, b);
             events.Clear();
             TrackHp(first, a);
@@ -112,13 +124,27 @@ public static class Simulator
         record.Turns = battle.Turn + 1;
         a.FinalHp = Math.Max(first.Health, 0);
         b.FinalHp = Math.Max(second.Health, 0);
+        if (replay != null)
+        {
+            replay.Outcome = record.Outcome switch
+            {
+                BattleOutcome.FirstWins => $"A({aiA.Name}) 승리",
+                BattleOutcome.SecondWins => $"B({aiB.Name}) 승리",
+                _ => record.Timeout ? "무승부 (시간 초과)" : "무승부",
+            };
+        }
         return record;
     }
 
-    private static void DraftRound(CardLibrary library, IDraftAi ai, SideRecord side, Random random)
+    private static void DraftRound(CardLibrary library, IDraftAi ai, SideRecord side, Random random,
+        List<DraftPick>? log, int round)
     {
         PickOption[] options = Draft.RollOptions(side.Deck, library, random);
         int? choice = ai.Choose(side.Deck, options, random);
+
+        log?.Add(new DraftPick(round + 1, options.Select(o => o.Kind == "enhance"
+            ? $"강화: {Replay.Label(side.Deck[o.Target])} → {Replay.Describe(o.Card)}"
+            : $"추가: {Replay.Describe(o.Card)}").ToList(), choice ?? -1));
 
         for (int i = 0; i < options.Length; i++)
         {

@@ -1,5 +1,7 @@
 // BalanceSim: AI끼리 카드 선택 10라운드 → 전투를 수천 판 돌려 카드/효과/강화 밸런스를 잰다.
 //
+// 웹 모드 (오라클 서버에서 상시 실행, 브라우저 버튼으로 실행/모드/관전): --serve  → WebApp.cs
+//
 // dotnet run --project Server/BalanceSim -c Release -- [옵션]
 //   --games N        판 수 (기본 4000)
 //   --ai a,b,c       AI 목록: random, default, greedy (기본 셋 다, 모든 조합을 돌아가며)
@@ -10,11 +12,16 @@
 using System.Diagnostics;
 using BalanceSim;
 
+if (args.Contains("--serve"))
+{
+    WebApp.Run(args.Where(a => a != "--serve").ToArray());
+    return;
+}
+
 var options = ParseArgs(args);
 int games = int.Parse(options.GetValueOrDefault("games", "4000"));
 int seed = int.Parse(options.GetValueOrDefault("seed", "1"));
-var ais = options.GetValueOrDefault("ai", "random,default,greedy").Split(',', StringSplitOptions.RemoveEmptyEntries)
-    .Select(name => AiProfile.All.TryGetValue(name.Trim(), out var ai) ? ai : throw new ArgumentException($"모르는 AI: {name}")).ToList();
+var ais = SimRunner.ParseAis(options.GetValueOrDefault("ai", "random,default,greedy"));
 
 CardLibrary baseline = CardLibrary.Load(Path.Combine(AppContext.BaseDirectory, "Data", "cards.json"));
 Patch? patch = options.TryGetValue("patch", out string? patchPath) ? Patch.Load(patchPath) : null;
@@ -43,21 +50,10 @@ Console.WriteLine($"브라우저로 보기: {Path.GetFullPath(Path.Combine(outDi
 
 Stats Run(string label, CardLibrary library)
 {
-    // 판의 절반은 같은 AI끼리(카드 지표용), 절반은 다른 AI끼리(상성용)가 되도록 조합을 배정. 시드 = 기본 시드 + 판 번호
-    var cross = ais.SelectMany(x => ais.Where(y => y != x).Select(y => (x, y))).ToList();
-    var mirror = ais.SelectMany(x => Enumerable.Repeat((x, x), Math.Max(1, ais.Count - 1))).ToList();
-    var pairs = mirror.Concat(cross).ToList();
-    var records = new GameRecord[games];
     var clock = Stopwatch.StartNew();
-
-    Parallel.For(0, games, i =>
-    {
-        var (aiA, aiB) = pairs[i % pairs.Count];
-        records[i] = Simulator.Play(library, aiA, aiB, unchecked(seed * 1_000_003 + i));
-    });
-
+    Stats stats = SimRunner.Run(library, ais, games, seed);
     Console.Error.WriteLine($"{label}: {games:N0}판 {clock.Elapsed.TotalSeconds:0.0}초");
-    return Stats.From(records, library);
+    return stats;
 }
 
 static Dictionary<string, string> ParseArgs(string[] args)

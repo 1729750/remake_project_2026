@@ -7,3 +7,7 @@ publish/
 
 # BalanceSim 결과는 git에 올리지 않는다 (패치 파일 patches/ 는 올림)
 BalanceSim/reports/
+
+# 시뮬레이터 접속 비밀번호 (deploy-sim.sh가 만든다)
+tools/.sim-password
+tools/.sim-sync.log

@@ -73,3 +73,22 @@ dotnet run --project BalanceSim -c Release -- --games 30000 --patch BalanceSim/p
 | 발동당 피해 | 큐에서 발동했을 때 상대에게 준 피해 평균 (방어로 막힌 뒤) |
 | 선택률 | 카드 추가 선택지로 나왔을 때 고른 비율 |
 | 판 길이, 무승부, 역전승 | 판 전체 흐름 (역전승 = 이긴 쪽 HP가 30% 이하까지 갔던 판) |
+
+### 오라클 서버에서 웹으로 (버튼 실행, 모드, AI 관전)
+
+브라우저: **http://161.33.142.112:7777/sim/** (사용자 이름 아무거나, 비밀번호는 `Server/tools/.sim-password`)
+
+- 게임 서버가 `/sim/`을 같은 서버의 `balancesim` 서비스(127.0.0.1:5080)로 넘긴다. 새 포트 없음. 시뮬레이터는 CPU 우선순위가 낮아 게임에 영향이 적다
+- 판 수·AI·모드를 고르고 **실행** / **현재와 비교** / **AI 한 판 관전**. 결과는 실행 기록에서 보고서·비교로 연다
+- **모드** = 화면에서 카드 수치·강화 가격을 고쳐 이름 붙여 저장한 패치. Unity 에셋은 그대로
+- **카드 데이터가 바뀌면 자동 실행**: 서버가 같은 설정으로 한 번 돌리고 이전 카드 데이터 결과와 비교한다
+
+배포: `bash deploy/deploy-sim.sh` (처음이면 비밀번호를 만들어 `tools/.sim-password`에 저장)
+
+Unity/Git 수정을 서버에 바로 반영:
+
+```bash
+node tools/sim-sync.mjs --watch       # 켜 두면 Unity에서 카드 에셋을 저장할 때마다 서버로
+node tools/sim-sync.mjs               # 한 번만
+bash tools/install-sim-hooks.sh       # git 커밋/pull 때 자동 (카드 에셋 → sim-sync, 규칙 코드 → deploy-sim)
+```

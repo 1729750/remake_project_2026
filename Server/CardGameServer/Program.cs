@@ -17,6 +17,9 @@ app.UseWebSockets(new WebSocketOptions
 
 app.MapGet("/health", (RoomManager rooms) => Results.Ok(new { status = "ok", rooms = rooms.RoomCount }));
 
+// 밸런스 시뮬레이터 웹 화면 (같은 서버의 balancesim 서비스로 넘김)
+app.MapSimProxy();
+
 app.Map("/ws", async (HttpContext context, RoomManager rooms, ILogger<Program> logger) =>
 {
     if (!context.WebSockets.IsWebSocketRequest)

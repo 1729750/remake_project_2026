@@ -1,0 +1,29 @@
+[Unit]
+Description=BalanceSim (밸런스 시뮬레이터 웹 모드, 게임 서버 /sim/ 아래로 보임)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=cardgame
+WorkingDirectory=/opt/balancesim
+ExecStart=/usr/bin/dotnet /opt/balancesim/BalanceSim.dll --serve
+Restart=always
+RestartSec=3
+EnvironmentFile=/etc/balancesim.env
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
+Environment=SIM_DATA=/var/lib/balancesim
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+# 결과/모드/카드 데이터는 여기 (재배포해도 유지)
+StateDirectory=balancesim
+# 게임 서버가 항상 먼저: CPU를 나눠 쓸 때 시뮬레이터는 뒤로
+Nice=15
+CPUWeight=20
+IOWeight=20
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
