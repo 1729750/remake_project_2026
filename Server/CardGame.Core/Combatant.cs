@@ -1,4 +1,4 @@
-namespace CardGameServer.Game;
+namespace CardGame.Core;
 
 /// <summary>
 /// Unity CharacterManager + HandManager + QueueManager 에서 게임 규칙만 옮긴 것.

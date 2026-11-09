@@ -1,7 +1,7 @@
-// 강화 비용 통계: 서버의 실제 강화 규칙(Game/Enhance.cs)으로 시작 덱을 k번 강화했을 때
+// 강화 비용 통계: 서버와 같은 강화 규칙(CardGame.Core/Enhance.cs)으로 시작 덱을 k번 강화했을 때
 // 쓸 수 없는 카드(코스트 > 최대 코스트 15)가 생기는 비율과, 효과별 1회 강화의 평균 비용을 출력한다.
 // 사용법: dotnet run --project Server/tools/EnhanceStats [-- 판수]
-using CardGameServer.Game;
+using CardGame.Core;
 
 int runs = args.Length > 0 ? int.Parse(args[0]) : 5000;
 const int Rounds = 10;

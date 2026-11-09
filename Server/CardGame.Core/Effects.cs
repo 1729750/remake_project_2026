@@ -1,4 +1,4 @@
-namespace CardGameServer.Game;
+namespace CardGame.Core;
 
 // Unity Assets/scripts/Cards/effects/*.cs 를 그대로 옮긴 것. 규칙을 바꿀 때는 양쪽을 같이 본다.
 // 사운드/로그/UI 갱신만 뺐고, 아래 두 군데만 의도적으로 고쳤다.

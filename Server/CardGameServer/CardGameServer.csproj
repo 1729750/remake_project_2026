@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CardGame.Core\CardGame.Core.csproj" />
+    <Using Include="CardGame.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Update="Data\cards.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

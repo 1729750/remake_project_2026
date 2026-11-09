@@ -2,18 +2,16 @@ namespace CardGameServer.Game;
 
 public enum MatchPhase { Picking, Countdown, Battle, Finished }
 
-/// <summary>카드 선택 단계의 선택지. Kind = add(덱에 추가) | enhance(Target번 덱 카드를 Card로 바꿈 = 강화 후 모습)</summary>
-public sealed record PickOption(string Kind, CardDef Card, int Target);
-
 /// <summary>
 /// 방 하나의 게임 진행: 카드 선택(라운드마다 3장 중 1장, 또는 건너뛰기) → 카운트다운 → 전투 → 결과.
-/// 모든 판정은 여기서 하고, 바뀔 때마다 두 플레이어에게 각자 시점의 상태를 보낸다.
+/// 카드 선택 규칙(Draft)과 전투 진행(Battle)은 CardGame.Core에 있고, 여기서는 시간과 입력을 맞추고
+/// 바뀔 때마다 두 플레이어에게 각자 시점의 상태를 보낸다.
 ///
 /// 스레드: Tick(타이머)과 입력(소켓)이 다른 스레드에서 오므로 공개 메서드는 전부 lock 안에서 처리한다.
 /// </summary>
 public sealed class Match
 {
-    public const int PickRounds = 10;
+    public const int PickRounds = Draft.Rounds;
     public const double PickSeconds = 15;
     public const double CountdownSeconds = 3;   // Unity BattleManager.startDelay
     public const double TurnSeconds = 1.5;      // SinglePlayMode 씬의 turnDuration
@@ -26,7 +24,7 @@ public sealed class Match
     private MatchPhase phase = MatchPhase.Picking;
     private int round;
     private double timeLeft;
-    private int turn = -1;
+    private Battle? battle;
     private string result = "";      // winner playerId, "draw"
     private string reason = "";
     private readonly List<MatchEvent> events = new();
@@ -197,34 +195,13 @@ public sealed class Match
         foreach (Seat seat in seats)
         {
             seat.Picked = false;
-            seat.Offers = RollOptions(seat);
+            seat.Offers = Draft.RollOptions(seat.Deck, library, random);
         }
-    }
-
-    // 팀 멀티 기획(CardOptionGenerator)과 같은 구성: [카드 추가, 강화, 무작위(강화 또는 추가)]
-    // 강화할 카드가 없으면 그 칸은 카드 추가로 바뀐다
-    private PickOption[] RollOptions(Seat seat)
-    {
-        PickOption AddCard() => new("add", library.Cards[random.Next(library.Cards.Count)], -1);
-
-        PickOption EnhanceOrAdd()
-        {
-            var rolled = Enhance.Roll(seat.Deck, library, random);
-            if (rolled == null) return AddCard();
-            var (target, upgrade) = rolled.Value;
-            return new PickOption("enhance", Enhance.Apply(seat.Deck[target], upgrade), target);
-        }
-
-        return [AddCard(), EnhanceOrAdd(), random.Next(2) == 0 ? EnhanceOrAdd() : AddCard()];
     }
 
     private static void Pick(Seat seat, int index)
     {
-        PickOption option = seat.Offers[index];
-        if (option.Kind == "enhance" && option.Target >= 0 && option.Target < seat.Deck.Count)
-            seat.Deck[option.Target] = option.Card; // 같은 카드 자리에 강화된 카드
-        else
-            seat.Deck.Add(option.Card);
+        Draft.Apply(seat.Deck, seat.Offers[index]);
         seat.Picked = true;
     }
 
@@ -247,45 +224,39 @@ public sealed class Match
     private void StartBattle()
     {
         foreach (Seat seat in seats)
-            seat.Combatant = new Combatant(seat.Player.PlayerId, seat.Player.Name, library.MaxHealth, seat.Deck, random)
-            {
-                Events = events.Add,
-            };
+            seat.Combatant = new Combatant(seat.Player.PlayerId, seat.Player.Name, library.MaxHealth, seat.Deck, random);
 
-        seats[0].Combatant!.Opponent = seats[1].Combatant!;
-        seats[1].Combatant!.Opponent = seats[0].Combatant!;
-
+        battle = new Battle(seats[0].Combatant!, seats[1].Combatant!, events.Add);
         phase = MatchPhase.Battle;
         StartTurn();
     }
 
     private void StartTurn()
     {
-        turn++;
         timeLeft = TurnSeconds;
-        foreach (Seat seat in seats)
-            seat.Combatant!.OnTurnStart();
+        battle!.StartTurn();
     }
 
     private void EndTurn()
     {
-        // Unity는 플레이어 쪽이 먼저 처리되고 먼저 죽은 쪽이 지는데, 멀티에서는 순서가 불공평하니
-        // 양쪽 턴 종료를 모두 처리한 뒤 한꺼번에 판정한다 (둘 다 쓰러지면 무승부).
-        events.Add(new MatchEvent("turnEnd", "", null, 0, null, false, false));
-        foreach (Seat seat in seats)
-            seat.Combatant!.OnTurnEnd();
-
-        bool firstDown = seats[0].Combatant!.IsDefeated;
-        bool secondDown = seats[1].Combatant!.IsDefeated;
-
-        if (firstDown && secondDown)
-            Finish("draw", "둘 다 쓰러졌습니다.");
-        else if (firstDown)
-            Finish(seats[1].Player.PlayerId, $"{seats[0].Player.Name}의 HP가 0이 되었습니다.");
-        else if (secondDown)
-            Finish(seats[0].Player.PlayerId, $"{seats[1].Player.Name}의 HP가 0이 되었습니다.");
-        else
+        if (!battle!.EndTurn())
+        {
             StartTurn();
+            return;
+        }
+
+        switch (battle.Outcome)
+        {
+            case BattleOutcome.FirstWins:
+                Finish(seats[0].Player.PlayerId, $"{seats[1].Player.Name}의 HP가 0이 되었습니다.");
+                break;
+            case BattleOutcome.SecondWins:
+                Finish(seats[1].Player.PlayerId, $"{seats[0].Player.Name}의 HP가 0이 되었습니다.");
+                break;
+            default:
+                Finish("draw", "둘 다 쓰러졌습니다.");
+                break;
+        }
     }
 
     private void Finish(string winner, string why)
@@ -326,7 +297,7 @@ public sealed class Match
             Picked = seat.Picked,
             OpponentPicked = other.Picked,
             MyDeck = seat.Deck.Select((c, i) => CardView.FromDef(c, i + 1)).ToArray(),
-            Turn = turn,
+            Turn = battle?.Turn ?? -1,
             TurnDuration = TurnSeconds,
             Me = seat.Combatant == null ? null : BuildCombatant(seat.Combatant, showHand: true),
             Opponent = other.Combatant == null ? null : BuildCombatant(other.Combatant, showHand: false),

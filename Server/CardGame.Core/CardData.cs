@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CardGameServer.Game;
+namespace CardGame.Core;
 
 // enum 순서/이름은 Unity 쪽 Assets/scripts/Cards 와 같다. (cards.json에는 이름 문자열로 들어간다)
 public enum EffectType

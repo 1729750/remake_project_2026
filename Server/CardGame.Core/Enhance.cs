@@ -1,4 +1,4 @@
-namespace CardGameServer.Game;
+namespace CardGame.Core;
 
 /// <summary>강화 1회: 붙일 효과와 그 대가로 늘어나는 코스트/쿨다운. (Unity CardUpgrade)</summary>
 public sealed record CardUpgrade(CardEffectDef Effect, int CostDelta, int CooldownDelta);

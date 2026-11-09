@@ -9,8 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- 서버의 강화 규칙(Game/Enhance.cs)을 그대로 쓴다 -->
-    <ProjectReference Include="..\..\CardGameServer\CardGameServer.csproj" />
+    <!-- 서버와 같은 강화 규칙(CardGame.Core/Enhance.cs)을 그대로 쓴다 -->
+    <ProjectReference Include="..\..\CardGame.Core\CardGame.Core.csproj" />
+    <None Include="..\..\CardGameServer\Data\cards.json" Link="Data\cards.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

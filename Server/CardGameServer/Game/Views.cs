@@ -40,8 +40,6 @@ public sealed record StateView
 /// </summary>
 public sealed record EventView(string Kind, bool Mine, string Card, int Amount, string Effect, bool Guarded, bool Ok);
 
-public sealed record MatchEvent(string Kind, string PlayerId, string? Card, int Amount, string? Effect, bool Guarded, bool Ok);
-
 public sealed record CombatantView
 {
     public required string Name { get; init; }
