@@ -60,6 +60,7 @@ dotnet run --project BalanceSim -c Release -- --games 30000 --patch BalanceSim/p
 - AI: `random`(기준선), `default`(싱글 DefaultEnemyAI 이식), `greedy`(같은 점수를 코스트로 나눈 효율). 카드 선택은 덱 가치가 가장 오르는 선택지, 25%는 무작위(모든 카드를 재기 위해)
 - 카드·효과 지표는 같은 AI끼리 붙은 판(무작위 제외)에서만 센다. AI 실력 차이가 카드 승률에 섞이지 않게
 - 결과: `BalanceSim/reports/<시각>-<이름>/` (git에 안 올림)
+  - `report.html` 브라우저로 보는 차트·표 (패치 비교는 `compare.html`)
   - `summary.md` 요약 · `cards.csv` 카드별 · `effects.csv` 효과별 · `matchups.csv` AI 상성
   - `--patch`를 주면 같은 시드로 패치 전/후를 돌려 `compare.md`, `compare.csv`
 - 패치 파일(`BalanceSim/patches/*.json`)은 시뮬레이터에서만 수치를 덮어쓴다. 마음에 들면 Unity 카드 에셋을 고치고 `tools/export-cards.mjs`로 반영

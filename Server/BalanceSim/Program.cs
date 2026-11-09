@@ -6,6 +6,7 @@
 //   --seed S         시드 (기본 1). 같은 시드면 같은 결과
 //   --patch FILE     패치 파일. 주면 패치 전/후를 같은 시드로 돌려 비교한다
 //   --out DIR        결과 폴더 (기본 Server/BalanceSim/reports/<시각>-<이름>)
+// 결과 폴더의 report.html(패치 비교는 compare.html)을 브라우저로 열면 차트와 표로 볼 수 있다.
 using System.Diagnostics;
 using BalanceSim;
 
@@ -38,6 +39,7 @@ else
 }
 
 Console.WriteLine($"결과: {Path.GetFullPath(outDir)}");
+Console.WriteLine($"브라우저로 보기: {Path.GetFullPath(Path.Combine(outDir, patch == null ? "report.html" : "compare.html"))}");
 
 Stats Run(string label, CardLibrary library)
 {

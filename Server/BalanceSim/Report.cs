@@ -3,7 +3,7 @@ using System.Text;
 
 namespace BalanceSim;
 
-/// <summary>결과를 CSV(카드, 효과, AI 상성)와 읽기 쉬운 요약(summary.md)으로 쓴다.</summary>
+/// <summary>결과를 CSV(카드, 효과, AI 상성), 요약(summary.md), 브라우저용 report.html로 쓴다.</summary>
 public static class Report
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
@@ -18,6 +18,7 @@ public static class Report
         File.WriteAllText(Path.Combine(dir, "effects.csv"), EffectsCsv(stats), Encoding.UTF8);
         File.WriteAllText(Path.Combine(dir, "matchups.csv"), MatchupsCsv(stats), Encoding.UTF8);
         File.WriteAllText(Path.Combine(dir, "summary.md"), Summary(stats, title), Encoding.UTF8);
+        HtmlReport.Write(dir, stats, title);
     }
 
     public static void WriteComparison(string dir, Stats before, Stats after, string patchName)
@@ -25,6 +26,7 @@ public static class Report
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, "compare.csv"), CompareCsv(before, after), Encoding.UTF8);
         File.WriteAllText(Path.Combine(dir, "compare.md"), CompareSummary(before, after, patchName), Encoding.UTF8);
+        HtmlReport.WriteComparison(dir, before, after, patchName);
     }
 
     // =========================================================
