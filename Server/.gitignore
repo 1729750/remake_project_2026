@@ -1,3 +1,6 @@
 bin/
 obj/
 publish/
+
+# 루트 .gitignore(Unity)가 *.csproj를 무시하지만 서버 프로젝트 파일은 필요하다
+!*.csproj
