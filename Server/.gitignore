@@ -4,3 +4,6 @@ publish/
 
 # 루트 .gitignore(Unity)가 *.csproj를 무시하지만 서버 프로젝트 파일은 필요하다
 !*.csproj
+
+# BalanceSim 결과는 git에 올리지 않는다 (패치 파일 patches/ 는 올림)
+BalanceSim/reports/

@@ -152,6 +152,14 @@ public static class Enhance
         _ => TargetSide.Neutral,
     };
 
+    /// <summary>1 = 나에게 거는 좋은 효과, -1 = 상대에게 거는 효과, 0 = 중립. (Unity Effect.TargetPolarity)</summary>
+    public static int PolaritySign(EffectType type) => Polarity(type) switch
+    {
+        TargetSide.Positive => 1,
+        TargetSide.Negative => -1,
+        _ => 0,
+    };
+
     private static bool DoesntUseMagnitude(EffectType type) =>
         type is EffectType.Disposable or EffectType.Preserve or EffectType.DivideCooldown or EffectType.DefenseToCooldown;
 

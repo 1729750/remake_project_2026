@@ -55,6 +55,17 @@ public sealed class CardLibrary
     public EffectPrice PriceOf(EffectType type) =>
         prices.TryGetValue(type, out EffectPrice? price) ? price : new EffectPrice(0f, 0, 0, 1);
 
+    /// <summary>
+    /// 카드/가격을 바꾼 사본. 시작 덱도 바뀐 카드로 다시 맞춘다. (BalanceSim의 패치 비교용)
+    /// </summary>
+    public CardLibrary WithChanges(Func<CardDef, CardDef> card, Func<EffectType, EffectPrice, EffectPrice> price)
+    {
+        var cards = Cards.Select(card).ToList();
+        var newPrices = Enum.GetValues<EffectType>().ToDictionary(t => t, t => price(t, PriceOf(t)));
+        var lookup = cards.ToDictionary(c => c.Name);
+        return new CardLibrary(MaxHealth, StartDeck.Select(c => lookup[c.Name]).ToList(), cards, newPrices);
+    }
+
     public static CardLibrary Load(string path)
     {
         var options = new JsonSerializerOptions

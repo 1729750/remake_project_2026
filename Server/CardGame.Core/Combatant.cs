@@ -378,4 +378,12 @@ public sealed class Combatant
 
         return (preview.GetCost(), magnitudes);
     }
+
+    /// <summary>지금 이 손패 카드를 바로 큐에 넣을 수 있는지 (코스트, 큐 빈칸). AI가 쓴다.</summary>
+    public bool CanPlay(int index)
+    {
+        if (index < 0 || index >= HandSize || Hand[index] == null) return false;
+        if (!Queue.Any(q => q == null)) return false;
+        return Preview(Hand[index]!).cost <= Cost;
+    }
 }
