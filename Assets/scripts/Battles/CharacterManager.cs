@@ -16,8 +16,11 @@ public class CharacterManager: MonoBehaviour
     
     private int _health;
     private int _cost;
-    private const int MaxCost = 15;
+    public const int MaxCost = 15;
     private List<Effect> _effects;
+    // 큐의 Defend 카드와 별개로 존재하는 "추가" 방어도 풀(예: LastStandEffect가 맞을 때마다 쌓아줌).
+    // GetDefense()에 합산되고, ConsumeDefense가 큐의 Defend를 다 쓴 뒤 마지막으로 여기서 소모한다.
+    private int _bonusDefense;
     [SerializeField] private CardDefinition[] startDeck;
     [SerializeField] private GameObject queueRoots;
     [SerializeField] private bool isHandVisualized;
@@ -145,7 +148,7 @@ public class CharacterManager: MonoBehaviour
 
             foreach (CardEffect cardEffect in queued.GetEffects())
             {
-                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
+                if (cardEffect.IsAttackEffect())
                 {
                     SoundManager.Instance.Play(EffectSound.UpcomingAttack);
                     return;
@@ -156,7 +159,11 @@ public class CharacterManager: MonoBehaviour
 
     public void OnTurnEnd()
     {
-        _queueManager.TickQueueCards(this);
+        // 기존 버그: tickSpeed(Quicker가 올려주는 턴당 쿨다운 감소 속도)가 여기서 전달되지 않고
+        // 항상 기본값(1)으로만 틱돼서, Quicker를 써도 큐가 실제로는 전혀 빨라지지 않았다.
+        // QueueManager.TickQueueCards는 이미 이 값을 받아 처리하도록 만들어져 있었다(Continuous
+        // 카드는 가속에서 제외하는 로직까지) — 호출부만 고치면 됐다.
+        _queueManager.TickQueueCards(this, tickSpeed);
         for (int i = _effects.Count - 1; i >= 0; i--)
             _effects[i].OnTurnEnded(this);
         // 플레이어는 select된 카드가 있어도 여기서 건드리지 않는다 — 다음 OnTurnStart의
@@ -318,11 +325,11 @@ public class CharacterManager: MonoBehaviour
     public int getmaxHealth() => _maxHealth;
     public int GetHealth() => _health;
 
-    // 방어도는 더 이상 하나의 누적된 필드가 아니라, 자신의 큐에 있는 카드들 중 방어 효과가 아직
-    // 남긴(소모되지 않은) magnitude의 합이다 — DefendEffect(Continuous) 참고.
+    // 방어도 = 자신의 큐에 있는 카드들 중 방어 효과가 아직 남긴(소모되지 않은) magnitude의 합
+    // (DefendEffect(Continuous) 참고) + _bonusDefense(LastStandEffect 등이 큐 카드와 무관하게 쌓아준 몫).
     public int GetDefense()
     {
-        int total = 0;
+        int total = _bonusDefense;
         foreach (CardInstance queued in GetQueue())
         {
             if (queued == null) continue;
@@ -331,6 +338,14 @@ public class CharacterManager: MonoBehaviour
                     total += queued.GetQueuedMagnitude(cardEffect);
         }
         return total;
+    }
+
+    // LastStandEffect처럼 큐의 Defend 카드와 무관하게 방어도를 더해주는(또는 자신이 준 만큼 회수하는)
+    // 효과가 쓴다. 0 밑으로는 내려가지 않는다.
+    public void AddBonusDefense(int amount)
+    {
+        _bonusDefense = Mathf.Max(0, _bonusDefense + amount);
+        UpdateDefenseDisplay();
     }
 
     public int GetCost() => _cost;
@@ -368,6 +383,7 @@ public class CharacterManager: MonoBehaviour
         _deck = new List<CardInstance>();
         _health = _maxHealth;
         _cost = 0;
+        _bonusDefense = 0;
         UpdateHPBar();
         UpdateDefenseDisplay();
         UpdateEffectList();
@@ -405,16 +421,19 @@ public class CharacterManager: MonoBehaviour
         hpBar.localPosition = new Vector3(offset, 0f, 0f);
     }
 
-    public void Attacked(int damage)
+    // 실제로 들어간 피해량(guard 반감 반영 후)을 돌려준다 — AttackEffect.OnApply가 이 값으로
+    // OnDamaging(공격 쪽 "내가 때렸다" 훅)을 트리거할지 판단한다.
+    public int Attacked(int damage)
     {
         if (_isGuard) damage /= 2;
         PlayDamageSound(damage);
         TakeDamage(damage);
+        return Mathf.Max(damage, 0);
     }
 
     // isGuard면 Weak/Damage/Big 대신 DamageGuarded를 재생한다. 방어도 상쇄 여부는 이 시점에는 이미
-    // 반영이 끝난 뒤라(ApplyEffect의 ConsumeQueuedDefense가 Attacked 호출 전에 처리) 여기서는
-    // 다루지 않는다 — DamageShielded는 ConsumeQueuedDefense가 직접 재생한다.
+    // 반영이 끝난 뒤라(ApplyEffect의 ConsumeDefense가 Attacked 호출 전에 처리) 여기서는
+    // 다루지 않는다 — DamageShielded는 ConsumeDefense가 직접 재생한다.
     private void PlayDamageSound(int damage)
     {
         if (SoundManager.Instance == null) return;
@@ -437,7 +456,7 @@ public class CharacterManager: MonoBehaviour
         }
     }
 
-    // amount는 이미 방어도 상쇄가 끝난 뒤의 순수 체력 피해다(ApplyEffect.ConsumeQueuedDefense 참고).
+    // amount는 이미 방어도 상쇄가 끝난 뒤의 순수 체력 피해다(ApplyEffect.ConsumeDefense 참고).
     public void TakeDamage(int amount)
     {
         if (amount <= 0)
@@ -445,6 +464,11 @@ public class CharacterManager: MonoBehaviour
         _health -= amount;
         UpdateHPBar();
         Debug.Log($"[{gameObject.name}] Took {amount} damage (HP: {_health})");
+        // "나는 맞았다" 이벤트 — continuous(skill) 효과가 반응할 기회(예: 맞으면 사라지는 버프,
+        // 맞을 때마다 방어도를 얻는 효과). OnApply 등으로 이 턴에 새로 걸린 효과까지 다 반영된
+        // 뒤 호출되도록, 목록 복사본(GetEffectPrioritize)을 순회한다.
+        foreach (Effect effect in GetEffectPrioritize())
+            effect.OnDamaged(this, amount);
         if (_health <= 0 && BattleManager.Instance != null)
         {
             Debug.Log($"[{gameObject.name}] Defeated!");
@@ -460,31 +484,27 @@ public class CharacterManager: MonoBehaviour
 
     public void EnergyHeal(int amount)
     {
+        if (amount > 0)
+        {
+            foreach (Effect effect in _effects)
+            {
+                if (effect is EnergyDrainEffect drain)
+                {
+                    amount = Mathf.Max(0, amount - 1);
+                    drain.ConsumeCharge(this);
+                    break;
+                }
+            }
+        }
         _cost = Mathf.Clamp(_cost + amount, 0, MaxCost);
         UpdateCostDisplay();
     }
     
-    // 큐에 남은 방어도를 전부 소모한다(예: DefenseToCooldown처럼 방어도를 다른 것으로 바꿔쓰는 카드).
-    public void ConsumeAllDefense()
-    {
-        foreach (CardInstance queued in GetQueue())
-        {
-            if (queued == null) continue;
-            foreach (CardEffect cardEffect in queued.GetEffects())
-            {
-                if (cardEffect.GetEffect().GetEffectType() != EffectType.Defend) continue;
-                int remaining = queued.GetQueuedMagnitude(cardEffect);
-                if (remaining > 0) queued.ConsumeQueuedMagnitude(cardEffect, remaining);
-            }
-        }
-        UpdateDefenseDisplay();
-    }
-
-    // 들어오는 공격 magnitude를 자신의 큐에 있는 방어 카드들로 순서대로 상쇄한다(방어 magnitude 1당
-    // 공격 magnitude 1). 각 카드는 자기 자신의 남은 magnitude에서만 소모되므로, 이미 다 쓴 카드가
-    // 나중에 큐를 떠나며 새로 얻은 다른 카드의 방어도를 대신 앗아가는 일이 없다. 남은(상쇄 못한)
-    // 공격 magnitude를 반환한다.
-    private int ConsumeQueuedDefense(int incomingDamage)
+    // 들어오는 공격 magnitude를 자신의 큐에 있는 방어 카드들로, 그 다음 _bonusDefense로 순서대로
+    // 상쇄한다(방어 magnitude 1당 공격 magnitude 1). 각 카드는 자기 자신의 남은 magnitude에서만
+    // 소모되므로, 이미 다 쓴 카드가 나중에 큐를 떠나며 새로 얻은 다른 카드의 방어도를 대신 앗아가는
+    // 일이 없다. 남은(상쇄 못한) 공격 magnitude를 반환한다.
+    private int ConsumeDefense(int incomingDamage)
     {
         int consumedTotal = 0;
         foreach (CardInstance queued in GetQueue())
@@ -499,6 +519,14 @@ public class CharacterManager: MonoBehaviour
                 incomingDamage -= consumed;
                 consumedTotal += consumed;
             }
+        }
+
+        if (incomingDamage > 0 && _bonusDefense > 0)
+        {
+            int consumed = Mathf.Min(_bonusDefense, incomingDamage);
+            _bonusDefense -= consumed;
+            incomingDamage -= consumed;
+            consumedTotal += consumed;
         }
 
         if (consumedTotal > 0)
@@ -611,10 +639,11 @@ public class CharacterManager: MonoBehaviour
         EffectType effectType = cardEffect.GetEffect().GetEffectType();
         int magnitude = cardEffect.GetMagnitude();
 
-        // 공격은 자신의 큐에 있는 방어 카드들을 순회해 상쇄한다(DefendEffect 참고) — 위 OnAppliedOther
-        // 정렬 순회 이후이므로 Guard 등 배율 계열 효과가 이미 반영된 값을 상쇄한다.
-        if (effectType == EffectType.Attack)
-            magnitude = ConsumeQueuedDefense(magnitude);
+        // 공격 계열(ConsumesDefense인 것만 — Burning처럼 방어를 무시하는 변종은 제외)은 자신의 큐에
+        // 있는 방어 카드들을 순회해 상쇄한다(DefendEffect 참고) — 위 OnAppliedOther 정렬 순회 이후이므로
+        // Guard 등 배율 계열 효과가 이미 반영된 값을 상쇄한다.
+        if (Effect.Create(effectType, 0) is AttackEffect probe && probe.ConsumesDefense)
+            magnitude = ConsumeDefense(magnitude);
 
         Effect effect = Effect.Create(effectType, magnitude);
         effect.OnApply(this);

@@ -28,8 +28,7 @@ public class CardDefinition: ScriptableObject
     public CardType GetCardType() => cardType;
     public Sprite GetSprite() => sprite;
     // Instant 카드에는 Instant로만 쓰는 효과만, Continuous 카드에는 Continuous로만 쓰는 효과만
-    // 추가할 수 있다. Mix 카드는 어느 쪽이든 받아준다. 추가하려는 효과의 appliedCategory가 두
-    // 비트(Instant|Continuous)를 다 켰으면 카드 자체를 Mix로 승격시키고 받아준다.
+    // 추가할 수 있다 — 한 카드는 반드시 하나의 category로만 구성된다(Mix 없음).
     public void AddEffect(CardEffect effect)
     {
         if (!TryReconcileCardType(effect)) return;
@@ -41,13 +40,6 @@ public class CardDefinition: ScriptableObject
         if (!ValidateSupportedCategory(effect)) return false;
 
         EffectCategory applied = effect.GetAppliedCategory();
-        if (applied == (EffectCategory.Instant | EffectCategory.Continuous))
-        {
-            cardType = CardType.Mix;
-            return true;
-        }
-        if (cardType == CardType.Mix) return true;
-
         CardType requiredType = applied == EffectCategory.Continuous ? CardType.Continuous : CardType.Instant;
         if (cardType != requiredType)
         {
@@ -70,20 +62,11 @@ public class CardDefinition: ScriptableObject
     }
 
     // 인스펙터에서 _effects를 직접 편집한 경우(AddEffect를 거치지 않은 경우)를 위한 안전망.
-    // 두 비트를 다 켠 효과가 하나라도 있으면 카드를 Mix로 승격시키고, 그 외에는 cardType과 안
-    // 맞는 효과가 있으면 콘솔에 에러만 남긴다(디자이너가 의도적으로 고른 cardType을 임의로
-    // 덮어쓰지 않는다).
+    // cardType과 안 맞는 효과가 있으면 콘솔에 에러만 남긴다(디자이너가 의도적으로 고른 cardType을
+    // 임의로 덮어쓰지 않는다).
     private void OnValidate()
     {
         if (_effects == null) return;
-
-        bool hasMixEffect = _effects.Exists(e => e?.GetEffect() != null &&
-            e.GetAppliedCategory() == (EffectCategory.Instant | EffectCategory.Continuous));
-        if (hasMixEffect)
-        {
-            cardType = CardType.Mix;
-            return;
-        }
 
         foreach (CardEffect effect in _effects)
         {
@@ -92,7 +75,7 @@ public class CardDefinition: ScriptableObject
 
             EffectCategory applied = effect.GetAppliedCategory();
             CardType requiredType = applied == EffectCategory.Continuous ? CardType.Continuous : CardType.Instant;
-            if (cardType != CardType.Mix && cardType != requiredType)
+            if (cardType != requiredType)
                 Debug.LogError($"[{name}] {cardType} card contains a {applied} effect ({effect.GetEffect().GetEffectType()}) — fix the effect or the card's CardType.");
         }
     }

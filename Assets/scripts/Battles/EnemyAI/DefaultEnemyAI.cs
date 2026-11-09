@@ -85,8 +85,8 @@ public class DefaultEnemyAI : EnemyAIBehavior
     // 방향(자신에게 좋은지/나쁜지)은 Effect.TargetPolarity + 실제 target이 자신인지로 정하고,
     // 크기는 타입별 가중치(및 상황: 상대의 임박한 공격, 자신의 공격 수단 보유 여부)로 정한다.
     //
-    // CardEffect.GetAppliedCategory()가 Instant/Continuous 중 이 카드가 실제로 어느 쪽으로(또는 둘
-    // 다, Mix) 발동하는지 알려준다 — 둘은 가치가 발생하는 시점과 지속이 달라 따로 채점해서 합산한다:
+    // CardEffect.GetAppliedCategory()가 Instant/Continuous 중 이 효과가 실제로 어느 쪽으로
+    // 발동하는지 알려준다 — 둘은 가치가 발생하는 시점과 지속이 달라 따로 채점해서 합산한다:
     //   - Instant: 카드가 큐를 다 돌았을 때(duration턴 뒤) 딱 한 번 발동 — 기존과 동일하게 평가한다.
     //   - Continuous: 카드를 내는 즉시(지금부터) 큐에 머무는 duration턴 동안 유지되다가 큐를 떠나며
     //     사라진다 — 같은 magnitude라도 더 오래 지속될수록 가치가 크므로 duration에 비례해(체감
@@ -97,13 +97,16 @@ public class DefaultEnemyAI : EnemyAIBehavior
         int magnitude = cardEffect.GetMagnitude();
         bool targetsSelf = target == snapshot.Self;
 
-        // Attack은 즉발 데미지라 처치 가능 여부까지 바로 계산할 수 있어 별도로 다룬다 — 항상 Instant.
-        if (type == EffectType.Attack)
+        // 방어를 실제로 소모하는 공격 계열(Attack, VenomousAttack — Burning처럼 방어를 무시하고 DOT로
+        // 들어가는 변종은 제외)은 즉발 데미지라 처치 가능 여부까지 바로 계산할 수 있어 별도로 다룬다.
+        // class 기반 감지(cardEffect.IsAttackEffect())를 써야 Burning/VenomousAttack 등 Attack이
+        // 아닌 공격 계열도 놓치지 않는다.
+        if (Effect.Create(type, 0) is AttackEffect probeAttack && probeAttack.ConsumesDefense)
         {
             float value = magnitude;
             if (magnitude >= target.GetDefense() + target.GetHealth())
                 value += 40f; // 지금 내면 상대를 처치할 수 있으면 최우선으로 취급한다.
-            value *= GetEffectWeight(EffectType.Attack);
+            value *= GetEffectWeight(type);
             return targetsSelf ? -value : value;
         }
 
@@ -154,9 +157,10 @@ public class DefaultEnemyAI : EnemyAIBehavior
             case EffectType.Burning:       return magnitude * 3f;
             case EffectType.AddDump:       return magnitude * 2f;
             case EffectType.Quicker:       return magnitude * 4f;
-            case EffectType.TimeSkip:      return magnitude * 3f;
-            // Preserve/Disposable/CostToCooldown/CooldownToCost/DivideCooldown/DefenseToCooldown처럼
-            // 세부 평가를 만들지 않은 나머지 타입 — 완전히 무시하지는 않도록 소폭의 기본 점수만 준다.
+            case EffectType.Overcharge:    return 10f; // DoesntUseMagnitude — 공격과 묶이면 가치가 크므로 고정 점수
+            case EffectType.LastStand:     return magnitude * 2.5f;
+            // Preserve/Disposable처럼 세부 평가를 만들지 않은 나머지 타입 — 완전히 무시하지는
+            // 않도록 소폭의 기본 점수만 준다.
             default:                       return Mathf.Max(magnitude, 1) * 2f;
         }
     }
@@ -168,13 +172,13 @@ public class DefaultEnemyAI : EnemyAIBehavior
         {
             if (queued == null || queued.GetCooldownLeft() > 2) continue;
             foreach (CardEffect cardEffect in queued.GetEffects())
-                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
+                if (cardEffect.IsAttackEffect())
                     return true;
         }
         return false;
     }
 
-    // 자신의 큐/손패에 Attack 카드가 있는지 — Strength/Vulnerable처럼 공격력에 얹는 효과가
+    // 자신의 큐/손패에 공격 카드가 있는지 — Strength/Vulnerable처럼 공격력에 얹는 효과가
     // 지금 당장 써먹을 데가 있는지 판단하는 데 쓴다.
     private static bool HasAttackPressure(in BattleSnapshot snapshot)
     {
@@ -182,14 +186,14 @@ public class DefaultEnemyAI : EnemyAIBehavior
         {
             if (queued == null) continue;
             foreach (CardEffect cardEffect in queued.GetEffects())
-                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
+                if (cardEffect.IsAttackEffect())
                     return true;
         }
         foreach (CardInstance card in snapshot.SelfHand)
         {
             if (card == null) continue;
             foreach (CardEffect cardEffect in card.GetEffects())
-                if (cardEffect.GetEffect().GetEffectType() == EffectType.Attack)
+                if (cardEffect.IsAttackEffect())
                     return true;
         }
         return false;

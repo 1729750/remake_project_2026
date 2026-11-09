@@ -22,7 +22,7 @@ public class PoseBreakEffect:Effect
     // PoseBreak: target deals reduced damage while applied
     public override void OnAppliedOther(CharacterManager subject, CardEffect effect,bool a)
     {
-        if (effect.GetEffect().GetEffectType() == EffectType.Attack)
+        if (effect.IsAttackEffect())
         {
             effect.Multiply(2f);
         }

@@ -1,24 +1,23 @@
 {
   "summaries": [
-    { "effectType": "Attack", "summary": "(즉발) 대상에게 N만큼 피해." },
+    { "effectType": "Attack", "summary": "(즉발) 대상에게 N만큼 피해. 큐의 방어 카드로 막힘." },
     { "effectType": "Defend", "summary": "(지속) 방어도를 N만큼 획득." },
     { "effectType": "Weak", "summary": "(즉발) N턴간 공격 피해량을 20% 감소." },
     { "effectType": "Vulnerable", "summary": "(즉발/지속) N번 받는 공격 피해가 20% 증가." },
     { "effectType": "Strength", "summary": "(즉발/지속) 자신의 공격 카드 피해량을 N만큼 증가." },
     { "effectType": "Harden", "summary": "(즉발/지속) 자신이 방어도 획득량을 N만큼 증가." },
-    { "effectType": "Guard", "summary": "(즉발/지속) Error" },
+    { "effectType": "Guard", "summary": "(즉발/지속) 받는 공격 피해를 50% 감소." },
     { "effectType": "PoseBreak", "summary": "(즉발/지속) N턴간 받는 공격 피해가 2배로 증가." },
     { "effectType": "EnergyHeal", "summary": "(즉발) 코스트를 N 회복." },
     { "effectType": "AddDump", "summary": "(즉발) 대상의 덱에 아무 효과도 없는 카드(1 코스트, N 쿨다운)을 한 장 추가." },
-    { "effectType": "Burning", "summary": "(즉발) 턴 종료 시 N의 10분의 1만큼 피해. 매 턴 1씩 감소." },
-    { "effectType": "CostToCooldown", "summary": "(즉발) N번 카드를 사용할 때마다 그 카드의 코스트를 쿨다운으로 전환." },
-    { "effectType": "CooldownToCost", "summary": "(즉발) N번 카드를 사용할 때마다 그 카드의 쿨다운을 코스트로 전환." },
-    { "effectType": "DivideCooldown", "summary": "(즉발) 이 카드와 큐에 있는 카드들의 남은 쿨다운을 평균값으로 변환" },
-    { "effectType": "TimeSkip", "summary": "(즉발) 남은 쿨다운이 가장 긴 카드의 쿨다운을 즉시 N만큼 감소" },
+    { "effectType": "Burning", "summary": "(즉발) 방어 무시, 턴 종료 시 N의 10분의 1만큼 피해. 매 턴 1씩 감소." },
+    { "effectType": "EnergyDrain", "summary": "(즉발) N회 충전. 상대가 코스트를 회복할 때마다 회복량 1 감소 + 충전 1 소모, 0이 되면 소멸." },
     { "effectType": "Quicker", "summary": "(즉발) N턴간 큐의 쿨다운 감소 속도 2배." },
     { "effectType": "Preserve", "summary": "(즉발) 이 카드는 사용 이외의 방법으로 손패에서 제거할 수 없음." },
     { "effectType": "Disposable", "summary": "(즉발) 이 카드는 사용 후 덱으로 돌아가지 않고 사라짐." },
-    { "effectType": "DefenseToCooldown", "summary": "(즉발) 자신의 방어도를 소모해 이 카드의 쿨다운을 감소." },
-    { "effectType": "EnergyDrain", "summary": "(즉발/지속) N턴 간 대상의 코스트 자연 회복량을 1 감소." }
+    { "effectType": "Poison", "summary": "(내부 전용) 방어 무시, 회복되지 않는 지속 피해 N. VenomousAttack이 적중할 때만 1씩 부여됨." },
+    { "effectType": "Overcharge", "summary": "(지속) 큐에 머무는 동안 자신의 공격 피해 2배. 1 이상의 피해를 받으면 즉시 소멸." },
+    { "effectType": "LastStand", "summary": "(지속) 방어도 0에서 시작. 큐에 머무는 동안 피해를 받을 때마다 N만큼 방어도 획득. 큐를 떠나면 그동안 얻은 방어도 회수." },
+    { "effectType": "VenomousAttack", "summary": "(즉발) 대상에게 N만큼 피해(방어로 막힘). 적중 시 Poison 1 부여." }
   ]
 }

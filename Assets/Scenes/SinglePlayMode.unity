@@ -2403,11 +2403,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f42992e211d149fdaaeb501fa66b2124, type: 2}
   - {fileID: 11400000, guid: 139a1bc889eb4b3bbfb5f23d53e2df1b, type: 2}
   - {fileID: 11400000, guid: 40616cad6c51413d8ed07afd648fb018, type: 2}
-  - {fileID: 11400000, guid: 6794d21a31874765a7334e396b07bc3f, type: 2}
   - {fileID: 11400000, guid: f38c189ec00642e0b41978b1b8a2f08d, type: 2}
-  - {fileID: 11400000, guid: 1d0f4083eb82443ca4739191f210b0dc, type: 2}
   - {fileID: 11400000, guid: 64d603a27f1e4efeb8ea6cd43ebd5dc8, type: 2}
-  - {fileID: 11400000, guid: 25c9899db6794fab9460fa5fae71efb5, type: 2}
   - {fileID: 11400000, guid: 7394bf1a30f94a87ae3b5ee32e4c0218, type: 2}
   - {fileID: 11400000, guid: 8ac2a13904754e5aa42070b1ac54f545, type: 2}
   - {fileID: 11400000, guid: ccf8f9dfcc5f4a8e90a171c84d2323d5, type: 2}
@@ -2415,6 +2412,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7b514779bf0242409baeb31507eaa992, type: 2}
   - {fileID: 11400000, guid: ce7596a0626246bb9b31e06b87e1ace5, type: 2}
   - {fileID: 11400000, guid: 237f6ed46cf7484eaf83b6465bb9d8bf, type: 2}
+  - {fileID: 11400000, guid: a3ce5e8cd4094b40a163e36b0b49e581, type: 2}
+  - {fileID: 11400000, guid: c5d102ff9c5145189021cf8956c7c068, type: 2}
   popupManager: {fileID: 566901118}
 --- !u!1 &809160019
 GameObject:
@@ -3101,6 +3100,14 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 706200e4caa445842bca051cbbac3f7d, type: 3}
   - effectType: 19
     sprite: {fileID: 21300000, guid: 8b353d31dd7025c4094fddad6db2abd8, type: 3}
+  - effectType: 20
+    sprite: {fileID: 21300000, guid: ded04d5cd4acead469f632599543dfc1, type: 3}
+  - effectType: 21
+    sprite: {fileID: 21300000, guid: 6e24dbcb5e7f80f4a8e19eacf623f843, type: 3}
+  - effectType: 22
+    sprite: {fileID: 21300000, guid: 41cf9913b84d6084db02f23808333a35, type: 3}
+  - effectType: 23
+    sprite: {fileID: 21300000, guid: 8bda0dd2cdca9b64b8293c7a8b653899, type: 3}
   defaultEnemyAI: {fileID: 11400000, guid: de0ab26f901f86247ab59cc6952a7b0b, type: 2}
   scaleArea: {fileID: 2063664843}
   scaleSpacing: 0.5

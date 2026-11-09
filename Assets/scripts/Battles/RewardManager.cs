@@ -42,8 +42,15 @@ public class RewardManager : MonoBehaviour
 
     // 강화 후보로 등장하면 안 되는 EffectType(실제 카드 효과가 아니라 내부 마킹용).
     // CharacterScaler.ScaleBoss도 "카드가 이미 가진 effect 중 강화 가능한 것"을 고를 때 이 목록을 그대로 쓴다.
+    // CostToCooldown/CooldownToCost/DivideCooldown/TimeSkip/DefenseToCooldown는 싱글플레이에서는 더 이상
+    // 쓰지 않지만(EffectType.cs 주석 참고 — 멀티플레이 쪽 공유 enum이라 값만 남겨둠) Effect.Create가
+    // 이들을 전부 쓸모없는 기본 Effect로 떨어뜨리므로, 강화 후보로 뽑히면 아무 효과도 없는 "+0" 옵션이
+    // 나온다 — 강화 풀에서 함께 제외한다.
     public static readonly EffectType[] EnhanceableEffectTypes = ((EffectType[])Enum.GetValues(typeof(EffectType)))
-        .Where(type => type != EffectType.Disposable && type != EffectType.Preserve && type!=EffectType.Guard && type!=EffectType.Weak)
+        .Where(type => type != EffectType.Disposable && type != EffectType.Preserve && type!=EffectType.Guard && type!=EffectType.Weak
+            && type != EffectType.Poison
+            && type != EffectType.CostToCooldown && type != EffectType.CooldownToCost
+            && type != EffectType.DivideCooldown && type != EffectType.TimeSkip && type != EffectType.DefenseToCooldown)
         .ToArray();
     // cost:cooldown 분배가 1:2 경향을 띄도록, 예산 1당 이 확률로 cooldown 쪽에 배분한다.
     private const float CooldownAllocationChance = 2f / 3f;
@@ -274,8 +281,8 @@ public class RewardManager : MonoBehaviour
     }
 
     // 덱의 카드 중 하나 이상에 CanEnhance를 통과하는 옵션이 나올 때까지 RollEnhanceOption()을 다시
-    // 굴린다 — Continuous 옵션은 Continuous(또는 Mix) 카드에만, Instant 옵션은 Instant(또는 Mix)
-    // 카드에만 붙을 수 있으므로, 지금 덱 구성상 애초에 어디에도 못 붙는 옵션을 플레이어에게 보여주지
+    // 굴린다 — Continuous 옵션은 Continuous 카드에만, Instant 옵션은 Instant 카드에만 붙을 수
+    // 있으므로, 지금 덱 구성상 애초에 어디에도 못 붙는 옵션을 플레이어에게 보여주지
     // 않기 위함이다. 시도 횟수는 MaxFeasibleRollAttempts로 상한을 둔다(덱이 비정상적인 극단적
     // 상황에서도 무한 루프에 빠지지 않도록 하는 방어용 — 마지막 시도 결과를 그냥 반환한다).
     private static CardUpgrade RollFeasibleEnhanceOption(List<CardDefinition> deck)
@@ -356,17 +363,23 @@ public class RewardManager : MonoBehaviour
     // 단, magnitude를 안 쓰는 효과(Disposable/Preserve/DivideCooldown류)는 이미 가진 카드에 또
     // 얹어봐야 의미가 없으므로 병합 대상이 있으면 아예 제외한다.
     // 그리고 CardDefinition.AddEffect/TryReconcileCardType과 동일하게, option의 appliedCategory와
-    // def의 cardType이 서로 맞아야 한다(Continuous는 Continuous/Mix 카드에만, Instant는 Instant/Mix
-    // 카드에만) — 안 맞으면 애초에 AddEffect가 거부할 옵션이므로 여기서 미리 걸러낸다.
+    // def의 cardType이 서로 맞아야 한다(Continuous는 Continuous 카드에만, Instant는 Instant 카드에만)
+    // — 안 맞으면 애초에 AddEffect가 거부할 옵션이므로 여기서 미리 걸러낸다.
     // Continuous는 Instant와 달리 같은 타입끼리 magnitude를 합쳐 중첩할 수 없다 — 이미 같은 타입의
     // continuous 효과가 있으면 슬롯 여유와 무관하게 그 카드엔 아예 적용할 수 없다.
     // ShowEnhanceDeckSelection(DeckDisplay 필터)과 GameManager.GenerateRandomEnemy(무작위 적 생성)가
     // 전부 이 판정을 공유하므로 public.
     public static bool CanEnhance(CardDefinition def, CardUpgrade option)
     {
+        // 강화 결과 코스트가 15(CharacterManager.MaxCost)를 넘기면 그 카드엔 적용할 수 없다 — 플레이어가
+        // 영원히 못 낼 카드를 만들어버리는 강화를 막는다. RollFeasibleEnhanceOption(어떤 카드에도 못 붙는
+        // 옵션이면 리롤)과 ShowEnhanceDeckSelection(DeckDisplay 필터)이 전부 이 메서드를 통해 걸러진다.
+        if (def.GetCost() + option.costDelta > CharacterManager.MaxCost)
+            return false;
+
         EffectCategory appliedCategory = option.effect.GetAppliedCategory();
         CardType requiredCardType = appliedCategory == EffectCategory.Continuous ? CardType.Continuous : CardType.Instant;
-        if (def.GetCardType() != CardType.Mix && def.GetCardType() != requiredCardType)
+        if (def.GetCardType() != requiredCardType)
             return false;
 
         EffectType upgradeType = option.effect.GetEffect().GetEffectType();

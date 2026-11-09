@@ -15,9 +15,9 @@ public class CardVisual : MonoBehaviour
     private GameObject _isUnplayable;
     private GameObject _front;
     private GameObject _back;
-    // CardType(Instant/Continuous/Mix) 순서대로 인덱싱되는 배경 스프라이트. 더 이상 카드(정의)별로
-    // 배경을 고르지 않고, cardType에 따라 일괄 적용한다 — 인스펙터에서 3개(Instant/Continuous/Mix
-    // 순서) 모두 채워야 한다.
+    // CardType(Instant/Continuous) 순서대로 인덱싱되는 배경 스프라이트. 더 이상 카드(정의)별로
+    // 배경을 고르지 않고, cardType에 따라 일괄 적용한다 — 인스펙터에서 2개(Instant/Continuous
+    // 순서) 모두 채워야 한다(예전 Mix 몫으로 쓰던 3번째 슬롯이 있다면 더 이상 읽히지 않는다).
     [SerializeField] private Sprite[] cardTypeBackgrounds;
     private Coroutine _moveCoroutine;
     private readonly List<EffectDisplay> _effectDisplays = new List<EffectDisplay>();

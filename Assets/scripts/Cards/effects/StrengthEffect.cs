@@ -23,7 +23,7 @@ public class StrengthEffect : Effect
 
     public override void OnApplyingOther(CharacterManager b, CardEffect effect,bool a)
     {
-        if (effect.GetEffect().GetEffectType() == EffectType.Attack)
+        if (effect.IsAttackEffect())
         {
             effect.Add(_magnitude);
         }

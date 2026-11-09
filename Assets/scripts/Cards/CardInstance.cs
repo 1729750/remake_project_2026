@@ -13,14 +13,9 @@ public class CardInstance
 
     private CharacterManager _owner;
     private CardVisual _visual;
-    // cost의 adder/multiplier — CardEffect의 adder/multiplier와 같은 역할이다.
-    // OnUsingOther(actualUse가 false든 true든)가 큐에 있던 카드 쪽에서 "지금 사용되는 이 카드"의
-    // 비용을 조정하고 싶을 때 이 값을 통해서 한다. ResolveUse가 매번 순회 전에 리셋한다.
-    private float _costMultiplier = 1f;
-    private int _costAdder;
     // effect will be added later
 
-    // Continuous/Mix 효과가 큐에 머무는 동안 발휘하는 몫. CardEffect(정의 쪽 데이터, 같은
+    // Continuous 효과가 큐에 머무는 동안 발휘하는 몫. CardEffect(정의 쪽 데이터, 같은
     // CardDefinition을 쓰는 다른 CardInstance와 공유됨)를 직접 깎으면 그 데이터가 오염되므로,
     // EnterQueue에서 카드별로 이 dictionary에 복사해두고 이후로는 이것만 읽고/깎는다.
     private readonly Dictionary<CardEffect, int> _queuedMagnitudes = new Dictionary<CardEffect, int>();
@@ -104,18 +99,15 @@ public class CardInstance
         }
     }
     public CardDefinition GetDefinition() => _definition;
-    // 순수 Continuous 카드인지. 쿨다운/코스트를 건드리는 수식어(Quicker, DivideCooldown, CostToCooldown 등)는
-    // 이런 카드에는 영향을 주지 않아야 한다.
+    // 순수 Continuous 카드인지. 쿨다운/코스트를 건드리는 수식어는 이런 카드에는 영향을 주지 않아야 한다.
     public bool IsContinuousCard() => _definition != null && _definition.GetCardType() == CardType.Continuous;
     public List<CardEffect> GetEffects() => _effects;
-    // CardEffect.GetMagnitude()와 같은 방식(adder/multiplier 적용)으로 계산한다.
-    public int GetCost() => Mathf.FloorToInt(_cost * _costMultiplier) + _costAdder;
+    public int GetCost() => _cost;
     public int GetCooldown() => _cooldown;
     public bool GetIsPlayed() => _isPlayed;
     public int GetCooldownLeft() => _cooldownLeft;
     public bool IsReady() => _cooldownLeft <= 0;
 
-    public void AddCost(int amount) => _costAdder += amount;
     public  void ChangeCooldown(int amount)
     {
         int originalCooldown = _cooldown;
@@ -129,19 +121,6 @@ public class CardInstance
         }
 
     }
-
-    public void ChangeCooldownLeft(int amount)
-    {
-        _cooldownLeft += amount;
-        if (_cooldownLeft <= 0) _cooldownLeft = _isPlayed ? 0:1;
-    }
-
-    public void SetCooldownLeft(int value)
-    {
-        _cooldownLeft = value;
-        RefreshCardVisual();
-    }
-    public void MultiplyCost(float amount) => _costMultiplier *= amount;
 
     public void Use()
     {
@@ -161,17 +140,17 @@ public class CardInstance
         Debug.Log($"[{characterManager.gameObject.name}] Activated card: {_definition.name}");
 
         SoundManager.Instance?.Play(EffectSound.PlayCard);
-        if (_effects.Exists(e => e.GetEffect().GetEffectType() == EffectType.Attack))
+        if (_effects.Exists(e => e.IsAttackEffect()))
             SoundManager.Instance?.Play(EffectSound.Attack);
 
-        // 큐를 떠나는 시점이므로 먼저 Continuous/Mix 효과가 큐에 머무는 동안 부여했던 몫을 되돌린다.
+        // 큐를 떠나는 시점이므로 먼저 Continuous 효과가 큐에 머무는 동안 부여했던 몫을 되돌린다.
         ExitQueue(characterManager);
 
         foreach (CardEffect cardEffect in _effects)
         {
             // Instant 비트가 없는(순수 Continuous인) 효과는 큐에 머무는 동안 이미 발휘를 마쳤으므로
-            // (ExitQueue) 여기서 다시 발동하지 않는다. Instant 비트가 있으면(Instant든, 두 비트를
-            // 다 켠 카드별 Mix든) 카드가 다 됐을 때의 즉발 파이프라인을 탄다.
+            // (ExitQueue) 여기서 다시 발동하지 않는다. Instant 비트가 있으면 카드가 다 됐을 때의
+            // 즉발 파이프라인을 탄다.
             if (!cardEffect.GetAppliedCategory().HasFlag(EffectCategory.Instant)) continue;
 
             cardEffect.Reset();
@@ -234,11 +213,9 @@ public class CardInstance
 
     // subject: 이 카드를 쓰는 주체. queuedCards: 현재 큐에 있는 카드들(OnUsingOther가 반응할 대상).
     // actualUse가 true면 실제 사용 시점(카드가 손패에서 큐로 넘어가기 전, 비용 체크 직전)의 호출이고,
-    // false면 시각화(비용 표시) 갱신용 미리보기 호출이다. cost adder/multiplier는 매 호출마다 리셋한다.
+    // false면 시각화(비용 표시) 갱신용 미리보기 호출이다.
     public void ResolveUse(CharacterManager subject, IEnumerable<CardInstance> queuedCards, bool actualUse)
     {
-        _costMultiplier = 1f;
-        _costAdder = 0;
         if(actualUse)
         {
             foreach (CardEffect cardEffect in _effects)
@@ -256,9 +233,8 @@ public class CardInstance
 
     // cardEffect.GetEffect()는 CardDefinition 애셋에 그대로 저장된 authoring용 Effect라
     // (SerializeReference가 아니라 평범한 SerializeField라) 서브클래스로 역직렬화되지 않고 항상
-    // base Effect로 들어온다. OnUse/OnUsingOther처럼 서브클래스 오버라이드(DivideCooldown,
-    // DefenseToCooldown, CostToCooldown, CooldownToCost 등)에 실제 동작이 있는 훅은 Effect.Create로
-    // 매번 진짜 런타임 서브클래스를 새로 만들어 호출해야 한다.
+    // base Effect로 들어온다. OnUse/OnUsingOther처럼 서브클래스 오버라이드에 실제 동작이 있는 훅은
+    // Effect.Create로 매번 진짜 런타임 서브클래스를 새로 만들어 호출해야 한다.
     private static Effect ResolveEffect(CardEffect cardEffect) =>
         Effect.Create(cardEffect.GetEffect().GetEffectType(), cardEffect.GetEffect().GetMagnitude());
 

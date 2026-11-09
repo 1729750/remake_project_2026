@@ -42,6 +42,11 @@ public class CardEffect
     // Effect의 기본값(Instant)만 나온다. EffectType으로 진짜 런타임 서브클래스를 새로 만들어서 읽는다.
     public EffectCategory GetSupportedCategories() => Effect.Create(_effect.GetEffectType(), 0).SupportedCategories;
 
+    // 이 CardEffect가 실질적으로 공격 계열(AttackEffect 및 그 자식 — Attack/Burning/VenomousAttack 등)인지.
+    // Effect.IsAttackType과 같은 class 기반 감지를 쓴다(단순 EffectType.Attack 비교는 Burning 등
+    // 다른 공격 변종을 놓친다).
+    public bool IsAttackEffect() => Effect.IsAttackType(_effect.GetEffectType());
+
     // 실제로 이 카드 위의 이 효과가 어느 모드로 발동할지. 명시적으로 골라둔 값(appliedCategory != 0)이
     // 있으면 그걸 쓰고, 없으면(기존 카드 포함) 자동으로 고른다: Instant를 지원하면 Instant(기존
     // 동작과 동일), 아니면(Defend처럼 Continuous만 지원) 그 하나를 쓴다.

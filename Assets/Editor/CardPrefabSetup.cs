@@ -4,7 +4,9 @@ using UnityEngine;
 
 public static class CardPrefabSetup
 {
-    private const string PrefabPath = "Assets/resources/preFabs/Card.prefab";
+    // CharacterManager.Init()이 Resources.Load("Prefabs/Card")로 불러오는 실제 현재 위치
+    // (예전엔 Assets/resources/preFabs/Card.prefab였으나 에셋 재구조화로 이동했다).
+    private const string PrefabPath = "Assets/Resources/Prefabs/Card.prefab";
 
     [MenuItem("Tools/Add Card Text Boxes")]
     static void AddCardTextBoxes()

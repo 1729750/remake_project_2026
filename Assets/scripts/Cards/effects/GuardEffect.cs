@@ -25,7 +25,7 @@ public class GuardEffect : Effect
     // Guard: 지속되는 동안 받는 공격 피해 절반
     public override void OnAppliedOther(CharacterManager b, CardEffect effect, bool a)
     {
-        if (effect.GetEffect().GetEffectType() == EffectType.Attack)
+        if (effect.IsAttackEffect())
         {
             effect.Multiply(0.5f);
         }

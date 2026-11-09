@@ -5,7 +5,7 @@ public class DefendEffect : Effect
 {
     // 방어도는 항상 마지막으로 소모돼야 한다(Guard처럼 공격 magnitude를 배율로 줄이는 효과가 먼저
     // 반영된 "실제" 값을 상쇄해야 하므로) — 그래서 존재 가능한 Priority 중 가장 낮은 -1을 쓴다.
-    // CharacterManager.ConsumeQueuedDefense가 OnAppliedOther 정렬 순회 이후에 호출되는 것으로
+    // CharacterManager.ConsumeDefense가 OnAppliedOther 정렬 순회 이후에 호출되는 것으로
     // 이 우선순위를 실제 구현한다(DefendEffect는 _effects 목록에 들어가지 않으므로 정렬 대상에
     // 직접 끼워 넣을 수는 없다).
     private const int Priority = -1;

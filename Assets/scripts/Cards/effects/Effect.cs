@@ -66,8 +66,7 @@ public class Effect
             {
                 case EffectType.Disposable:
                 case EffectType.Preserve:
-                case EffectType.DivideCooldown:
-                case EffectType.DefenseToCooldown:
+                case EffectType.Overcharge:
                     return true;
                 default:
                     return false;
@@ -79,31 +78,41 @@ public class Effect
     {
         switch (type)
         {
-            case EffectType.Attack:     return new AttackEffect(magnitude);
-            case EffectType.Defend:     return new DefendEffect(magnitude);
-            case EffectType.EnergyHeal: return new EnergyHealEffect(magnitude);
-            case EffectType.Vulnerable: return new VulnerableEffect(magnitude);
-            case EffectType.Weak:       return new WeakEffect(magnitude);
-            case EffectType.Strength:   return new StrengthEffect(magnitude);
-            case EffectType.Harden:     return new HardenEffect(magnitude);
-            case EffectType.Guard:      return new GuardEffect(magnitude);
-            case EffectType.PoseBreak : return new PoseBreakEffect(magnitude);
-            case EffectType.DivideCooldown: return new DivideCooldown(magnitude);
-            case EffectType.DefenseToCooldown: return new DefenseToCooldown(magnitude);
-            case EffectType.TimeSkip:   return new TimeSkip(magnitude);
-            case EffectType.CostToCooldown: return new CostToCooldown(magnitude);
-            case EffectType.CooldownToCost: return new CooldownToCost(magnitude);
-            case EffectType.Burning:    return new BurningEffect(magnitude);
-            case EffectType.AddDump:    return new AddDumpEffect(magnitude);
-            case EffectType.Quicker: return new QuickerEffect(magnitude);
-            case EffectType.EnergyDrain: return new EnergyDrainEffect(magnitude);
-            default:                    return new Effect(type, magnitude);
+            case EffectType.Attack:         return new AttackEffect(magnitude);
+            case EffectType.Defend:         return new DefendEffect(magnitude);
+            case EffectType.EnergyHeal:     return new EnergyHealEffect(magnitude);
+            case EffectType.Vulnerable:     return new VulnerableEffect(magnitude);
+            case EffectType.Weak:           return new WeakEffect(magnitude);
+            case EffectType.Strength:       return new StrengthEffect(magnitude);
+            case EffectType.Harden:         return new HardenEffect(magnitude);
+            case EffectType.Guard:          return new GuardEffect(magnitude);
+            case EffectType.PoseBreak:      return new PoseBreakEffect(magnitude);
+            case EffectType.Burning:        return new BurningEffect(magnitude);
+            case EffectType.AddDump:        return new AddDumpEffect(magnitude);
+            case EffectType.Quicker:        return new QuickerEffect(magnitude);
+            case EffectType.EnergyDrain:    return new EnergyDrainEffect(magnitude);
+            case EffectType.Poison:         return new PoisonEffect(magnitude);
+            case EffectType.Overcharge:     return new OverchargeEffect(magnitude);
+            case EffectType.LastStand:      return new LastStandEffect(magnitude);
+            case EffectType.VenomousAttack: return new VenomousAttackEffect(magnitude);
+            default:                        return new Effect(type, magnitude);
         }
     }
+
+    // CardEffect._effect는 SerializeField라 서브클래스로 역직렬화되지 않으므로(항상 base Effect로
+    // 들어옴), "이 EffectType이 실질적으로 공격 계열(AttackEffect 및 그 자식)인가"는 타입 비교로는
+    // 알 수 없다. Create로 진짜 런타임 서브클래스를 만들어 class 자체를 검사한다
+    // (CardEffect.GetSupportedCategories()가 쓰는 것과 같은 패턴) — 이렇게 하면 Burning/VenomousAttack
+    // 처럼 EffectType.Attack이 아닌 공격 계열도 전부 잡힌다.
+    public static bool IsAttackType(EffectType type) => Create(type, 0) is AttackEffect;
 
     public virtual void OnExpired(CharacterManager subject) { }
     public virtual void OnTurnStarted(CharacterManager subject) { }
     public virtual void OnTurnEnded(CharacterManager subject) { }
+    // subject(이 effect의 소유자)가 1 이상의 피해를 받을 때마다 CharacterManager.TakeDamage가 호출한다.
+    // continuous(skill) 효과가 "나는 맞았다"는 사건에 반응하는 용도(예: 맞으면 사라지는 버프, 맞을
+    // 때마다 방어도를 얻는 효과) — 공격 쪽의 대응 훅(AttackEffect.OnDamaging, "내가 때렸다")과 대칭이다.
+    public virtual void OnDamaged(CharacterManager subject, int damageTaken) { }
     // self: 이 Effect가 속한 CardInstance(지금 사용되는 카드 자신). actualUse가 true면 실제로 카드가
     // 사용되는 시점의 호출이고, false면 시각화 갱신을 위한 미리보기(dry-run) 호출이다 — 실제 상태를
     // 바꾸는 부수효과(스택 소모 등)는 actualUse일 때만 해야 한다.
@@ -120,14 +129,20 @@ public class Effect
         switch (_effectType)
         {
             case EffectType.Disposable:
-            case EffectType.Preserve: 
-            case EffectType.CooldownToCost:
-            case EffectType.DivideCooldown:
-            case EffectType.CostToCooldown:
+            case EffectType.Preserve:
                 return;
             default:
                 break;
         }
+        ApplyStack(subject);
+    }
+
+    // 같은 타입의 기존(instant) 효과가 있으면 magnitude만 합산하고, 없으면 자신을 subject의 효과
+    // 목록에 새로 등록한다. OnApply가 기본으로 쓰는 로직이지만, AttackEffect.OnApply는 sealed라
+    // `base.OnApply(...)`로 재사용할 수 없는 자식(BurningEffect처럼 즉발 피해 대신 스택을 쌓는
+    // 공격 계열)이 직접 호출할 수 있도록 별도 protected 메서드로 뽑아둔다.
+    protected void ApplyStack(CharacterManager subject)
+    {
         foreach (var existing in subject.GetEffects())
         {
             // IsInfinite인 인스턴스는 continuous 몫(카드가 큐에 머무는 동안만 사는 별도 풀)이므로
@@ -147,7 +162,7 @@ public class Effect
     public virtual void OnApplyingOther(CharacterManager subject, CardEffect effect, bool actualUse) { }
     public virtual void OnAppliedOther(CharacterManager subject, CardEffect effect, bool actualUse) { }
 
-    // Continuous/Mix 효과의 기본 동작: 카드가 큐에 들어가는 순간(CardInstance.EnterQueue) 대상에게
+    // Continuous 효과의 기본 동작: 카드가 큐에 들어가는 순간(CardInstance.EnterQueue) 대상에게
     // 이 효과를 부여한다. OnApply를 재사용하지 않는다 — instant 몫(IsInfinite==false)과 절대 합치면
     // 안 되기 때문에, 여기서는 처음부터 IsInfinite인 기존 인스턴스만 찾아 합산하고, 없으면 새
     // continuous 풀을 만든다. 그래서 같은 타입이라도 instant 스택과 continuous 스택은 항상 별개
@@ -192,10 +207,10 @@ public class Effect
 
     // 이 Effect가 실제로 획득/발동될 때 SoundManager로 재생할 EffectSound.
     // 기본은 TargetPolarity(Positive→Buff, 그 외→Debuff)를 따르되, 고유한 사운드가 있는 타입은
-    // 예외로 지정한다(Burning→Burn, Defend→ShieldGet, TimeSkip/Quicker→TimeSkip).
-    // Attack은 카드가 재생될 때(CardInstance.Play)와 피격 시(CharacterManager.Attacked)의 전용
-    // 사운드로 따로 처리하므로 여기서는 재생하지 않는다 — OnApply를 완전히 오버라이드하는
-    // AttackEffect는 이 메서드를 호출하지 않는다.
+    // 예외로 지정한다(Burning→Burn, Defend→ShieldGet, Quicker→TimeSkip).
+    // 즉발 피해를 직접 입히는 공격 계열(Attack, VenomousAttack — CardInstance.Play/CharacterManager.
+    // Attacked의 전용 사운드로 따로 처리)은 이 메서드를 호출하지 않는다. 다만 즉발 피해 대신 스택을
+    // 쌓는 BurningEffect(ApplyStack 경유)는 호출한다.
     protected void PlayApplySound()
     {
         EffectSound sound;
@@ -207,7 +222,6 @@ public class Effect
             case EffectType.Defend:
                 sound = EffectSound.ShieldGet;
                 break;
-            case EffectType.TimeSkip:
             case EffectType.Quicker:
                 sound = EffectSound.TimeSkip;
                 break;

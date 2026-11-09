@@ -23,7 +23,7 @@ public class VulnerableEffect : Effect
     // Vulnerable: target takes increased damage while applied
     public override void OnAppliedOther(CharacterManager subject, CardEffect effect,bool a)
     {
-        if (effect.GetEffect().GetEffectType() == EffectType.Attack)
+        if (effect.IsAttackEffect())
         {
             effect.Multiply(1.2f);
         if (IsInfinite) return;

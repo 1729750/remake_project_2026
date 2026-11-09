@@ -14,8 +14,6 @@ public class CharacterScaler
     {
         EffectType.EnergyHeal,
         EffectType.EnergyDrain,
-        EffectType.CostToCooldown,
-        EffectType.CooldownToCost,
     };
 
     private const int CostSoftCap = 15;
