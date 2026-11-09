@@ -16,7 +16,7 @@ public sealed record StateView
     public CardView[] Offers { get; init; } = [];
     public bool Picked { get; init; }
     public bool OpponentPicked { get; init; }
-    public string[] MyDeck { get; init; } = [];
+    public CardView[] MyDeck { get; init; } = [];             // 강화된 카드는 Level > 0
 
     // battle
     public int Turn { get; init; }
@@ -29,7 +29,18 @@ public sealed record StateView
     public string Reason { get; init; } = "";
     public bool RematchRequested { get; init; }
     public bool OpponentRematchRequested { get; init; }
+
+    // 지난 상태 이후 일어난 일 (소리/연출용). 받는 사람 기준으로 Mine을 채운다.
+    public EventView[] Events { get; init; } = [];
 }
+
+/// <summary>
+/// Kind: use(카드 사용 시도, Ok=성공) | play(큐에서 발동, Ok=공격 카드) | damage(피격, Guarded=가드 중)
+///       | shield(방어도로 막음) | effect(효과 획득, Effect=종류) | turnEnd
+/// </summary>
+public sealed record EventView(string Kind, bool Mine, string Card, int Amount, string Effect, bool Guarded, bool Ok);
+
+public sealed record MatchEvent(string Kind, string PlayerId, string? Card, int Amount, string? Effect, bool Guarded, bool Ok);
 
 public sealed record CombatantView
 {
@@ -56,6 +67,9 @@ public sealed record CardView
 {
     public int Id { get; init; }                             // 0이면 빈 칸
     public string Name { get; init; } = "";                  // 상대 손패는 Id만 있고 Name은 ""
+    public int Level { get; init; }                          // 강화 횟수 (그림은 Name 그대로)
+    public string OfferKind { get; init; } = "";             // 선택지일 때: add | enhance
+    public int Target { get; init; } = -1;                   // enhance일 때 바뀌는 덱 카드 번호
     public string CardType { get; init; } = "";
     public int Cost { get; init; }
     public int Cooldown { get; init; }
@@ -72,6 +86,7 @@ public sealed record CardView
     public static CardView FromDef(CardDef def, int id) => new()
     {
         Id = id,
+        Level = def.Level,
         Name = def.Name,
         CardType = def.CardType.ToString(),
         Cost = def.Cost,
@@ -98,6 +113,7 @@ public sealed record CardView
     private static CardView FromInstance(CardInstance card, int cost, int[] magnitudes) => new()
     {
         Id = card.Id,
+        Level = card.Def.Level,
         Name = card.Def.Name,
         CardType = card.Def.CardType.ToString(),
         Cost = cost,

@@ -70,6 +70,7 @@ public class Effect
                 return;
         }
 
+        subject.Emit("effect", effect: Type.ToString());
         foreach (Effect existing in subject.Effects)
         {
             if (existing.Type == Type && !existing.IsInfinite)
@@ -85,6 +86,7 @@ public class Effect
     public virtual void OnEnterQueue(Combatant subject, CardInstance self, CardEffect cardEffect)
     {
         Combatant target = cardEffect.GetTarget(subject);
+        target.Emit("effect", effect: Type.ToString());
 
         foreach (Effect existing in target.Effects)
         {
@@ -119,7 +121,11 @@ public sealed class AttackEffect(int magnitude) : Effect(EffectType.Attack, magn
 
 public sealed class EnergyHealEffect(int magnitude) : Effect(EffectType.EnergyHeal, magnitude)
 {
-    public override void OnApply(Combatant subject) => subject.EnergyHeal(magnitude);
+    public override void OnApply(Combatant subject)
+    {
+        subject.EnergyHeal(magnitude);
+        subject.Emit("effect", effect: Type.ToString());
+    }
 }
 
 public sealed class AddDumpEffect(int magnitude) : Effect(EffectType.AddDump, magnitude)
@@ -129,6 +135,7 @@ public sealed class AddDumpEffect(int magnitude) : Effect(EffectType.AddDump, ma
     {
         var dump = new CardDef("dump", 1, magnitude, CardType.Instant, Array.Empty<CardEffectDef>());
         subject.ReturnToDeck(new CardInstance(dump, subject));
+        subject.Emit("effect", effect: Type.ToString());
     }
 }
 
@@ -144,6 +151,7 @@ public sealed class TimeSkip(int magnitude) : Effect(EffectType.TimeSkip, magnit
                 target = queued;
         }
         target?.ChangeCooldownLeft(-magnitude);
+        subject.Emit("effect", effect: Type.ToString());
     }
 }
 
@@ -165,7 +173,8 @@ public sealed class DefendEffect(int magnitude) : Effect(EffectType.Defend, magn
     public override EffectCategory SupportedCategories => EffectCategory.Continuous;
 
     // 방어도는 큐에 있는 카드의 남은 magnitude 자체라 효과 목록에 쌓지 않는다
-    public override void OnEnterQueue(Combatant subject, CardInstance self, CardEffect cardEffect) { }
+    public override void OnEnterQueue(Combatant subject, CardInstance self, CardEffect cardEffect) =>
+        subject.Emit("effect", effect: Type.ToString());
     public override void OnExitQueue(Combatant subject, CardInstance self, CardEffect cardEffect, int grantedMagnitude) { }
 }
 
@@ -277,7 +286,11 @@ public sealed class QuickerEffect(int magnitude) : Effect(EffectType.Quicker, ma
             subject.RemoveEffect<QuickerEffect>();
     }
 
-    public override void OnApply(Combatant subject) => subject.ChangeTickSpeed(1);
+    public override void OnApply(Combatant subject)
+    {
+        subject.ChangeTickSpeed(1);
+        subject.Emit("effect", effect: Type.ToString());
+    }
 }
 
 public sealed class PoseBreakEffect(int magnitude) : Effect(EffectType.PoseBreak, magnitude, 4)

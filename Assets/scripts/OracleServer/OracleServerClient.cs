@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 /// <summary>
 /// 오라클 서버와의 WebSocket 연결 하나를 씬 전환 후에도 유지한다.
@@ -49,6 +51,21 @@ public sealed class OracleServerClient : MonoBehaviour
     /// <summary>마지막으로 받은 state 메시지. 방을 나가면 null.</summary>
     public ServerMessage LastState { get; private set; }
 
+    private static readonly Stopwatch clock = Stopwatch.StartNew();
+
+    /// <summary>
+    /// 스레드에서도 읽을 수 있는 단조 시계(초). 메시지 도착 시각(ServerMessage.receivedAt)과 같은 기준이라
+    /// 타이머는 Time.* 대신 이 값으로 계산한다.
+    /// </summary>
+    public static double Now => clock.Elapsed.TotalSeconds;
+
+    private const float PingInterval = 2f;
+    private double pingSentAt = -1;
+    private double nextPingAt;
+
+    /// <summary>서버까지 왕복 시간(초). 받은 state는 이 값의 절반만큼 전에 만들어진 것으로 본다.</summary>
+    public float RoundTripTime { get; private set; }
+
     public event Action Connected;
     public event Action Disconnected;
     public event Action<ServerMessage> MessageReceived;
@@ -78,6 +95,23 @@ public sealed class OracleServerClient : MonoBehaviour
                 Debug.LogException(exception);
             }
         }
+
+        // 왕복 시간 측정: 응답을 기다리는 ping이 없을 때만 주기적으로 보낸다
+        if (IsConnected && pingSentAt < 0 && Now >= nextPingAt)
+        {
+            pingSentAt = Now;
+            Send(ClientMessage.Ping());
+        }
+    }
+
+    private void MeasurePong(double receivedAt)
+    {
+        if (pingSentAt < 0) return;
+        float sample = (float)(receivedAt - pingSentAt);
+        pingSentAt = -1;
+        nextPingAt = Now + PingInterval;
+        // 튀는 값에 흔들리지 않게 부드럽게
+        RoundTripTime = RoundTripTime <= 0f ? sample : Mathf.Lerp(RoundTripTime, sample, 0.3f);
     }
 
     private void OnDestroy()
@@ -189,7 +223,8 @@ public sealed class OracleServerClient : MonoBehaviour
 
                 string json = builder.ToString();
                 builder.Clear();
-                mainThreadQueue.Enqueue(() => Dispatch(json));
+                double receivedAt = Now;
+                mainThreadQueue.Enqueue(() => Dispatch(json, receivedAt));
             }
         }
         catch (OperationCanceledException) { }
@@ -212,9 +247,10 @@ public sealed class OracleServerClient : MonoBehaviour
         }
     }
 
-    private void Dispatch(string json)
+    private void Dispatch(string json, double receivedAt)
     {
         ServerMessage message = JsonUtility.FromJson<ServerMessage>(json);
+        if (message != null) message.receivedAt = receivedAt;
 
         if (message == null || string.IsNullOrEmpty(message.type))
         {
@@ -226,6 +262,10 @@ public sealed class OracleServerClient : MonoBehaviour
         {
             case "welcome":
                 PlayerId = message.playerId;
+                break;
+
+            case "pong":
+                MeasurePong(receivedAt);
                 break;
 
             case "room_joined":
@@ -264,6 +304,7 @@ public sealed class OracleServerClient : MonoBehaviour
         socket?.Dispose();
         socket = null;
         PlayerId = string.Empty;
+        pingSentAt = -1;
         ClearRoom();
     }
 

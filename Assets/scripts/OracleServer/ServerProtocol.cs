@@ -41,6 +41,9 @@ public sealed class ServerMessage
     public PlayerInfo player;
     public PlayerInfo[] players;
     public MatchStateView state;
+
+    /// <summary>이 메시지를 소켓에서 받은 시각 (OracleServerClient.Now 기준). JSON에는 없다.</summary>
+    [NonSerialized] public double receivedAt;
 }
 
 [Serializable]
@@ -62,7 +65,7 @@ public sealed class MatchStateView
     public CardView[] offers;
     public bool picked;
     public bool opponentPicked;
-    public string[] myDeck;
+    public CardView[] myDeck;       // 강화된 카드는 level > 0
 
     public int turn;
     public float turnDuration;
@@ -73,6 +76,25 @@ public sealed class MatchStateView
     public string reason;
     public bool rematchRequested;
     public bool opponentRematchRequested;
+
+    public EventView[] events;      // 지난 state 이후 일어난 일 (효과음/연출용)
+}
+
+/// <summary>
+/// kind: use(카드 사용 시도, ok=성공) | play(큐에서 발동, ok=공격 카드) | damage(피격, guarded=가드 중)
+///       | shield(방어도로 막음) | effect(효과 획득, effect=종류) | turnEnd
+/// mine: 내 쪽에서 일어난 일인지
+/// </summary>
+[Serializable]
+public sealed class EventView
+{
+    public string kind;
+    public bool mine;
+    public string card;
+    public int amount;
+    public string effect;
+    public bool guarded;
+    public bool ok;
 }
 
 [Serializable]
@@ -106,6 +128,9 @@ public sealed class CardView
 {
     public int id;                  // 0이면 빈 칸. 상대 손패는 id만 있다 (뒷면)
     public string name;
+    public int level;               // 강화 횟수 (그림은 name 그대로, 수치/효과만 바뀜)
+    public string offerKind;        // 카드 선택지일 때: add | enhance
+    public int target;              // enhance일 때 바뀌는 내 덱 카드 번호
     public string cardType;
     public int cost;
     public int cooldown;

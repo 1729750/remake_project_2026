@@ -24,7 +24,8 @@ public enum EffectCategory
 
 public sealed record CardEffectDef(EffectType Type, int Magnitude, EffectTarget Target, EffectCategory AppliedCategory);
 
-public sealed record CardDef(string Name, int Cost, int Cooldown, CardType CardType, IReadOnlyList<CardEffectDef> Effects);
+/// <summary>Level: 강화 횟수. 강화돼도 Name(그림)은 그대로고 수치/효과만 바뀐다.</summary>
+public sealed record CardDef(string Name, int Cost, int Cooldown, CardType CardType, IReadOnlyList<CardEffectDef> Effects, int Level = 0);
 
 /// <summary>
 /// Data/cards.json (Server/tools/export-cards.mjs가 Unity 에셋에서 만든다)
@@ -36,16 +37,23 @@ public sealed class CardLibrary
     public IReadOnlyList<CardDef> Cards { get; }
 
     private readonly Dictionary<string, CardDef> byName;
+    private readonly Dictionary<EffectType, EffectPrice> prices;
 
-    private CardLibrary(int maxHealth, IReadOnlyList<CardDef> startDeck, IReadOnlyList<CardDef> cards)
+    private CardLibrary(int maxHealth, IReadOnlyList<CardDef> startDeck, IReadOnlyList<CardDef> cards,
+        Dictionary<EffectType, EffectPrice> prices)
     {
         MaxHealth = maxHealth;
         StartDeck = startDeck;
         Cards = cards;
         byName = cards.ToDictionary(c => c.Name);
+        this.prices = prices;
     }
 
     public CardDef Get(string name) => byName[name];
+
+    /// <summary>강화 가격표 (Unity Resources/Data/EffectPrices.json). 없는 타입은 0.</summary>
+    public EffectPrice PriceOf(EffectType type) =>
+        prices.TryGetValue(type, out EffectPrice? price) ? price : new EffectPrice(0f, 0, 0, 1);
 
     public static CardLibrary Load(string path)
     {
@@ -62,11 +70,17 @@ public sealed class CardLibrary
             c.Effects.Select(e => new CardEffectDef(e.Type, e.Magnitude, e.Target, (EffectCategory)e.AppliedCategory)).ToList()))
             .ToList();
 
-        var library = new CardLibrary(file.MaxHealth, Array.Empty<CardDef>(), cards);
-        return new CardLibrary(file.MaxHealth, file.StartDeck.Select(library.Get).ToList(), cards);
+        var prices = (file.EffectPrices ?? new List<PriceFile>())
+            .Where(p => Enum.TryParse<EffectType>(p.EffectType, out _))
+            .ToDictionary(p => Enum.Parse<EffectType>(p.EffectType),
+                p => new EffectPrice(p.Price, p.MagnitudeMin, p.MagnitudeMax, p.MagnitudeUnit));
+
+        var library = new CardLibrary(file.MaxHealth, Array.Empty<CardDef>(), cards, prices);
+        return new CardLibrary(file.MaxHealth, file.StartDeck.Select(library.Get).ToList(), cards, prices);
     }
 
-    private sealed record CardsFile(int MaxHealth, List<string> StartDeck, List<CardFile> Cards);
+    private sealed record CardsFile(int MaxHealth, List<string> StartDeck, List<CardFile> Cards, List<PriceFile>? EffectPrices);
+    private sealed record PriceFile(string EffectType, float Price, int MagnitudeMin, int MagnitudeMax, int MagnitudeUnit);
     private sealed record CardFile(string Name, int Cost, int Cooldown, CardType CardType, List<EffectFile> Effects);
     private sealed record EffectFile(EffectType Type, int Magnitude, EffectTarget Target, int AppliedCategory);
 }
