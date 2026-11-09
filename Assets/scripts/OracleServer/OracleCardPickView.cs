@@ -7,6 +7,8 @@ using UnityEngine;
 /// MultiPlayMode_Oracle 씬에서 RewardManager 자리(RewardPanel)에 들어가는 카드 선택 화면.
 ///   위: 지금까지의 내 덱 (DeckDisplay, 카드가 늘수록 작아진다)
 ///   아래: 남은 선택 횟수 "9 / 10", 선택지 카드 3장, 오른쪽 아래 건너뛰기 버튼
+/// 선택지는 [카드 추가 / 강화 / 무작위]. 강화 선택지는 강화 후 모습의 카드를 보여주고,
+/// 고르면 위쪽 덱에서 바뀔 카드가 함께 강조된다. (같은 카드 자리가 바뀐 수치로 교체된다)
 /// 싱글 보상 화면처럼 ←/→ 로 고르고 선택 키로 확정한다. 카드 오른쪽 끝에서 한 번 더 →면 건너뛰기 버튼.
 /// 고른 카드의 효과 설명은 그 카드 바로 아래에 뜬다.
 /// 위치/크기는 카메라 중심 기준 월드 단위(화면 높이 10)라 Inspector에서 조절할 수 있다.
@@ -37,6 +39,7 @@ public sealed class OracleCardPickView : MonoBehaviour
     private bool inputLoaded;
     private int remaining;
     private int total;
+    private CardView[] offers;
 
     /// <summary>선택지 카드를 골랐을 때 (index).</summary>
     public event Action<int> Picked;
@@ -45,6 +48,9 @@ public sealed class OracleCardPickView : MonoBehaviour
     public event Action Skipped;
 
     private bool SkipSelected => selectedIndex == cards.Count;
+
+    private CardView SelectedOffer =>
+        offers != null && selectedIndex >= 0 && selectedIndex < offers.Length && selectedIndex < cards.Count ? offers[selectedIndex] : null;
 
     private void Awake()
     {
@@ -56,11 +62,13 @@ public sealed class OracleCardPickView : MonoBehaviour
         gameObject.SetActive(true);
         Vector3 origin = CameraCenter();
 
-        string deckKey = state.myDeck == null ? "" : string.Join(",", state.myDeck);
+        string deckKey = state.myDeck == null ? "" : string.Join(",", Array.ConvertAll(state.myDeck, c => c.name + "+" + c.level));
         if (deckKey != shownDeck)
         {
             shownDeck = deckKey;
-            deckDisplay = library.ShowDeck(deckDisplay, transform, origin + (Vector3)deckCenter, deckSize, state.myDeck);
+            // 매번 새로 만든다: 기존 카드는 Destroy가 프레임 끝에 처리돼서, 재사용하면 강조할 카드 순서가 섞인다
+            if (deckDisplay != null) Destroy(deckDisplay.gameObject);
+            deckDisplay = library.ShowDeck(null, transform, origin + (Vector3)deckCenter, deckSize, state.myDeck);
         }
 
         // 라운드가 바뀌어 다른 카드가 왔을 때만 새로 놓는다
@@ -70,6 +78,7 @@ public sealed class OracleCardPickView : MonoBehaviour
             shownOffers = offerKey;
             SpawnOptions(state.offers, library, origin);
         }
+        offers = state.offers;
 
         picked = state.picked;
         total = state.totalRounds;
@@ -87,6 +96,7 @@ public sealed class OracleCardPickView : MonoBehaviour
         if (remainingText == null) return;
         string text = $"{remaining} / {total}";
         if (seconds >= 0f && !picked) text += $"  <size=60%>({Mathf.CeilToInt(seconds)})</size>";
+        if (SelectedOffer?.offerKind == "enhance") text += "\n<size=60%>덱의 카드 강화</size>";
         if (remainingText.text != text) remainingText.text = text;
     }
 
@@ -134,7 +144,8 @@ public sealed class OracleCardPickView : MonoBehaviour
             if (visual == null) visual = obj.AddComponent<CardVisual>();
             visual.SetPopupManager(popupManager);
 
-            CardDefinition definition = library.Find(offers[i]);
+            // 강화 선택지는 강화 후 수치로 만든 정의 (그림은 같은 카드)
+            CardDefinition definition = library.DefinitionFor(offers[i]);
             if (definition != null)
             {
                 // 아직 소유자가 없는 카드라 owner 없이 표시 전용 CardInstance로 감싼다 (싱글과 동일)
@@ -181,6 +192,19 @@ public sealed class OracleCardPickView : MonoBehaviour
         }
 
         skipButton?.SetSelected(SkipSelected && !picked);
+        HighlightEnhanceTarget();
+        SetTimeLeft(-1f);
+    }
+
+    // 강화 선택지를 고르고 있으면 위쪽 덱에서 바뀔 카드를 강조한다
+    private void HighlightEnhanceTarget()
+    {
+        if (deckDisplay == null) return;
+        CardVisual[] deckCards = deckDisplay.GetComponentsInChildren<CardVisual>(true); // 덱 순서대로 생성됨
+        CardView offer = SelectedOffer;
+        int target = offer != null && offer.offerKind == "enhance" ? offer.target : -1;
+        for (int i = 0; i < deckCards.Length; i++)
+            deckCards[i].SetSelected(i == target);
     }
 
     // 효과 설명 팝업을 고른 카드 바로 아래로 옮긴다

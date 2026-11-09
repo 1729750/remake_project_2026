@@ -61,6 +61,10 @@ const deckSection = /\n  deck:\r?\n((?:  - .+\r?\n)+)/.exec(block)[1];
 const startDeck = [...deckSection.matchAll(/guid: (\w+)/g)].map((m) => byGuid[m[1]] ?? `?${m[1]}`);
 const maxHealth = num(block, "maxHealth") || 100;
 
+// 강화 가격표: 싱글 GameManager가 쓰는 Resources/Data/EffectPrices.json 그대로
+const effectPrices = JSON.parse(fs.readFileSync(path.join(assets, "Resources/Data/EffectPrices.json"), "utf8")
+  .replace(/^﻿/, "")).prices;
+
 fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, JSON.stringify({ maxHealth, startDeck, cards }, null, 2) + "\n");
+fs.writeFileSync(out, JSON.stringify({ maxHealth, startDeck, effectPrices, cards }, null, 2) + "\n");
 console.log(`${cards.length} cards, start deck [${startDeck.join(", ")}] -> ${path.relative(root, out)}`);

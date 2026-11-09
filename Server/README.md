@@ -10,7 +10,8 @@
 
 방에 2명이 모이면 서버가 `Game/Match.cs`로 한 판을 진행한다.
 
-1. 카드 선택 10라운드 — 라운드마다 각자 무작위 3장 중 1장을 덱에 추가하거나 건너뛰기 (15초, 시간 초과 시 무작위)
+1. 카드 선택 10라운드 — 라운드마다 선택지 [카드 추가 / 강화 / 무작위] 중 하나, 또는 건너뛰기 (15초, 시간 초과 시 무작위)
+   - 강화: 덱의 카드 하나에 효과를 붙이고 코스트/쿨다운이 늘어난다. 카드 이름(그림)은 그대로 (`Game/Enhance.cs`, 가격표는 Unity `Resources/Data/EffectPrices.json`)
 2. 카운트다운 3초
 3. 전투 — 1.5초 턴, 규칙은 Unity 싱글 전투(`Assets/scripts/Battles`, `Cards`)를 `Game/`으로 옮긴 것
 4. 결과 — 턴 종료 후 HP 0 이하인 쪽이 패배, 둘 다면 무승부. 둘 다 "다시 하기"를 누르면 새 판
@@ -31,6 +32,7 @@ node tools/smoke-test.mjs                     # 로컬 서버 테스트
 node tools/smoke-test.mjs ws://161.33.142.112:7777/ws   # 오라클 서버 테스트
 node tools/match-test.mjs ws://161.33.142.112:7777/ws   # 봇 두 개로 한 판 끝까지
 node tools/sync-test.mjs ws://161.33.142.112:7777/ws    # 두 클라이언트 턴 수신 시각 차이, 이벤트 확인
+node tools/enhance-test.mjs ws://161.33.142.112:7777/ws # 강화만 골라서 같은 카드가 수치만 바뀌는지 확인
 ```
 
 ## 배포

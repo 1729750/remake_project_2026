@@ -2,6 +2,9 @@ namespace CardGameServer.Game;
 
 public enum MatchPhase { Picking, Countdown, Battle, Finished }
 
+/// <summary>카드 선택 단계의 선택지. Kind = add(덱에 추가) | enhance(Target번 덱 카드를 Card로 바꿈 = 강화 후 모습)</summary>
+public sealed record PickOption(string Kind, CardDef Card, int Target);
+
 /// <summary>
 /// 방 하나의 게임 진행: 카드 선택(라운드마다 3장 중 1장, 또는 건너뛰기) → 카운트다운 → 전투 → 결과.
 /// 모든 판정은 여기서 하고, 바뀔 때마다 두 플레이어에게 각자 시점의 상태를 보낸다.
@@ -37,7 +40,7 @@ public sealed class Match
     {
         public PlayerConnection Player { get; } = player;
         public List<CardDef> Deck { get; } = startDeck.ToList();
-        public CardDef[] Offers { get; set; } = [];
+        public PickOption[] Offers { get; set; } = [];
         public bool Picked { get; set; }
         public bool WantsRematch { get; set; }
         public Combatant? Combatant { get; set; }
@@ -194,13 +197,34 @@ public sealed class Match
         foreach (Seat seat in seats)
         {
             seat.Picked = false;
-            seat.Offers = library.Cards.OrderBy(_ => random.Next()).Take(3).ToArray();
+            seat.Offers = RollOptions(seat);
         }
+    }
+
+    // 팀 멀티 기획(CardOptionGenerator)과 같은 구성: [카드 추가, 강화, 무작위(강화 또는 추가)]
+    // 강화할 카드가 없으면 그 칸은 카드 추가로 바뀐다
+    private PickOption[] RollOptions(Seat seat)
+    {
+        PickOption AddCard() => new("add", library.Cards[random.Next(library.Cards.Count)], -1);
+
+        PickOption EnhanceOrAdd()
+        {
+            var rolled = Enhance.Roll(seat.Deck, library, random);
+            if (rolled == null) return AddCard();
+            var (target, upgrade) = rolled.Value;
+            return new PickOption("enhance", Enhance.Apply(seat.Deck[target], upgrade), target);
+        }
+
+        return [AddCard(), EnhanceOrAdd(), random.Next(2) == 0 ? EnhanceOrAdd() : AddCard()];
     }
 
     private static void Pick(Seat seat, int index)
     {
-        seat.Deck.Add(seat.Offers[index]);
+        PickOption option = seat.Offers[index];
+        if (option.Kind == "enhance" && option.Target >= 0 && option.Target < seat.Deck.Count)
+            seat.Deck[option.Target] = option.Card; // 같은 카드 자리에 강화된 카드
+        else
+            seat.Deck.Add(option.Card);
         seat.Picked = true;
     }
 
@@ -296,10 +320,12 @@ public sealed class Match
             TimeLeft = Math.Max(timeLeft, 0),
             Round = round,
             TotalRounds = PickRounds,
-            Offers = phase == MatchPhase.Picking ? seat.Offers.Select((c, i) => CardView.FromDef(c, i + 1)).ToArray() : [],
+            Offers = phase == MatchPhase.Picking
+                ? seat.Offers.Select((o, i) => CardView.FromDef(o.Card, i + 1) with { OfferKind = o.Kind, Target = o.Target }).ToArray()
+                : [],
             Picked = seat.Picked,
             OpponentPicked = other.Picked,
-            MyDeck = seat.Deck.Select(c => c.Name).ToArray(),
+            MyDeck = seat.Deck.Select((c, i) => CardView.FromDef(c, i + 1)).ToArray(),
             Turn = turn,
             TurnDuration = TurnSeconds,
             Me = seat.Combatant == null ? null : BuildCombatant(seat.Combatant, showHand: true),

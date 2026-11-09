@@ -47,7 +47,7 @@ public sealed class OracleMatchView : MonoBehaviour
     private TurnTimerOverlay turnTimer;
 
     private MatchStateView state;
-    private float stateReceivedAt;
+    private double stateReceivedAt;
     private string shownPhase;
     private bool battleInputLoaded;
     private Coroutine resultRoutine;
@@ -108,7 +108,7 @@ public sealed class OracleMatchView : MonoBehaviour
     {
         if (state == null) return;
 
-        float timeLeft = Mathf.Max(0f, state.timeLeft - (Time.unscaledTime - stateReceivedAt));
+        float timeLeft = Mathf.Max(0f, state.timeLeft - (float)(OracleServerClient.Now - stateReceivedAt));
 
         switch (state.phase)
         {
@@ -194,8 +194,9 @@ public sealed class OracleMatchView : MonoBehaviour
         {
             case "state":
                 state = message.state;
-                // 서버가 이 state를 만든 건 왕복 시간의 절반쯤 전이다. 그만큼 타이머를 앞당겨 두 화면을 맞춘다
-                stateReceivedAt = Time.unscaledTime - client.RoundTripTime / 2f;
+                // 실제로 소켓에 도착한 시각 기준 (씬 로드 중에 온 첫 state도 늦어지지 않게).
+                // 서버가 만든 건 왕복 시간의 절반쯤 전이므로 그만큼 앞당겨 두 화면을 맞춘다
+                stateReceivedAt = message.receivedAt - client.RoundTripTime / 2f;
                 Render();
                 break;
 
