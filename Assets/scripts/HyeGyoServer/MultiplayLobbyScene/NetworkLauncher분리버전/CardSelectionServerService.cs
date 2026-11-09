@@ -365,179 +365,39 @@ private IEnumerator BeginCardSelectionWhenReady()
     // Debug - 데이터 독립성 테스트
     // ==================================================
 
-    [ContextMenu(
-        "Debug/Test Independent Player Data")]
-    private void DebugTestIndependentPlayerData()
+
+    [ContextMenu("Debug/Print Real Players")]
+    private void DebugPrintRealPlayers()
     {
-        if (!Application.isPlaying)
-        {
-            Debug.LogWarning(
-                "[CardSelectionServerService] " +
-                "Play Mode에서 실행해주세요."
-            );
-
-            return;
-        }
-
         if (preparationRegistry == null)
         {
-            Debug.LogError(
-                "[CardSelectionServerService] " +
-                "Registry가 없습니다."
-            );
-
-            return;
-        }
-
-        if (preparationRegistry.Count < 2)
-        {
-            Debug.LogError(
-                "[CardSelectionServerService] " +
-                "플레이어가 2명 등록되어 있지 않습니다."
-            );
-
-            return;
-        }
-
-
-        ulong hostClientId = 0;
-
-        ulong debugClientId =
-            PlayerPreparationRegistry.DebugClientId;
-
-
-        if (!preparationRegistry.TryGetPlayer(
-                hostClientId,
-                out PlayerPreparationData hostPlayer))
-        {
-            Debug.LogError(
-                "[CardSelectionServerService] " +
-                "Host 데이터를 찾지 못했습니다."
-            );
-
-            return;
-        }
-
-
-        if (!preparationRegistry.TryGetPlayer(
-                debugClientId,
-                out PlayerPreparationData debugPlayer))
-        {
-            Debug.LogError(
-                "[CardSelectionServerService] " +
-                "Debug Client 데이터를 찾지 못했습니다."
-            );
-
-            return;
-        }
-
-
-        hostPlayer.SelectedCardIndex = 100;
-
-        debugPlayer.SelectedCardIndex = 200;
-
-
-        bool isSameObject =
-            ReferenceEquals(
-                hostPlayer,
-                debugPlayer
-            );
-
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            "===== 독립 데이터 테스트 ====="
-        );
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            $"Host | " +
-            $"ClientId: {hostPlayer.ClientId} | " +
-            $"SelectedCardIndex: " +
-            $"{hostPlayer.SelectedCardIndex}"
-        );
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            $"Debug Client | " +
-            $"ClientId: {debugPlayer.ClientId} | " +
-            $"SelectedCardIndex: " +
-            $"{debugPlayer.SelectedCardIndex}"
-        );
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            $"같은 PlayerPreparationData 객체인가? " +
-            $"{isSameObject}"
-        );
-
-
-        if (hostPlayer.SelectedCardIndex == 100 &&
-            debugPlayer.SelectedCardIndex == 200 &&
-            !isSameObject)
-        {
-            Debug.Log(
-                "[CardSelectionServerService] " +
-                "Host / Client 데이터 독립 저장 확인 성공"
-            );
-        }
-        else
-        {
-            Debug.LogError(
-                "[CardSelectionServerService] " +
-                "Host / Client 데이터 독립 저장 확인 실패"
-            );
-        }
-    }
-
-
-    [ContextMenu(
-        "Debug/Reset Test Player Data")]
-    private void DebugResetTestPlayerData()
-    {
-        if (!Application.isPlaying)
-        {
             Debug.LogWarning(
-                "[CardSelectionServerService] " +
-                "Play Mode에서 실행해주세요."
+                "[CardSelectionServerService] Registry가 없습니다."
             );
-
             return;
         }
 
-        if (preparationRegistry == null)
-        {
-            return;
-        }
-
+       Debug.Log(
+            $"[CardSelectionServerService] " +
+            $"실제 등록 플레이어 수: {preparationRegistry.Count}"
+        );
 
         foreach (
             PlayerPreparationData player
             in preparationRegistry.Players)
-        {
+         {
             if (player == null)
-            {
                 continue;
+
+            Debug.Log(
+                $"[CardSelectionServerService] " +
+                $"ClientId: {player.ClientId} | " +
+                $"SelectedIndex: {player.SelectedCardIndex} | " +
+                $"FinalDeck: {player.FinalDeck.Count} | " +
+                $"CardCompleted: {player.CardSelectionCompleted}"
+                );
             }
-
-            player.CardCandidates = null;
-
-            player.SelectedCardIndex = -1;
-
-            player.CardSelectionCompleted = false;
-
-            player.ConditionCompleted = false;
-
-            player.FinalDeck.Clear();
-        }
-
-
-        Debug.Log(
-            "[CardSelectionServerService] " +
-            "테스트 준비 데이터 초기화 완료"
-        );
-
-        LogCurrentPlayers();
+        
     }
 
 

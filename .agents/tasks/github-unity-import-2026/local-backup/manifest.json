@@ -1,0 +1,210 @@
+{
+  "backupRoot": "c:\\Git-Directory\\UpnL_FirstGame\\remake_project_2026\\.agents\\tasks\\github-unity-import-2026\\local-backup",
+  "createdAt": "2026-10-13T08:52:58.565Z",
+  "entries": [
+    {
+      "path": ".vsconfig",
+      "reason": "replaced",
+      "bytes": 96,
+      "sha256": "f24445f4481f74f7653a375e2f618e50d608b14fdacee794fcab51b8d447351c"
+    },
+    {
+      "path": "Assets/Check.puml.meta",
+      "reason": "replaced",
+      "bytes": 155,
+      "sha256": "acaeaf2fda9ff0268a93698d5f3f8f92721d33871fff430284c313bbc79a655e"
+    },
+    {
+      "path": "Assets/Scenes.meta",
+      "reason": "replaced",
+      "bytes": 172,
+      "sha256": "a80a7b316e7d7ce80c8a01ecb374702a04e91228a0729629c894c70250baea5d"
+    },
+    {
+      "path": "Assets/Scenes/MultiLobbyScene.unity",
+      "reason": "replaced",
+      "bytes": 232442,
+      "sha256": "f0f131ea53ea862795ad50cac052247851a158f53d5010031e4f63b4c07cc58f"
+    },
+    {
+      "path": "Assets/Scenes/MultiPlayMode.unity",
+      "reason": "replaced",
+      "bytes": 253574,
+      "sha256": "a75e58202fdb0d70e3f4f0d3e8fa0f5407b9628e6a1c052352b7b15091c60421"
+    },
+    {
+      "path": "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset",
+      "reason": "replaced",
+      "bytes": 15438,
+      "sha256": "965bba6a16e9b5a36ea44163c4976bf744069cb83f665a6b5f0bb9c4feaa81d2"
+    },
+    {
+      "path": "Assets/artsources/ui/UI/uiBox3.png.meta",
+      "reason": "replaced",
+      "bytes": 3299,
+      "sha256": "a051c7f370e3530f9d686cd88fbc26c881f8f6d48aff4b7e9d1c4cb86bca76b6"
+    },
+    {
+      "path": "Assets/cards/NanumGothic SDF.asset",
+      "reason": "replaced",
+      "bytes": 9761,
+      "sha256": "2789eb0ce1068501e2d3041bb73bb9f60d340917921239176b501af8394a2376"
+    },
+    {
+      "path": "Assets/scripts/Battles/BattleManager.cs",
+      "reason": "replaced",
+      "bytes": 13966,
+      "sha256": "c92f20f6809be2b056cec03b1e602d274bc16b9a4f5f974b046af4dbd972b753"
+    },
+    {
+      "path": "Assets/scripts/Cards/effects/EffectDisplay.cs",
+      "reason": "replaced",
+      "bytes": 2817,
+      "sha256": "42c7b11dbbcc35e9a134059cd6c2eb1db8a46cb22a4d01b607cc640387f5ffed"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiServerCardSelection/PreparationOptionNetData.cs",
+      "reason": "replaced",
+      "bytes": 721,
+      "sha256": "b4b8e4bc842937245b402fecc59a1ae47b2dfdc5fc9d39ff896307f3ce76e4ea"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiServerCardSelection/PreparationOptionNetData.cs.meta",
+      "reason": "replaced",
+      "bytes": 59,
+      "sha256": "f086419f6964a4d9dd9cb2df87cc98bb233523fc4e385d0443881e6326452cc1"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultipLayMode/CardOptionGenerator.cs",
+      "reason": "replaced",
+      "bytes": 14432,
+      "sha256": "ee9bde8d0ee1d361b1d35980c8831a5c4b1334736eb02f031951a61768b796d4"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultipLayMode/MultiPreparationManager.cs",
+      "reason": "replaced",
+      "bytes": 11324,
+      "sha256": "61f9bcf32e368c9af6281dc77711434069a6f93eeb93af1a8819229c602fba80"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultipLayMode/PreparationOption.cs",
+      "reason": "replaced",
+      "bytes": 754,
+      "sha256": "dcf63addd80e1d13adc2dbd63be82be14e0597b11b14c35bbf09fbce9c7db107"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/HostGameManager.cs",
+      "reason": "replaced",
+      "bytes": 23913,
+      "sha256": "57f42359a58ae7d8119f34ff26952d40b930a0fadb50335f3d10c02da9fceea4"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/LobbyEntryFormUI.cs",
+      "reason": "replaced",
+      "bytes": 7644,
+      "sha256": "ecf48c2ad78c803614442d0d1be383c4ae1aa53fac88465041918d193f29076e"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/LobbyEntryUI.cs",
+      "reason": "replaced",
+      "bytes": 4893,
+      "sha256": "0b0c530a2d341a8f32105c9cba2233f4123ffc290110134a4621d0affd98b31b"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/MultiPlayMode_Scripts/MultiPlayGameBootstrap.cs",
+      "reason": "replaced",
+      "bytes": 1682,
+      "sha256": "8e8d1902d6cc61ebfd890f2f317c4d3051451fadfb21e09af623c4974f7df1b4"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/MultiPlayMode_Scripts/임시방편게임구조/Game/BattleManager_Multi.cs",
+      "reason": "replaced",
+      "bytes": 21025,
+      "sha256": "6c5e19ad2332864198659a46b04f0d0dc65d2a9aee217a128122eb050e8390e5"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/MultiPlayMode_Scripts/임시방편게임구조/Game/CardInstance_Multi.cs",
+      "reason": "replaced",
+      "bytes": 9785,
+      "sha256": "1bf5b10dd6502a3d83d0b6b9d1c51507bde34f087d996648cefb15526a462472"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/MultiPlayMode_Scripts/임시방편게임구조/Game/GameManager_Multi.cs",
+      "reason": "replaced",
+      "bytes": 8859,
+      "sha256": "55129cb22b677a03d255b8016fc97d534f124b9e250f3c2c7218775be0430b62"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/NetworkLauncher분리버전/CardSelectionServerService.cs",
+      "reason": "replaced",
+      "bytes": 11041,
+      "sha256": "3847f89b67e0a866a2c130bf9f617c8a303ff5b034c605ea648abab6a8fba8f5"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/NetworkLauncher분리버전/NetworkLauncher.cs",
+      "reason": "replaced",
+      "bytes": 5694,
+      "sha256": "11db3cbcc1f4c8991e9bc0844b50a2ac392963f488523ca5f60c0f0e96d12de4"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/NetworkLauncher분리버전/NetworkSessionService.cs",
+      "reason": "replaced",
+      "bytes": 17687,
+      "sha256": "29b663977d74ea610859069e244e4dbbe78fb9cbc2be9f975868e0a13837ba0e"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/NetworkLauncher분리버전/PlayerPreparationRegistry.cs",
+      "reason": "replaced",
+      "bytes": 5497,
+      "sha256": "058c05d966acfa46841ec0ff4ec146715273a0f1c7d8dc2efac5b9db89601e96"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/NetworkLobbyUIClient.cs",
+      "reason": "replaced",
+      "bytes": 4147,
+      "sha256": "fdb7698d556f2048c6d8c80203adbe9a3dddef32a4fb262843f1706ca5c2f99f"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/NetworkLobbyUIHost.cs",
+      "reason": "replaced",
+      "bytes": 16748,
+      "sha256": "fdc53071d396930e3b5f31be0d62dff707b58958ed3fbf0bd41252230a121774"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/NetworkMatchBridge Separate/MatchServerController.cs",
+      "reason": "replaced",
+      "bytes": 14950,
+      "sha256": "db60c032c42997d152e5fbbbdfe63632b23ec3801fc74776438e2e1c69369955"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/NetworkMatchBridge Separate/NetworkMatchBridge.cs",
+      "reason": "replaced",
+      "bytes": 21837,
+      "sha256": "e405d946bf6e643f5767eac758178407e7a39f5d2b2db8e867cf5689eedf4d83"
+    },
+    {
+      "path": "Assets/scripts/HyeGyoServer/MultiplayLobbyScene/whileChoosingCard/EnhanceOptionNetData.cs",
+      "reason": "replaced",
+      "bytes": 2094,
+      "sha256": "57020f1163c5ab78cda3dc84f7f4c779dd17e14dadeba7a44bd6407a513ac236"
+    },
+    {
+      "path": "ProjectSettings/GraphicsSettings.asset",
+      "reason": "replaced",
+      "bytes": 2559,
+      "sha256": "bcdb6ee570b5edc137b79e48f860495035136e494030e214fe39c151d16fe993"
+    },
+    {
+      "path": "ProjectSettings/McpUnitySettings.json",
+      "reason": "replaced",
+      "bytes": 183,
+      "sha256": "9afeec00f12dd9fc8f0f957bc295be6239b6e9f959d51b6e0fa0f869b10bd349"
+    },
+    {
+      "path": "ProjectSettings/ShaderGraphSettings.asset",
+      "reason": "replaced",
+      "bytes": 556,
+      "sha256": "5c432c9c73fdf73fee91c8823ea02ab98e3b7a8edf341b5ae6901d699cce52a7"
+    }
+  ]
+}

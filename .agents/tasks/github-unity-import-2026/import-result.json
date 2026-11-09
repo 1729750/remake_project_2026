@@ -1,0 +1,18 @@
+{
+  "status": "failed",
+  "failureReason": "Hook causation unconfirmed; partial application possible; working byte-copy/hash interface not established",
+  "furtherApplicationChangesStopped": true,
+  "headSha": "68cacbb071658f0fcca2e3fce0efcd26a325b31e",
+  "added": null,
+  "replaced": null,
+  "deleted": null,
+  "skipped": null,
+  "replacementHashComparisonsCompleted": 0,
+  "mismatches": null,
+  "displayedTextMatches": ["Assets/Check.puml.meta", "Assets/Scenes.meta"],
+  "partialExecutionPossible": true,
+  "recoveryOwnedBySeparateAgent": true,
+  "disabledHelper": "import-run.ps1",
+  "helperCleanupPending": ["import-run.ps1", "run-import.cmd"],
+  "details": "import-log.md"
+}

@@ -7,6 +7,13 @@ public sealed class GameManager_Multi : NetworkBehaviour
 {
     public static GameManager_Multi Instance { get; private set; }
 
+    [Header("Initial Active Objects")]
+    [SerializeField]
+    private GameObject mapManagerObject;
+
+    [SerializeField]
+    private GameObject rewardManagerObject;
+
     [Header("Network")]
     [SerializeField]
     private GameNetworkState gameNetworkState;
@@ -23,6 +30,11 @@ public sealed class GameManager_Multi : NetworkBehaviour
     private bool _initialized;
 
     public bool IsGameStarted => _gameStarted;
+
+    [Header("Preparation State")]
+    [SerializeField]
+    private NetworkMatchState preparationMatchState;
+    [SerializeField] private MultiPreparationManager preparationManager;
 
     private void Awake()
     {
@@ -133,32 +145,27 @@ private class EffectSummaryTable
 }
 
     public override void OnNetworkSpawn()
+{
+    Debug.Log(
+        "[GameManager_Multi] OnNetworkSpawn 실행"
+    );
+
+    if (gameNetworkState == null)
     {
-        if (gameNetworkState == null)
-        {
-            Debug.LogError(
-                "[GameManager_Multi] GameNetworkState가 없습니다."
-            );
-            return;
-        }
-
-        gameNetworkState.StateChanged +=
-            HandleNetworkStateChanged;
-
-        GameStart();
-
-        fadeIn?.Play();
-
-        Debug.Log(
-            "[GameManager_Multi] OnNetworkSpawn\n" +
-            $"IsServer: {IsServer}\n" +
-            $"IsClient: {IsClient}\n" +
-            $"LocalClientId: {NetworkManager.Singleton.LocalClientId}"
+        Debug.LogError(
+            "[GameManager_Multi] GameNetworkState가 없습니다."
         );
 
-        if (IsServer)
-            TryStartBattleServer();
+        return;
     }
+
+    gameNetworkState.StateChanged +=
+        HandleNetworkStateChanged;
+
+    GameStart();
+
+    fadeIn?.Play();
+}
 
     public override void OnNetworkDespawn()
     {
@@ -169,36 +176,24 @@ private class EffectSummaryTable
         }
     }
 
-    private void Update()
-    {
-        if (!IsServer)
-            return;
 
-        if (_gameStarted)
-            return;
 
-        TryStartBattleServer();
-    }
+public void GameStart()
+{
+    if (_initialized)
+        return;
 
-    public void GameStart()
-    {
-        if (_initialized)
-            return;
-
-        _initialized = true;
-
-        Debug.Log(
-            "[GameManager_Multi] GameStart - " +
-            "MapManager 없이 바로 Battle 준비"
-        );
-    }
-
+    if (preparationMatchState == null || preparationManager == null || mapManagerObject == null || rewardManagerObject == null)
+        throw new InvalidOperationException("GameManager preparation scene references are incomplete.");
+    mapManagerObject.SetActive(true);
+    rewardManagerObject.SetActive(true);
+    if (IsServer) preparationManager.RequestInitialization();
+    _initialized = true;
+}
     private void HandleNetworkStateChanged()
     {
         if (!IsServer)
             return;
-
-        TryStartBattleServer();
     }
 
     private void TryStartBattleServer()

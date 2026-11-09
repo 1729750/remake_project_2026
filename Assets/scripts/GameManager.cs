@@ -69,7 +69,7 @@ public class GameManager : MonoBehaviour
     //     { "effectType": "Strength", "price": 3, "magnitudeMin": 10, "magnitudeMax": 20, "magnitudeUnit": 2 }
     //   ]
     // }
-    private void BuildEffectPriceCache()
+    private static void BuildEffectPriceCache()
     {
         _effectPriceCache = new Dictionary<EffectType, EffectPriceInfo>();
 
@@ -127,7 +127,7 @@ public class GameManager : MonoBehaviour
     //     { "effectType": "Attack", "summary": "즉시 대상에게 피해를 입힌다." }
     //   ]
     // }
-    private void BuildEffectSummaryCache()
+    private static void BuildEffectSummaryCache()
     {
         _effectSummaryCache = new Dictionary<EffectType, string>();
 
@@ -262,7 +262,7 @@ public class GameManager : MonoBehaviour
     public static EffectPriceInfo GetEffectPriceInfo(EffectType effectType)
     {
         if (_effectPriceCache == null)
-            Instance.BuildEffectPriceCache();
+            BuildEffectPriceCache();
         _effectPriceCache.TryGetValue(effectType, out EffectPriceInfo info);
         return info;
     }
@@ -273,7 +273,7 @@ public class GameManager : MonoBehaviour
     public static string GetEffectSummary(EffectType effectType)
     {
         if (_effectSummaryCache == null)
-            Instance.BuildEffectSummaryCache();
+            BuildEffectSummaryCache();
         _effectSummaryCache.TryGetValue(effectType, out string summary);
         return summary;
     }

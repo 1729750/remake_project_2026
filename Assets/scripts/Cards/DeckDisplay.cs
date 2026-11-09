@@ -11,7 +11,8 @@ using UnityEngine;
 // 보이는 행 구간(_topRow)만 옮겨 페이징한다.
 public class DeckDisplay : MonoBehaviour
 {
-    private const int Columns = 4;
+    private int Columns = 4;//하드코딩, 한 행에 들어가는 카드 수를 늘릴수도...??
+    // Set Deck에다가 
 
     private RectTransform _rectTransform;
     private Vector2 _containerSize;
@@ -69,58 +70,116 @@ public class DeckDisplay : MonoBehaviour
     // filter: cards 중 표시할 카드만 골라낸다. 기본값은 전부 표시(항상 true).
     // 기존에 표시하고 있던 카드가 있으면 전부 정리(ClearCards)하고 새로 채우므로, DeckDisplay를
     // 파괴/재생성하지 않고 반복 호출해서 재활용하는 용도로도 그대로 쓸 수 있다.
-    public void SetDeck(List<CardDefinition> cards, Func<CardDefinition, bool> filter, float cardSize = 1f)
+public void SetDeck(
+    List<CardDefinition> cards,
+    Func<CardDefinition, bool> filter,
+    float cardSize = 1f,
+    int columns = 4)
+{
+    Columns = columns;
+
+    filter ??= _ => true;
+
+    ClearCards();
+
+    if (cards == null || cards.Count == 0)
+        return;
+
+    EnsureContainerSize();
+
+    if (_cardPrefab == null)
     {
-        filter ??= _ => true;
-
-        ClearCards();
-        if (cards == null || cards.Count == 0) return;
-
-        EnsureContainerSize();
-
-        if (_cardPrefab == null)
-            _cardPrefab = Resources.Load<GameObject>("Prefabs/Card");
-        if (_cardPrefab == null || _containerSize.x == 0f || _containerSize.y == 0f) return;
-
-        for (int i = 0; i < cards.Count; i++)
-        {
-            if (!filter(cards[i])) continue;
-            _cardInstances.Add(SpawnCard(cards[i]));
-            _cardIndexMap.Add(i);
-        }
-        if (_cardInstances.Count == 0) return;
-
-        // SetSize로 스케일하기 전, 카드 프리팹 원본(배경 SpriteRenderer) 크기를 기준으로 삼는다.
-        Vector2 nativeCardSize = _cardInstances[0].GetBackgroundSize();
-        _cardWidth = nativeCardSize.x * cardSize;
-        _cardHeight = nativeCardSize.y * cardSize;
-
-        float xpadding = (_containerSize.x - _cardWidth * Columns) / (Columns - 1);
-        _cellWidth = _cardWidth + xpadding;
-
-        // ypadding은 Columns(가로 4장 고정)를 참고할 수 없다 — 몇 줄이 보일지(visibleRows) 자체가
-        // 미지수라서, ypadding으로 visibleRows를 구하려 하면 서로가 서로에 의존하는 순환이 생긴다.
-        // 그래서 먼저 padding 없이(카드 높이만으로) 몇 줄이 들어가는지 늘려가며 귀납적으로 visibleRows를
-        // 찾고, 그렇게 정해진 visibleRows로 컨테이너 세로 폭을 정확히 채우는 ypadding을 역산한다.
-        _visibleRows = 1;
-        while (_cardHeight * (_visibleRows + 1) <= _containerSize.y)
-            _visibleRows++;
-
-        float ypadding = _visibleRows > 1
-            ? (_containerSize.y - _cardHeight * _visibleRows) / (_visibleRows - 1)
-            : 0f;
-        _cellHeight = _cardHeight + ypadding;
-
-        Vector2 cardTargetSize = new Vector2(_cardWidth, _cardHeight);
-        foreach (CardInstance instance in _cardInstances)
-            instance.SetSize(cardTargetSize);
-
-        // 생성 시점에는 아무 카드도 select되지 않은 상태(-1)로 둔다. select되려면 자신의 input이
-        // load될 때 호출되는 SelectFirst를 거쳐야 한다.
-        _selectedIndex = -1;
-        _topRow = 0;
-        LayoutCards();
+        _cardPrefab =
+            Resources.Load<GameObject>(
+                "Prefabs/Card"
+            );
     }
+
+    if (_cardPrefab == null ||
+        _containerSize.x == 0f ||
+        _containerSize.y == 0f)
+    {
+        return;
+    }
+
+    for (int i = 0;
+         i < cards.Count;
+         i++)
+    {
+        if (!filter(cards[i]))
+            continue;
+
+        _cardInstances.Add(
+            SpawnCard(cards[i])
+        );
+
+        _cardIndexMap.Add(i);
+    }
+
+    if (_cardInstances.Count == 0)
+        return;
+
+    Vector2 nativeCardSize =
+        _cardInstances[0]
+            .GetBackgroundSize();
+
+    _cardWidth =
+        nativeCardSize.x * cardSize;
+
+    _cardHeight =
+        nativeCardSize.y * cardSize;
+
+    float xpadding =
+        Columns > 1
+            ? (_containerSize.x -
+               _cardWidth * Columns)
+              / (Columns - 1)
+            : 0f;
+
+    _cellWidth =
+        _cardWidth + xpadding;
+
+    _visibleRows = 1;
+
+    while (
+        _cardHeight *
+        (_visibleRows + 1)
+        <= _containerSize.y)
+    {
+        _visibleRows++;
+    }
+
+    float ypadding =
+        _visibleRows > 1
+            ? (_containerSize.y -
+               _cardHeight *
+               _visibleRows)
+              / (_visibleRows - 1)
+            : 0f;
+
+    _cellHeight =
+        _cardHeight + ypadding;
+
+    Vector2 cardTargetSize =
+        new Vector2(
+            _cardWidth,
+            _cardHeight
+        );
+
+    foreach (
+        CardInstance instance
+        in _cardInstances)
+    {
+        instance.SetSize(
+            cardTargetSize
+        );
+    }
+
+    _selectedIndex = -1;
+    _topRow = 0;
+
+    LayoutCards();
+}
 
     // 이 DeckDisplay를 조작하는 input context가 load될 때 호출: 0번 카드를 select하고, 보이는
     // 행 구간도 맨 위(0행)로 되돌린다 — 이전에 스크롤해뒀던 상태로 재진입하지 않게 한다.

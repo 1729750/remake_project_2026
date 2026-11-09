@@ -180,7 +180,7 @@ public bool TryStartMatch(
     );
 
 
-    if (connectedPlayerCount < 2)
+    if (connectedPlayerCount != 2)
     {
         rejectReason =
             "실제 NGO 플레이어 2명이 모두 접속해야 합니다.";

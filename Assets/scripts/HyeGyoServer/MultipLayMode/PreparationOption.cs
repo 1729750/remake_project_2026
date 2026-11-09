@@ -1,0 +1,22 @@
+using System;
+
+[Serializable]
+public struct PreparationOption
+{
+    public PreparationOptionType Type;
+    public int OfferedSlot; // 0 Add, 1 Enhance, 2 Random.
+    public bool RandomEnhance;
+    public bool NoEnhanceTarget;
+    public CardDefinition AfterPreview;
+
+    // 카드 추가 옵션일 때 사용
+    public int CardPoolIndex;
+    public CardUpgrade Upgrade;
+    public CardDefinition Card;
+
+    // 강화 옵션일 때 대상 카드 index
+    public int TargetCardIndex;
+
+    // 강화 종류 식별용
+    public int EnhanceId;
+}

@@ -26,12 +26,43 @@ public sealed class NetworkModeGate : MonoBehaviour
 
     public event Action<bool> NetworkEnabledChanged;
 
-    public void SetNetworkEnabled(bool enabled)
-    {
-        if (networkEnabled == enabled)
-            return;
+    private void Awake()
+{
+    Debug.Log(
+        "[NetworkModeGate] Awake | " +
+        $"Name: {gameObject.name} | " +
+        $"InstanceID: {GetInstanceID()} | " +
+        $"networkEnabled: {networkEnabled}"
+    );
+}
 
-        networkEnabled = enabled;
-        NetworkEnabledChanged?.Invoke(enabled);
-    }
+private void OnEnable()
+{
+    Debug.Log(
+        "[NetworkModeGate] OnEnable | " +
+        $"Name: {gameObject.name} | " +
+        $"InstanceID: {GetInstanceID()} | " +
+        $"networkEnabled: {networkEnabled}"
+    );
+}
+
+public void SetNetworkEnabled(bool enabled)
+{
+    Debug.Log(
+        "[NetworkModeGate] SetNetworkEnabled | " +
+        $"Name: {gameObject.name} | " +
+        $"InstanceID: {GetInstanceID()} | " +
+        $"Before: {networkEnabled} | " +
+        $"After: {enabled}"
+    );
+
+    if (networkEnabled == enabled)
+        return;
+
+    networkEnabled = enabled;
+
+    NetworkEnabledChanged?.Invoke(
+        enabled
+    );
+}
 }

@@ -23,6 +23,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MultiPlayMode.unity
     guid: de4dcc1f4fdf6a945a9af9cccf279419
+  - enabled: 1
+    path: Assets/Scenes/MultiplayLobby_Oracle.unity
+    guid: 65e6c362981ae096a7db0b065881be76
+  - enabled: 1
+    path: Assets/Scenes/MultiPlayMode_Oracle.unity
+    guid: dacb7f1098b408c6ad4f669a575f4798
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

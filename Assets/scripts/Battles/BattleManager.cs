@@ -268,6 +268,7 @@ public class BattleManager:MonoBehaviour
 
     public static Sprite GetEmoji(EffectType effectType)
     {
+        if (Instance == null) return BattleManager_Multi.GetEmoji(effectType);
         if (_emojiCache == null)
         {
             _emojiCache = new Dictionary<EffectType, Sprite>();
