@@ -157,15 +157,25 @@ public class CharacterManager: MonoBehaviour
         }
     }
 
+    // 턴 종료 처리는 BattleManager.ResolveTurnEnd가 양쪽을 단계별로 번갈아 부른다(순서는 그쪽 참고).
+    // 한쪽의 처리를 통째로 먼저 끝내면, 같은 턴 종료에 끝나는 방어 카드가 먼저 처리되는 쪽만
+    // 상대 공격을 못 막는 비대칭이 생긴다.
+    public void TickQueue() => _queueManager.TickCooldowns(tickSpeed);
+
+    public void ResolveReadyCards(bool continuousCards) => _queueManager.ResolveReadyCards(this, continuousCards);
+
+    // 화상/독 같은 턴 종료 효과. 이번 턴 종료에 큐를 떠나는 스킬 카드의 효과도 아직 살아 있을 때 부른다.
+    public void TickTurnEndEffects()
+    {
+        // 화상/독 틱이 TakeDamage → OnDamaged로 다른 효과(Overcharge 등)를 지울 수 있어 인덱스 순회는
+        // 같은 효과를 두 번 부르거나 건너뛸 수 있다 — 스냅샷을 순회하고, 이미 제거된 것은 건너뛴다.
+        foreach (Effect effect in _effects.ToArray())
+            if (_effects.Contains(effect))
+                effect.OnTurnEnded(this);
+    }
+
     public void OnTurnEnd()
     {
-        // 기존 버그: tickSpeed(Quicker가 올려주는 턴당 쿨다운 감소 속도)가 여기서 전달되지 않고
-        // 항상 기본값(1)으로만 틱돼서, Quicker를 써도 큐가 실제로는 전혀 빨라지지 않았다.
-        // QueueManager.TickQueueCards는 이미 이 값을 받아 처리하도록 만들어져 있었다(Continuous
-        // 카드는 가속에서 제외하는 로직까지) — 호출부만 고치면 됐다.
-        _queueManager.TickQueueCards(this, tickSpeed);
-        for (int i = _effects.Count - 1; i >= 0; i--)
-            _effects[i].OnTurnEnded(this);
         // 플레이어는 select된 카드가 있어도 여기서 건드리지 않는다 — 다음 OnTurnStart의
         // 재시도로 넘긴다. AI는 이제 Update()가 턴 내내 매 프레임 판단해서 곧장 사용하므로
         // (UpdateAi 참고) 턴 종료 시점에 따로 뽑아 쓸 필요가 없다.
@@ -305,6 +315,14 @@ public class CharacterManager: MonoBehaviour
                     _isGuard = true;
                     SetDefenseIndicatorActive(true);
                     Debug.Log($"[{gameObject.name}] AI is guarding");
+                }
+                break;
+
+            case EnemyAIBehavior.ActionStopDefend:
+                if (_isGuard)
+                {
+                    _isGuard = false;
+                    SetDefenseIndicatorActive(false);
                 }
                 break;
 
@@ -486,15 +504,10 @@ public class CharacterManager: MonoBehaviour
     {
         if (amount > 0)
         {
+            int drain = 0;
             foreach (Effect effect in _effects)
-            {
-                if (effect is EnergyDrainEffect drain)
-                {
-                    amount = Mathf.Max(0, amount - 1);
-                    drain.ConsumeCharge(this);
-                    break;
-                }
-            }
+                if (effect is EnergyDrainEffect) drain += effect.GetMagnitude();
+            amount = Mathf.Max(0, amount - drain);
         }
         _cost = Mathf.Clamp(_cost + amount, 0, MaxCost);
         UpdateCostDisplay();
@@ -555,20 +568,15 @@ public class CharacterManager: MonoBehaviour
         return;
     }
 
-    // 카드 하나를 실제로 큐에 편입시키는 유일한 통로. 코스트를 감당할 수 없으면(preview 기준)
-    // 곧장 실패하고, 감당 가능하면 실제 적용(ResolveUse actualUse=true) 후 큐에 자리가 있는지
-    // 시도한다 — 큐가 꽉 차 있으면 QueueManager.AddCard가 false를 돌려주고, 그러면 이 카드는
-    // 손패에 그대로 남는다(호출부인 HandManager가 처리). 성공한 경우에만 코스트를 차감한다.
+    // 카드 하나를 실제로 큐에 편입시키는 유일한 통로. 코스트가 모자라거나 큐가 꽉 차 있으면 실패하고
+    // 카드는 손패에 그대로 남는다(호출부인 HandManager가 처리). 성공하면 그 즉시 스킬(Continuous)
+    // 효과가 부여되고(EnterQueue) 코스트를 차감한다.
     public bool QueueCard(CardInstance card, GameObject cardObject)
     {
-        CardInstance preview = card.Clone();
-        preview.ResolveUse(this, _queueManager.GetQueue(), false);
-        if (_cost < preview.GetCost()) return false;
-
-        card.ResolveUse(this, _queueManager.GetQueue(), true);
-        card.Use();
+        if (_cost < card.GetCost() || !_queueManager.HasFreeSlot()) return false;
         if (!_queueManager.AddCard(card, cardObject)) return false;
 
+        card.Use();
         card.EnterQueue(this);
 
         _cost -= card.GetCost();
@@ -594,6 +602,14 @@ public class CharacterManager: MonoBehaviour
     {
         _deck.Add(card);
     }
+
+    public void InsertIntoDeckRandomly(CardInstance card)
+    {
+        _deck.Insert(UnityEngine.Random.Range(0, _deck.Count + 1), card);
+    }
+
+    // 덱(아직 뽑히지 않은 카드들)에 있을 때만 제거한다. 이미 손패/큐로 나간 카드는 건드리지 않는다.
+    public bool RemoveFromDeck(CardInstance card) => _deck.Remove(card);
 
     public void AddEffect(Effect effect)
     {
@@ -639,7 +655,7 @@ public class CharacterManager: MonoBehaviour
         EffectType effectType = cardEffect.GetEffect().GetEffectType();
         int magnitude = cardEffect.GetMagnitude();
 
-        // 공격 계열(ConsumesDefense인 것만 — Burning처럼 방어를 무시하는 변종은 제외)은 자신의 큐에
+        // 공격 계열(ConsumesDefense인 것만 — 방어를 무시하는 공격 변종은 제외)은 자신의 큐에
         // 있는 방어 카드들을 순회해 상쇄한다(DefendEffect 참고) — 위 OnAppliedOther 정렬 순회 이후이므로
         // Guard 등 배율 계열 효과가 이미 반영된 값을 상쇄한다.
         if (Effect.Create(effectType, 0) is AttackEffect probe && probe.ConsumesDefense)

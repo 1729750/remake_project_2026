@@ -93,7 +93,7 @@ public class QueueManager
         return false;
     }
 
-    public void TickQueueCards(CharacterManager characterManager, int tick = 1)
+    public void TickCooldowns(int tick = 1)
     {
         for (int i = 0; i < QueueSize; i++)
         {
@@ -101,20 +101,22 @@ public class QueueManager
 
             // Quicker 등으로 빨라진 틱 속도는 Continuous 카드에는 적용하지 않는다.
             _queue[i].TickCooldown(_queue[i].IsContinuousCard() ? 1 : tick);
-            foreach (CardEffect cardEffect in _queue[i].GetEffects())
-                cardEffect.GetEffect().OnTick(characterManager);
         }
+    }
+
+    // 쿨다운이 다 된 카드 중 continuousCards에 해당하는 종류만 발동시킨다. BattleManager가 양쪽의
+    // Instant 카드를 먼저, Continuous 카드를 나중에 발동시키므로, 같은 턴 종료에 끝나는 방어/버프는
+    // 그 턴에 떨어지는 공격까지는 유지된다(양쪽 모두 동일하게).
+    public void ResolveReadyCards(CharacterManager characterManager, bool continuousCards)
+    {
         for (int i = 0; i < QueueSize; i++)
         {
-            if (_queue[i] == null) continue;
+            CardInstance card = _queue[i];
+            if (card == null || !card.IsReady() || card.IsContinuousCard() != continuousCards) continue;
 
-            if (_queue[i].IsReady())
-            {
-                characterManager.PlayCard(_queue[i]);
-                _queue[i] = null;
-                ReleaseCardVisual(i);
-                i = 0;
-            }
+            _queue[i] = null;
+            ReleaseCardVisual(i);
+            characterManager.PlayCard(card);
         }
         CompactQueue();
     }

@@ -5,8 +5,13 @@ public class AttackEffect : Effect
 {
     public AttackEffect(int magnitude) : base(EffectType.Attack, magnitude) { }
 
-    // 공격 계열(Attack 자신 포함)이 큐의 Defend 카드로 상쇄되는지. Burning처럼 방어를 무시하는
-    // 변종은 false로 override한다. CharacterManager.ApplyEffect가 OnApply를 부르기 전에 확인한다.
+    // 공격과 그 자식만 Instant다(시전 시간이 끝나는 순간 한 번 떨어진다). 나머지 효과는 전부 Continuous.
+    public override EffectCategory SupportedCategories => EffectCategory.Instant;
+
+    public override EffectTargetPolarity TargetPolarity => EffectTargetPolarity.Negative;
+
+    // 공격 계열이 큐의 Defend 카드로 상쇄되는지. 방어를 무시하는 공격 변종을 만들 때 false로
+    // override한다. CharacterManager.ApplyEffect가 OnApply를 부르기 전에 확인한다.
     public virtual bool ConsumesDefense => true;
 
     // 공격 계열의 공통 뼈대: 데미지를 입히고(DealDamage), 실제로 1 이상 들어갔으면 OnDamaging을

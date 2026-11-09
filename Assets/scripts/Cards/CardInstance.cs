@@ -211,42 +211,14 @@ public class CardInstance
         _queuedMagnitudes.Clear();
     }
 
-    // subject: 이 카드를 쓰는 주체. queuedCards: 현재 큐에 있는 카드들(OnUsingOther가 반응할 대상).
-    // actualUse가 true면 실제 사용 시점(카드가 손패에서 큐로 넘어가기 전, 비용 체크 직전)의 호출이고,
-    // false면 시각화(비용 표시) 갱신용 미리보기 호출이다.
-    public void ResolveUse(CharacterManager subject, IEnumerable<CardInstance> queuedCards, bool actualUse)
-    {
-        if(actualUse)
-        {
-            foreach (CardEffect cardEffect in _effects)
-                ResolveEffect(cardEffect).OnUse(subject, this, actualUse);
-        }
-
-        if (queuedCards == null) return;
-        foreach (CardInstance queued in queuedCards)
-        {
-            if (queued == null) continue;
-            foreach (CardEffect cardEffect in queued.GetEffects())
-                ResolveEffect(cardEffect).OnUsingOther(subject, this, actualUse);
-        }
-    }
-
-    // cardEffect.GetEffect()는 CardDefinition 애셋에 그대로 저장된 authoring용 Effect라
-    // (SerializeReference가 아니라 평범한 SerializeField라) 서브클래스로 역직렬화되지 않고 항상
-    // base Effect로 들어온다. OnUse/OnUsingOther처럼 서브클래스 오버라이드에 실제 동작이 있는 훅은
-    // Effect.Create로 매번 진짜 런타임 서브클래스를 새로 만들어 호출해야 한다.
-    private static Effect ResolveEffect(CardEffect cardEffect) =>
-        Effect.Create(cardEffect.GetEffect().GetEffectType(), cardEffect.GetEffect().GetMagnitude());
-
     // 매 턴 종료마다 호출되어, 현재 버프 상태(subject의 OnApplyingOther / 대상의 OnAppliedOther)를
-    // 반영한 비용·효과 수치로 시각화를 다시 계산한다. 원본 데이터가 오염되지 않도록 복제본에서
-    // 계산하고(ResolveUse도 false로 순회), 계산이 끝난 결과값만 실제 CardVisual에 밀어넣는다.
-    public void RefreshDisplay(CharacterManager subject, IEnumerable<CardInstance> queuedCards)
+    // 반영한 효과 수치로 시각화를 다시 계산한다. 원본 데이터가 오염되지 않도록 복제본에서 계산하고,
+    // 계산이 끝난 결과값만 실제 CardVisual에 밀어넣는다.
+    public void RefreshDisplay(CharacterManager subject)
     {
         if (_visual == null || subject == null) return;
 
         CardInstance preview = Clone();
-        preview.ResolveUse(subject, queuedCards, false);
 
         foreach (CardEffect cardEffect in preview._effects)
         {
@@ -267,7 +239,7 @@ public class CardInstance
         _visual.SetUnplayable(preview.GetCost() > subject.GetCost());
     }
 
-    // OnUse/OnUsingOther/OnApplyingOther/OnAppliedOther를 actualUse=false로 순회할 때 쓰는 복제본.
+    // OnApplyingOther/OnAppliedOther를 actualUse=false로 순회할 때 쓰는 복제본.
     // 같은 CardDefinition을 쓰는 다른 CardInstance와 CardEffect 객체를 공유하지 않도록 새로 감싸서,
     // 이 복제본에 대한 Reset()/Add()/Multiply()가 원본이나 다른 카드에 영향을 주지 않게 한다.
     public CardInstance Clone()

@@ -13,6 +13,8 @@ public abstract class EnemyAIBehavior : ScriptableObject
     public const int ActionDefend = 4;
     // 아무것도 하지 않는다
     public const int ActionNone = 5;
+    // 방어 자세를 푼다(자세를 유지하면 다음 턴 코스트 회복이 1 줄어든다)
+    public const int ActionStopDefend = 6;
 
     public abstract int Decide(in BattleSnapshot snapshot);
 }

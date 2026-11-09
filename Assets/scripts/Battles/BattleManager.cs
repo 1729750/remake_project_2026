@@ -31,6 +31,8 @@ public class BattleManager:MonoBehaviour
     [SerializeField] private Color enemyScaleFarColor = new Color(1f, 0.75f, 0.75f);
     [SerializeField] private Color playerScaleNearColor = new Color(0.05f, 0.05f, 0.8f);
     [SerializeField] private Color playerScaleFarColor = new Color(0.75f, 0.75f, 1f);
+    // 눈금 위에 띄우는 카드 효과 아이콘 줄의 최대 가로 길이(눈금 스프라이트 가로 크기 대비 배율).
+    [SerializeField] private float scaleEffectMaxWidthRatio = 1.5f;
 
     private TurnManager _turnManager;
     private TurnTimerOverlay _turnTimerOverlay;
@@ -90,11 +92,13 @@ public class BattleManager:MonoBehaviour
         _turnScaleDisplay = new TurnScaleDisplay(
             _scalePool, scaleSpacing, scaleVerticalOffset,
             scaleDefaultColor, scaleLeftFadePerStep, scaleRightFadePerStep,
-            enemyScaleNearColor, enemyScaleFarColor, playerScaleNearColor, playerScaleFarColor);
+            enemyScaleNearColor, enemyScaleFarColor, playerScaleNearColor, playerScaleFarColor,
+            scaleEffectMaxWidthRatio);
     }
 
     public void StartBattle(CharacterData playerData, CharacterData enemyData)
     {
+        AddDumpEffect.ResetTracking();
         EnemyAIBehavior enemyAI = enemyData.GetEnemyAI() != null ? enemyData.GetEnemyAI() : defaultEnemyAI;
         playerCharacterManager.CharacterInit(UnpackCardCollection(playerData.GetDeck()).ToArray(), playerData.GetMaxHealth());
         enemyCharacterManager.CharacterInit(UnpackCardCollection(enemyData.GetDeck()).ToArray(), enemyData.GetMaxHealth(), enemyAI);
@@ -193,12 +197,38 @@ public class BattleManager:MonoBehaviour
         SetState(BattleState.TurnEnd);
         Debug.Log($"Turn {_turnManager.GetCurrentTurn()} Ended");
         PlayAlternatingTurnEnd();
-        playerCharacterManager.OnTurnEnd();
-        enemyCharacterManager.OnTurnEnd();
+        ResolveTurnEnd();
         if (CurrentState != BattleState.BattleFinish)
         {
             _turnManager.StartTurn();
         }
+    }
+
+    // 양쪽을 단계별로 번갈아 처리한다:
+    // 1) 쿨다운 감소 → 2) 공격(Instant) 카드 발동 → 3) 화상/독 등 턴 종료 효과
+    // → 4) 스킬(Continuous) 카드 종료 → 5) 손패 표시 갱신.
+    // 이번 턴 종료에 끝나는 방어/버프/화상은 어느 쪽이든 이번 턴 종료까지는 유지된다 — 쿨다운 d인
+    // 스킬 카드는 정확히 d번의 턴 종료 동안 효과를 낸다. 중간에 승패가 나면 이후 단계는 건너뛴다.
+    private void ResolveTurnEnd()
+    {
+        playerCharacterManager.TickQueue();
+        enemyCharacterManager.TickQueue();
+
+        playerCharacterManager.ResolveReadyCards(false);
+        if (CurrentState == BattleState.BattleFinish) return;
+        enemyCharacterManager.ResolveReadyCards(false);
+        if (CurrentState == BattleState.BattleFinish) return;
+
+        playerCharacterManager.TickTurnEndEffects();
+        if (CurrentState == BattleState.BattleFinish) return;
+        enemyCharacterManager.TickTurnEndEffects();
+        if (CurrentState == BattleState.BattleFinish) return;
+
+        playerCharacterManager.ResolveReadyCards(true);
+        enemyCharacterManager.ResolveReadyCards(true);
+
+        playerCharacterManager.OnTurnEnd();
+        enemyCharacterManager.OnTurnEnd();
     }
 
     // BattleStarting 카운트다운의 1초 틱과 실제 턴 종료가 같은 토글을 공유해 TurnEnd1/2를 번갈아 재생한다.
@@ -259,9 +289,9 @@ public class BattleManager:MonoBehaviour
         CharacterManager opponent = GetOpponent(self);
         return new BattleSnapshot(
             self, opponent,
-            self.GetHealth(), self.getmaxHealth(), self.GetDefense(), self.GetCost(),
+            self.GetHealth(), self.getmaxHealth(), self.GetDefense(), self.GetCost(), self.GetIsGuard(),
             self.GetEffects(), self.GetHand(), self.GetQueue(), self.QueueHasFreeSlot(), self.GetDeck(),
-            opponent.GetHealth(), opponent.getmaxHealth(), opponent.GetDefense(),
+            opponent.GetHealth(), opponent.getmaxHealth(), opponent.GetDefense(), opponent.GetCost(),
             opponent.GetEffects(), opponent.GetQueue(),
             GetCurrentTurn(), GetTurnDuration(), GetRemainingTurnTime());
     }

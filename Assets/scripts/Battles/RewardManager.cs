@@ -56,10 +56,7 @@ public class RewardManager : MonoBehaviour
     private const float CooldownAllocationChance = 2f / 3f;
     // Instant/Continuous를 둘 다 지원하는 effectType이 강화 후보로 뽑혔을 때, 이 확률로 Continuous를
     // 고른다(나머지는 Instant). 한쪽만 지원하면 이 확률과 무관하게 그 하나로 고정된다.
-    private const float ContinuousChance = 0.2f;
-    // Continuous는 카드가 큐에 머무는 동안만 발동하는 반쪽짜리 효과라, 같은 magnitude라도 Instant보다
-    // 훨씬 약하다 — 그 보상으로 cost/cooldown 감소 예산을 5배로 쳐준다.
-    private const int ContinuousBudgetMultiplier = 5;
+    private const float ContinuousChance = 0.5f;
     // RollFeasibleEnhanceOption가 "덱의 카드 중 하나 이상에 대입 가능한 옵션"이 나올 때까지 다시
     // 굴리는 시도 횟수 상한. 덱이 비어 있는 등 정상적으로 불가능한 상황에서 무한 루프를 막는다.
     private const int MaxFeasibleRollAttempts = 100;
@@ -261,13 +258,15 @@ public class RewardManager : MonoBehaviour
         cardEffect.SetAppliedCategory(appliedCategory);
 
         int priceMagnitude = effect.DoesntUseMagnitude ? 1 : magnitude;
-        int budget = Mathf.FloorToInt(priceInfo.price * (float)priceMagnitude);
-        // Continuous는 카드가 큐에 머무는 동안만 발동하는 반쪽짜리 효과라 같은 magnitude라도 Instant보다
-        // 약하므로, 그 보상으로 cost/cooldown 감소 예산을 5배로 쳐준다.
-        if (appliedCategory == EffectCategory.Continuous)
-            budget *= ContinuousBudgetMultiplier;
-        (int costUnits, int cooldownUnits) = DistributeBudget(budget);
+        int budget = Mathf.RoundToInt(priceInfo.price * Mathf.Abs(priceMagnitude));
 
+        // Continuous 카드에서 쿨다운이 늘면 버프/방어가 큐에 머무는 기간이 길어지는 "이득"이라 대가가
+        // 될 수 없다 — 예산 전부를 코스트로 받는다. Instant(공격 등)는 쿨다운 증가가 시전 시간이
+        // 길어져 상대가 반응하기 쉬워지는 실제 대가이므로 기존처럼 코스트/쿨다운에 나눠 받는다.
+        if (appliedCategory == EffectCategory.Continuous)
+            return new CardUpgrade(cardEffect, budget, 0);
+
+        (int costUnits, int cooldownUnits) = DistributeBudget(budget);
         return new CardUpgrade(cardEffect, costUnits, cooldownUnits);
     }
 

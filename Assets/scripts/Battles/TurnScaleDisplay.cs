@@ -33,6 +33,8 @@ public class TurnScaleDisplay
     private readonly float _spacing;
     private readonly float _verticalOffset;
     private readonly float _shiftSpeed;
+    // 칸 위에 띄우는 효과 아이콘 줄의 최대 가로 길이 = 눈금 스프라이트 가로 크기 × 이 배율.
+    private readonly float _effectMaxWidthRatio;
 
     private readonly RowState _enemyRow;
     private readonly RowState _playerRow;
@@ -64,13 +66,20 @@ public class TurnScaleDisplay
         public SpriteRenderer[] Right;
         public CardInstance PrevNearest;
         public readonly List<ExitTrail> Exits = new List<ExitTrail>();
+        // 왼쪽 칸별로 지금 그 칸을 차지한 카드들(같은 남은 쿨다운이면 여러 장이 한 칸에 겹친다)과,
+        // 아이콘을 마지막으로 만들 때 기준이 됐던 카드들. 둘이 다를 때만 아이콘을 다시 만든다.
+        public List<CardInstance>[] Occupants;
+        public List<CardInstance>[] ShownOccupants;
+        public List<EffectDisplay>[] SlotEffects;
     }
 
     public TurnScaleDisplay(
         GameObjectPool scalePool, float horizontalSpacing, float verticalOffset,
         Color defaultColor, float leftFadePerStep, float rightFadePerStep,
-        Color enemyNearColor, Color enemyFarColor, Color playerNearColor, Color playerFarColor)
+        Color enemyNearColor, Color enemyFarColor, Color playerNearColor, Color playerFarColor,
+        float effectMaxWidthRatio)
     {
+        _effectMaxWidthRatio = effectMaxWidthRatio;
         _defaultColor = defaultColor;
         _leftFadePerStep = leftFadePerStep;
         _rightFadePerStep = rightFadePerStep;
@@ -88,6 +97,8 @@ public class TurnScaleDisplay
             Debug.LogWarning("[TurnScaleDisplay] scalePool이 지정되지 않아 눈금을 만들지 않습니다.");
             _enemyRow = new RowState { Left = new SpriteRenderer[0], Right = new SpriteRenderer[0] };
             _playerRow = new RowState { Left = new SpriteRenderer[0], Right = new SpriteRenderer[0] };
+            InitSlotEffects(_enemyRow);
+            InitSlotEffects(_playerRow);
             return;
         }
 
@@ -101,6 +112,30 @@ public class TurnScaleDisplay
             Left = BuildLeftRow(scalePool, LeftCount, -1, horizontalSpacing, verticalOffset),
             Right = BuildRightRow(scalePool, RightCount, -1, horizontalSpacing, verticalOffset),
         };
+        InitSlotEffects(_enemyRow);
+        InitSlotEffects(_playerRow);
+    }
+
+    private static void InitSlotEffects(RowState state)
+    {
+        int count = state.Left.Length;
+        state.Occupants = new List<CardInstance>[count];
+        state.ShownOccupants = new List<CardInstance>[count];
+        state.SlotEffects = new List<EffectDisplay>[count];
+        for (int i = 0; i < count; i++)
+        {
+            state.Occupants[i] = new List<CardInstance>();
+            state.ShownOccupants[i] = new List<CardInstance>();
+            state.SlotEffects[i] = new List<EffectDisplay>();
+        }
+    }
+
+    // 눈금 오브젝트는 전투가 바뀌어도 풀에서 재사용되므로, 이전 TurnScaleDisplay가 붙여둔 효과
+    // 아이콘이 자식으로 남아 있을 수 있다 — 새로 가져올 때마다 비운다.
+    private static void ClearEffectChildren(GameObject tick)
+    {
+        foreach (EffectDisplay display in tick.GetComponentsInChildren<EffectDisplay>(true))
+            Object.Destroy(display.gameObject);
     }
 
     // 왼쪽(데이터) 줄: 슬롯 i(0..LeftCount-1)의 논리 index는 그대로 i다 — index 0(남은 쿨다운 1)이 x=0.
@@ -112,6 +147,7 @@ public class TurnScaleDisplay
         for (int i = 0; i < count; i++)
         {
             GameObject go = pool.Get();
+            ClearEffectChildren(go);
             go.transform.localPosition = new Vector3(-i * spacing, ySign * verticalOffset, 0f);
             row[i] = go.GetComponent<SpriteRenderer>();
             if (row[i] != null)
@@ -129,6 +165,7 @@ public class TurnScaleDisplay
         {
             int virtualIndex = -(j + 1);
             GameObject go = pool.Get();
+            ClearEffectChildren(go);
             go.transform.localPosition = new Vector3(-virtualIndex * spacing, ySign * verticalOffset, 0f);
             row[j] = go.GetComponent<SpriteRenderer>();
             if (row[j] != null)
@@ -183,6 +220,9 @@ public class TurnScaleDisplay
             state.Left[i].color = c;
         }
 
+        for (int i = 0; i < state.Left.Length; i++)
+            state.Occupants[i].Clear();
+
         if (owner != null)
         {
             foreach (CardInstance card in owner.GetQueue())
@@ -196,9 +236,20 @@ public class TurnScaleDisplay
                 Color c = Color.Lerp(farColor, nearColor, intensity);
                 c.a = 1f;
                 state.Left[index].color = c;
+                state.Occupants[index].Add(card);
             }
         }
         state.PrevNearest = nearest;
+
+        // 칸을 차지한 카드 구성이 바뀐 칸만 아이콘을 다시 만든다 — 매 프레임 호출되므로 매번
+        // 새로 만들지 않는다(카드 구성은 턴 경계나 카드를 낼 때만 바뀐다).
+        for (int i = 0; i < state.Left.Length; i++)
+        {
+            if (state.Left[i] == null || SameCards(state.Occupants[i], state.ShownOccupants[i])) continue;
+            state.ShownOccupants[i].Clear();
+            state.ShownOccupants[i].AddRange(state.Occupants[i]);
+            RebuildSlotEffects(state.Left[i], state.SlotEffects[i], state.Occupants[i], ySign);
+        }
 
         for (int j = 0; j < state.Right.Length; j++)
         {
@@ -229,5 +280,92 @@ public class TurnScaleDisplay
         foreach (CardInstance queued in owner.GetQueue())
             if (queued == card) return true;
         return false;
+    }
+
+    private static bool SameCards(List<CardInstance> a, List<CardInstance> b)
+    {
+        if (a.Count != b.Count) return false;
+        for (int i = 0; i < a.Count; i++)
+            if (a[i] != b[i]) return false;
+        return true;
+    }
+
+    // 칸(tick)을 차지한 카드들의 효과를 EffectType별로 합쳐(같은 효과는 아이콘 하나에 수치 합산)
+    // 눈금 바깥쪽 끝(적 줄은 위, 뒤집힌 내 줄은 아래) 너머에 가운데 정렬로 띄운다. 아이콘은 tick의
+    // 자식이라 턴 전환 시 눈금이 미끄러지는 애니메이션을 그대로 따라간다.
+    private void RebuildSlotEffects(SpriteRenderer tick, List<EffectDisplay> displays, List<CardInstance> cards, int ySign)
+    {
+        var mergedTypes = new List<EffectType>();
+        var mergedMagnitudes = new List<int>();
+        foreach (CardInstance card in cards)
+        {
+            foreach (CardEffect cardEffect in card.GetEffects())
+            {
+                EffectType type = cardEffect.GetEffect().GetEffectType();
+                if (BattleManager.GetEmoji(type) == null) continue; // Preserve/Disposable처럼 아이콘이 없는 마커 타입
+                int magnitude = cardEffect.GetEffect().GetMagnitude();
+                int at = mergedTypes.IndexOf(type);
+                if (at >= 0)
+                {
+                    mergedMagnitudes[at] += magnitude;
+                }
+                else
+                {
+                    mergedTypes.Add(type);
+                    mergedMagnitudes.Add(magnitude);
+                }
+            }
+        }
+
+        while (displays.Count < mergedTypes.Count)
+        {
+            EffectDisplay spawned = EffectDisplay.Spawn(tick.transform);
+            if (spawned == null) break;
+            displays.Add(spawned);
+        }
+
+        int shown = Mathf.Min(mergedTypes.Count, displays.Count);
+        for (int k = 0; k < displays.Count; k++)
+            displays[k].gameObject.SetActive(k < shown);
+        if (shown == 0 || tick.sprite == null) return;
+
+        float totalNativeWidth = 0f;
+        float maxNativeHeight = 0f;
+        var nativeSizes = new Vector2[shown];
+        for (int k = 0; k < shown; k++)
+        {
+            Effect representative = Effect.Create(mergedTypes[k], mergedMagnitudes[k]);
+            displays[k].SetEffect(representative, mergedMagnitudes[k].ToString());
+            displays[k].SetSortingLayer(tick.sortingLayerName);
+
+            Vector2 size = displays[k].GetSpriteSize();
+            if (size.x <= 0f || size.y <= 0f) size = Vector2.one;
+            nativeSizes[k] = size;
+            totalNativeWidth += size.x;
+            maxNativeHeight = Mathf.Max(maxNativeHeight, size.y);
+        }
+
+        // 아이콘 하나일 때는 높이가 최대 폭과 같아지도록(대략 정사각형) 하고, 여러 개가 그 폭을
+        // 넘으면 전체 줄이 최대 폭에 딱 맞도록 균일하게 줄인다.
+        Bounds tickBounds = tick.sprite.bounds;
+        float maxWidth = tickBounds.size.x * _effectMaxWidthRatio;
+        float scale = maxWidth / Mathf.Max(totalNativeWidth, maxNativeHeight);
+        float rowWidth = totalNativeWidth * scale;
+        float rowHeight = maxNativeHeight * scale;
+
+        // flipY는 피벗 기준으로 y를 뒤집으므로, 뒤집힌 줄의 바깥쪽 끝은 -bounds.max.y다.
+        float gap = rowHeight * 0.25f;
+        float centerY = ySign > 0
+            ? tickBounds.max.y + gap + rowHeight / 2f
+            : -tickBounds.max.y - gap - rowHeight / 2f;
+
+        float cursor = -rowWidth / 2f;
+        for (int k = 0; k < shown; k++)
+        {
+            float width = nativeSizes[k].x * scale;
+            displays[k].SetScale(scale);
+            displays[k].SetLocalPosition(new Vector3(cursor + width / 2f, centerY, 0f));
+            cursor += width;
+        }
     }
 }
