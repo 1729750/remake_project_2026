@@ -18,6 +18,7 @@ namespace CardGameServer;
 ///   { "type": "skip" }                    // 카드 선택 단계: 이번 라운드 건너뛰기
 ///   { "type": "play", "index": 0 }        // 전투: 0~3 손패 카드, -2 리드로우, -1 가드 토글
 ///   { "type": "rematch" }                 // 결과 화면에서 다시 하기 (둘 다 누르면 새 게임)
+///   { "type": "client_error", "message": "..." }  // 클라이언트가 겪은 네트워크 오류 보고 (서버는 로그만 남김)
 ///
 /// Server → Client
 ///   { "type": "welcome", "playerId": "..." }
@@ -41,7 +42,7 @@ public static class Protocol
     };
 }
 
-public sealed record ClientMessage(string? Type, string? Name, string? Code, int Index);
+public sealed record ClientMessage(string? Type, string? Name, string? Code, int Index, string? Message = null);
 
 public sealed record PlayerInfo(string PlayerId, string Name);
 

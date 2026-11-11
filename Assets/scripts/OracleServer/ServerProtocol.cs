@@ -12,6 +12,7 @@ public sealed class ClientMessage
     public string name;
     public string code;
     public int index;
+    public string message;
 
     public static ClientMessage Hello(string name) => new ClientMessage { type = "hello", name = name };
     public static ClientMessage CreateRoom() => new ClientMessage { type = "create_room" };
@@ -29,6 +30,9 @@ public sealed class ClientMessage
     public static ClientMessage Play(int index) => new ClientMessage { type = "play", index = index };
 
     public static ClientMessage Rematch() => new ClientMessage { type = "rematch" };
+
+    /// <summary>지난번 네트워크 오류 내용을 서버 로그에 남긴다 (진단용, 서버는 기록만 한다).</summary>
+    public static ClientMessage ClientError(string report) => new ClientMessage { type = "client_error", message = report };
 }
 
 [Serializable]

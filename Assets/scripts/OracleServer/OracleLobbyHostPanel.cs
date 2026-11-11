@@ -126,7 +126,7 @@ public sealed class OracleLobbyHostPanel : MonoBehaviour
         if (!connected)
         {
             creating = false;
-            SetStatus("서버에 연결할 수 없습니다.\n뒤로 갔다가 다시 시도하세요.");
+            SetStatus($"서버에 연결할 수 없습니다. 뒤로 갔다가 다시 시도하세요.\n{client.LastErrorSummary}");
             return;
         }
 
@@ -203,7 +203,7 @@ public sealed class OracleLobbyHostPanel : MonoBehaviour
     private void HandleDisconnected()
     {
         creating = false;
-        SetStatus("서버와 연결이 끊어졌습니다.");
+        SetStatus($"서버와 연결이 끊어졌습니다.\n{client.LastErrorSummary}");
         Refresh();
     }
 

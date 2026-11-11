@@ -92,7 +92,7 @@ public sealed class OracleLobbyClientPanel : MonoBehaviour
         if (!connected)
         {
             joining = false;
-            SetStatus("서버에 연결할 수 없습니다.");
+            SetStatus($"서버에 연결할 수 없습니다.\n{client.LastErrorSummary}");
             return;
         }
 
@@ -139,7 +139,7 @@ public sealed class OracleLobbyClientPanel : MonoBehaviour
     private void HandleDisconnected()
     {
         joining = false;
-        SetStatus("서버와 연결이 끊어졌습니다.");
+        SetStatus($"서버와 연결이 끊어졌습니다.\n{client.LastErrorSummary}");
     }
 
     private void SetStatus(string message)
