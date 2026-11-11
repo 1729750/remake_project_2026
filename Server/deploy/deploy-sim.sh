@@ -7,9 +7,11 @@ set -euo pipefail
 
 HOST="${CARDGAME_HOST:-ubuntu@161.33.142.112}"
 KEY="${CARDGAME_KEY:-/c/Server/RealTimeCardGame/ssh-key-2026-11-03.key}"
+# SSH 포트: 서버는 22, 443, 8080에서 받는다. 자취방 와이파이 등에서 22번이 자주 끊겨 기본은 443
+PORT="${CARDGAME_SSH_PORT:-443}"
 SERVER_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PASSWORD_FILE="$SERVER_DIR/tools/.sim-password"
-SSH=(ssh -i "$KEY" -o BatchMode=yes "$HOST")
+SSH=(ssh -p "$PORT" -i "$KEY" -o BatchMode=yes -o ConnectTimeout=10 "$HOST")
 
 echo "== publish BalanceSim (linux-arm64)"
 rm -rf "$SERVER_DIR/BalanceSim/publish"
@@ -18,7 +20,7 @@ dotnet publish "$SERVER_DIR/BalanceSim/BalanceSim.csproj" \
 
 echo "== upload"
 tar -C "$SERVER_DIR/BalanceSim/publish" -czf - . | "${SSH[@]}" 'rm -rf /tmp/balancesim-new && mkdir /tmp/balancesim-new && tar -C /tmp/balancesim-new -xzf -'
-scp -q -i "$KEY" -o BatchMode=yes "$SERVER_DIR/deploy/balancesim.service" "$HOST:/tmp/balancesim.service"
+scp -q -P "$PORT" -i "$KEY" -o BatchMode=yes "$SERVER_DIR/deploy/balancesim.service" "$HOST:/tmp/balancesim.service"
 
 echo "== install"
 "${SSH[@]}" 'bash -s' <<'REMOTE'

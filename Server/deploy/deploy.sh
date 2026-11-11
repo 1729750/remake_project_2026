@@ -9,6 +9,8 @@ set -euo pipefail
 
 HOST="${CARDGAME_HOST:-ubuntu@161.33.142.112}"
 KEY="${CARDGAME_KEY:-/c/Server/RealTimeCardGame/ssh-key-2026-11-03.key}"
+# SSH 포트: 서버는 22, 443, 8080에서 받는다. 자취방 와이파이 등에서 22번이 자주 끊겨 기본은 443
+PORT="${CARDGAME_SSH_PORT:-443}"
 SERVER_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TRIES="${DEPLOY_TRIES:-6}"
 
@@ -47,12 +49,12 @@ REMOTE
 
 echo "== upload + install"
 for try in $(seq 1 "$TRIES"); do
-  if tar -C "$SERVER_DIR/publish" -czf - . | ssh -i "$KEY" -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 "$HOST" \
+  if tar -C "$SERVER_DIR/publish" -czf - . | ssh -p "$PORT" -i "$KEY" -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 "$HOST" \
       'rm -rf /tmp/cardgame-new && mkdir /tmp/cardgame-new && tar -C /tmp/cardgame-new -xzf - && bash /tmp/cardgame-new/_deploy/install.sh'; then
     exit 0
   fi
   echo "SSH 연결이 끊겼습니다. 다시 시도 ($try/$TRIES)" >&2
   sleep 3
 done
-echo "배포 실패: SSH(22번)에 계속 연결할 수 없습니다. 다른 네트워크에서 다시 시도하세요." >&2
+echo "배포 실패: SSH($PORT번)에 계속 연결할 수 없습니다. CARDGAME_SSH_PORT=22 처럼 다른 포트로 시도해 보세요." >&2
 exit 1
