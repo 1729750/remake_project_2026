@@ -1,0 +1,14 @@
+{
+  // 예시 패치: 코스트가 커서 거의 못 쓰는 카드(최대 코스트 15, 턴당 회복 2)의 코스트를 낮춰 본다.
+  // 실제 반영은 Unity 카드 에셋을 고친 뒤 Server/tools/export-cards.mjs 로 한다.
+  "name": "고코스트 카드 코스트 인하 (예시)",
+  "cards": {
+    "chrono-fracture": { "cost": 12 },
+    "overclock-core": { "cost": 10 },
+    "temporal-snare": { "cost": 11 },
+    "GreatWall": { "cost": 8 }
+  },
+  "effectPrices": {
+    "TimeSkip": { "magnitudeMin": 4, "magnitudeMax": 8 }
+  }
+}

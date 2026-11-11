@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- AI끼리 대전시켜 카드/효과/강화 밸런스를 재는 프로그램 (명령줄, 또는 serve 옵션을 준 웹 모드). 규칙은 게임 서버와 같은 CardGame.Core. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BalanceSim</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CardGame.Core\CardGame.Core.csproj" />
+    <Using Include="CardGame.Core" />
+    <None Include="..\CardGameServer\Data\cards.json" Link="Data\cards.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

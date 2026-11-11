@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>밸런스 시뮬레이터</title>
+<style>
+:root { --bg:#fff; --fg:#1d1d1f; --muted:#6b6b70; --line:#e3e3e6; --panel:#f6f6f8; --accent:#2b6fd6; --accent-fg:#fff; --weak:#c8553d; --ok:#2f8f5b; }
+@media (prefers-color-scheme: dark) { :root { --bg:#17171a; --fg:#ececef; --muted:#a0a0a8; --line:#33333a; --panel:#212126; --accent:#5b97ff; --accent-fg:#0d1b33; --weak:#e07a62; --ok:#5cc28a; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:20px 16px 48px; }
+h1 { font-size:20px; margin:0; } h2 { font-size:16px; margin:24px 0 8px; }
+.muted { color:var(--muted); } .small { font-size:12px; }
+.bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.panel { background:var(--panel); border-radius:10px; padding:14px; margin-top:12px; }
+label { display:inline-flex; gap:6px; align-items:center; }
+select, input[type=text], input[type=number] { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:5px 8px; }
+input[type=number] { width:64px; }
+button { font:inherit; border:1px solid var(--line); background:var(--bg); color:var(--fg); border-radius:7px; padding:6px 12px; cursor:pointer; }
+button.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-fg); font-weight:600; }
+button:disabled { opacity:.5; cursor:default; }
+.progress { height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin-top:8px; }
+.progress > div { height:100%; background:var(--accent); width:0; transition:width .4s; }
+table { border-collapse:collapse; width:100%; }
+th, td { padding:6px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+th { color:var(--muted); font-weight:500; font-size:12px; }
+td.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.tag { display:inline-block; font-size:11px; padding:1px 6px; border-radius:9px; background:var(--line); color:var(--muted); margin-left:4px; }
+.tag.auto { background:var(--accent); color:var(--accent-fg); }
+.strong { color:var(--accent); } .weak { color:var(--weak); } .err { color:var(--weak); }
+iframe { width:100%; height:1100px; border:1px solid var(--line); border-radius:10px; background:var(--bg); margin-top:8px; }
+details summary { cursor:pointer; font-weight:600; }
+.editor { max-height:520px; overflow:auto; margin-top:10px; }
+.editor td input { width:56px; }
+.changed { outline:2px solid var(--accent); }
+.scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+  <div class="bar" style="justify-content:space-between">
+    <div>
+      <h1>밸런스 시뮬레이터</h1>
+      <div class="muted small" id="cards">카드 데이터 불러오는 중…</div>
+    </div>
+    <label class="small"><input type="checkbox" id="autorun"> 카드 데이터가 바뀌면 자동 실행</label>
+  </div>
+
+  <div class="panel">
+    <div class="bar">
+      <label>판 수
+        <select id="games"><option>500</option><option selected>1500</option><option>3000</option><option>10000</option></select>
+      </label>
+      <span>AI</span><span id="ais" class="bar"></span>
+      <label>모드 <select id="mode"></select></label>
+      <button class="primary" id="run">실행</button>
+      <button id="compare" title="현재 수치와 선택한 모드를 같은 시드로 비교">현재와 비교</button>
+      <button id="watch">AI 한 판 관전</button>
+    </div>
+    <div id="running" class="small muted" style="margin-top:8px">대기 중</div>
+    <div class="progress"><div id="progress"></div></div>
+  </div>
+
+  <h2>실행 기록</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>시각</th><th>내용</th><th>카드 데이터</th><th class="n">판 수</th><th class="n">판 길이</th><th class="n">센/약한</th><th>가장 센 / 약한 카드</th><th></th></tr></thead>
+    <tbody id="history"><tr><td colspan="8" class="muted">아직 없음</td></tr></tbody>
+  </table>
+  </div>
+
+  <h2 id="viewer-title" hidden>결과</h2>
+  <iframe id="viewer" hidden></iframe>
+
+  <div class="panel" style="margin-top:24px">
+    <details id="editor-box">
+      <summary>모드 만들기 / 수정 (카드 수치, 강화 가격)</summary>
+      <p class="small muted">바꾼 값만 모드(패치)로 저장됩니다. Unity 카드 에셋은 그대로이고, 시뮬레이터에서만 덮어써서 비교합니다.
+        마음에 드는 모드는 Unity 에셋에 옮긴 뒤 저장하면 자동으로 반영됩니다.</p>
+      <div class="bar">
+        <label>불러오기 <select id="edit-base"></select></label>
+        <label>모드 이름 <input type="text" id="edit-name" placeholder="예: 코스트회복-너프"></label>
+        <button class="primary" id="save-mode">모드로 저장</button>
+        <button id="delete-mode">선택한 모드 삭제</button>
+        <span id="edit-msg" class="small"></span>
+      </div>
+      <div class="editor">
+        <table>
+          <thead><tr><th>카드</th><th>코스트</th><th>쿨다운</th><th>효과 수치</th></tr></thead>
+          <tbody id="edit-cards"></tbody>
+        </table>
+        <h2>강화 가격표</h2>
+        <table>
+          <thead><tr><th>효과</th><th>가격</th><th>수치 최소</th><th>수치 최대</th></tr></thead>
+          <tbody id="edit-prices"></tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let status = null, cardsData = null, lastModes = null;
+
+async function api(path, options = {}) {
+  const res = await fetch(path, options);
+  if (!res.ok) {
+    let msg = res.status + '';
+    try { msg = (await res.json()).error || msg; } catch {}
+    throw new Error(msg);
+  }
+  const type = res.headers.get('content-type') || '';
+  return type.includes('json') ? res.json() : res.text();
+}
+const post = (path, body) => api(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: typeof body === 'string' ? body : JSON.stringify(body) });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const time = iso => { const d = new Date(iso); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+
+function selectedAis() { return [...document.querySelectorAll('#ais input:checked')].map(i => i.value).join(','); }
+
+async function refresh() {
+  try { status = await api('api/status'); } catch (e) { $('running').textContent = '서버에 연결할 수 없습니다: ' + e.message; return; }
+  const c = status.cards;
+  $('cards').textContent = `카드 데이터 ${c.version} · ${c.count}장 · ${time(c.updatedAt)} 갱신 (${c.source})`;
+  $('autorun').checked = status.autoRun;
+
+  if (!$('ais').children.length)
+    $('ais').innerHTML = status.ais.map(a => `<label><input type="checkbox" value="${a}" checked> ${a}</label>`).join('');
+
+  // 모드 목록이 바뀌었을 때만 다시 그린다 (열어 둔 목록이 닫히지 않게)
+  const modesKey = status.modes.join('\n');
+  if (modesKey !== lastModes) {
+    lastModes = modesKey;
+    for (const sel of [$('mode'), $('edit-base')]) {
+      const keep = sel.value;
+      sel.innerHTML = '<option value="">현재 수치</option>' + status.modes.map(m => `<option>${esc(m)}</option>`).join('');
+      sel.value = status.modes.includes(keep) ? keep : '';
+    }
+  }
+
+  const r = status.running;
+  if (r) {
+    const pct = r.total ? r.done / r.total * 100 : 0;
+    const elapsed = (Date.now() - new Date(r.startedAt)) / 1000;
+    const eta = r.done > 0 ? Math.round(elapsed / r.done * (r.total - r.done)) : null;
+    $('running').textContent = `실행 중: ${r.label} · ${r.done.toLocaleString()} / ${r.total.toLocaleString()}판` + (eta != null ? ` · 약 ${eta}초 남음` : '') + (status.queued ? ` · 대기 ${status.queued}건` : '');
+    $('progress').style.width = pct + '%';
+  } else {
+    $('running').textContent = status.queued ? `대기 ${status.queued}건` : '대기 중';
+    $('progress').style.width = '0';
+  }
+
+  $('history').innerHTML = status.history.length ? status.history.map(h => `
+    <tr>
+      <td class="n">${time(h.createdAt)}</td>
+      <td>${esc(h.label)}${h.auto ? '<span class="tag auto">자동</span>' : ''}${h.mode ? `<span class="tag">${esc(h.mode)}</span>` : ''}
+        <div class="small muted">${esc(h.ais)}${h.seconds ? ` · ${Math.round(h.seconds)}초` : ''}</div>
+        ${h.error ? `<div class="small err">${esc(h.error)}</div>` : ''}</td>
+      <td class="small">${esc(h.cardsVersion)}</td>
+      <td class="n">${h.games ? h.games.toLocaleString() : ''}</td>
+      <td class="n">${h.turnsMedian ? h.turnsMedian + '턴' : ''}</td>
+      <td class="n">${h.report ? `<span class="strong">${h.strong}</span> / <span class="weak">${h.weak}</span>` : ''}</td>
+      <td class="small"><span class="strong">${esc(h.topStrong)}</span><br><span class="weak">${esc(h.topWeak)}</span></td>
+      <td>${h.report ? `<button onclick="show('${h.report}', '${esc(h.label)}')">보고서</button>` : ''}
+          ${h.compare ? `<button onclick="show('${h.compare}', '${esc(h.label)} 비교')">비교</button>` : ''}</td>
+    </tr>`).join('') : '<tr><td colspan="8" class="muted">아직 없음 — 실행을 누르거나 Unity에서 카드를 저장해 보세요</td></tr>';
+}
+
+function show(url, title) {
+  $('viewer').src = url; $('viewer').hidden = false;
+  $('viewer-title').hidden = false; $('viewer-title').textContent = title;
+  $('viewer-title').scrollIntoView({ behavior:'smooth' });
+}
+
+async function run(compare) {
+  const mode = $('mode').value;
+  if (compare && !mode) { alert('비교할 모드를 먼저 고르세요.'); return; }
+  const ais = selectedAis();
+  if (!ais) { alert('AI를 하나 이상 고르세요.'); return; }
+  await post('api/run', { games: +$('games').value, ais, mode: mode || null, compare, seed: 1 });
+  refresh();
+}
+
+$('run').onclick = () => run(false);
+$('compare').onclick = () => run(true);
+$('watch').onclick = () => {
+  const ais = selectedAis().split(',').filter(a => a !== 'random');
+  const a = ais[0] || 'default', b = ais[1] || ais[0] || 'greedy';
+  window.open(`replay.html?aiA=${a}&aiB=${b}&mode=${encodeURIComponent($('mode').value)}`, '_blank');
+};
+$('autorun').onchange = e => post('api/autorun', { enabled: e.target.checked });
+
+// ---------- 모드 편집 ----------
+async function loadEditor() {
+  cardsData = await api('api/cards');
+  let patch = { cards:{}, effectPrices:{} };
+  const base = $('edit-base').value;
+  if (base) { patch = await api('api/modes/' + encodeURIComponent(base)); $('edit-name').value = base; }
+  const pc = patch.cards || {}, pp = patch.effectPrices || {};
+
+  $('edit-cards').innerHTML = cardsData.cards.map(c => {
+    const ch = pc[c.name] || {};
+    const fx = c.effects.map((e, i) => {
+      const v = ch.effects && ch.effects[i] && ch.effects[i].magnitude != null ? ch.effects[i].magnitude : e.magnitude;
+      return `<label class="small">${esc(e.type)}${e.target === 'Opponent' ? '→상대' : ''} <input type="number" data-card="${esc(c.name)}" data-field="effect" data-index="${i}" data-orig="${e.magnitude}" value="${v}"></label>`;
+    }).join(' ');
+    return `<tr><td>${esc(c.name)}${c.inStartDeck ? `<span class="tag">시작 덱 ${c.inStartDeck}</span>` : ''}</td>
+      <td><input type="number" data-card="${esc(c.name)}" data-field="cost" data-orig="${c.cost}" value="${ch.cost ?? c.cost}"></td>
+      <td><input type="number" data-card="${esc(c.name)}" data-field="cooldown" data-orig="${c.cooldown}" value="${ch.cooldown ?? c.cooldown}"></td>
+      <td>${fx || '<span class="muted small">없음</span>'}</td></tr>`;
+  }).join('');
+
+  $('edit-prices').innerHTML = cardsData.prices.map(p => {
+    const ch = pp[p.effect] || {};
+    const input = (field, value, step) => `<input type="number" step="${step}" data-effect="${p.effect}" data-field="${field}" data-orig="${value}" value="${ch[field] ?? value}">`;
+    return `<tr><td>${p.effect}</td><td>${input('price', p.price, 0.1)}</td><td>${input('magnitudeMin', p.magnitudeMin, 1)}</td><td>${input('magnitudeMax', p.magnitudeMax, 1)}</td></tr>`;
+  }).join('');
+  markChanged();
+}
+
+function markChanged() {
+  document.querySelectorAll('.editor input[type=number]').forEach(i => i.classList.toggle('changed', +i.value !== +i.dataset.orig));
+}
+
+function buildPatch() {
+  const patch = { name: $('edit-name').value.trim(), cards:{}, effectPrices:{} };
+  document.querySelectorAll('.editor input[data-card]').forEach(i => {
+    if (+i.value === +i.dataset.orig) return;
+    const c = patch.cards[i.dataset.card] ??= {};
+    if (i.dataset.field === 'effect') (c.effects ??= {})[i.dataset.index] = { magnitude: +i.value };
+    else c[i.dataset.field] = +i.value;
+  });
+  document.querySelectorAll('.editor input[data-effect]').forEach(i => {
+    if (+i.value === +i.dataset.orig) return;
+    (patch.effectPrices[i.dataset.effect] ??= {})[i.dataset.field] = +i.value;
+  });
+  return patch;
+}
+
+$('editor-box').addEventListener('toggle', e => { if (e.target.open && !cardsData) loadEditor(); });
+$('edit-base').onchange = loadEditor;
+document.addEventListener('input', e => { if (e.target.closest('.editor')) markChanged(); });
+$('save-mode').onclick = async () => {
+  const patch = buildPatch();
+  if (!patch.name) { $('edit-msg').textContent = '모드 이름을 적어 주세요.'; return; }
+  try {
+    await post('api/modes/' + encodeURIComponent(patch.name), patch);
+    $('edit-msg').textContent = `저장됨: ${patch.name} (카드 ${Object.keys(patch.cards).length}장, 가격 ${Object.keys(patch.effectPrices).length}개 변경)`;
+    await refresh();
+    $('mode').value = patch.name;
+  } catch (e) { $('edit-msg').textContent = '저장 실패: ' + e.message; }
+};
+$('delete-mode').onclick = async () => {
+  const name = $('edit-base').value;
+  if (!name || !confirm(`모드 "${name}"을(를) 삭제할까요?`)) return;
+  await api('api/modes/' + encodeURIComponent(name), { method:'DELETE' });
+  $('edit-base').value = ''; await refresh(); loadEditor();
+};
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 한 판 관전</title>
+<style>
+:root { --bg:#fff; --fg:#1d1d1f; --muted:#6b6b70; --line:#e3e3e6; --panel:#f6f6f8; --accent:#2b6fd6; --accent-fg:#fff; --hp:#c8553d; --cost:#3a8fd1; --def:#7a7a82; }
+@media (prefers-color-scheme: dark) { :root { --bg:#17171a; --fg:#ececef; --muted:#a0a0a8; --line:#33333a; --panel:#212126; --accent:#5b97ff; --accent-fg:#0d1b33; --hp:#e07a62; --cost:#5aa9e6; --def:#9a9aa2; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:20px 16px 48px; }
+h1 { font-size:20px; margin:0 0 2px; } h2 { font-size:15px; margin:18px 0 6px; }
+.muted { color:var(--muted); } .small { font-size:12px; }
+.bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+button, select { font:inherit; border:1px solid var(--line); background:var(--bg); color:var(--fg); border-radius:7px; padding:5px 11px; cursor:pointer; }
+button.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-fg); font-weight:600; }
+input[type=range] { flex:1; min-width:200px; }
+.sides { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+@media (max-width:760px) { .sides { grid-template-columns:1fr; } }
+.side { background:var(--panel); border-radius:10px; padding:12px 14px; }
+.side h3 { margin:0 0 8px; font-size:15px; }
+.meter { position:relative; height:16px; background:var(--line); border-radius:8px; overflow:hidden; margin:4px 0; }
+.meter > div { height:100%; transition:width .3s; }
+.meter span { position:absolute; inset:0; font-size:11px; line-height:16px; padding-left:8px; color:var(--fg); }
+.chips { display:flex; flex-wrap:wrap; gap:4px; min-height:22px; }
+.chip { font-size:12px; padding:1px 7px; border-radius:9px; background:var(--bg); border:1px solid var(--line); }
+.slots { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+.slots.q { grid-template-columns:repeat(3, 1fr); }
+.slot { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px; min-height:46px; font-size:12px; word-break:break-all; }
+.slot .cd { float:right; font-weight:700; color:var(--accent); }
+.slot.empty { opacity:.4; }
+.label { font-size:11px; color:var(--muted); margin:8px 0 3px; }
+.log { background:var(--panel); border-radius:10px; padding:10px 14px; margin-top:12px; font-size:13px; min-height:60px; }
+.log div { padding:1px 0; }
+svg { width:100%; height:auto; display:block; }
+details { margin-top:16px; } details summary { cursor:pointer; font-weight:600; }
+.draft { display:grid; grid-template-columns:1fr 1fr; gap:16px; font-size:12px; }
+.draft ol { padding-left:18px; margin:4px 0; } .draft li { margin-bottom:4px; }
+.pick { color:var(--accent); font-weight:600; }
+.result { font-size:16px; font-weight:700; color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <div class="bar" style="justify-content:space-between">
+    <div>
+      <h1>AI 한 판 관전</h1>
+      <div class="muted small" id="meta">불러오는 중…</div>
+    </div>
+    <div class="bar">
+      <select id="aiA"></select><span class="muted">vs</span><select id="aiB"></select>
+      <button id="again">다른 판 보기</button>
+      <a href="./" class="small">← 시뮬레이터</a>
+    </div>
+  </div>
+
+  <div class="bar" style="margin-top:14px">
+    <button id="prev">◀</button>
+    <button class="primary" id="play">재생</button>
+    <button id="next">▶</button>
+    <select id="speed"><option value="3000">0.5배</option><option value="1500" selected>실제 속도 (1.5초/턴)</option><option value="750">2배</option><option value="300">5배</option></select>
+    <input type="range" id="slider" min="0" value="0">
+    <span id="turn" class="small"></span>
+  </div>
+
+  <div class="sides">
+    <div class="side" id="sideA"></div>
+    <div class="side" id="sideB"></div>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <h2>HP 흐름</h2>
+  <div id="chart"></div>
+
+  <details>
+    <summary>카드 선택 10라운드와 최종 덱</summary>
+    <div class="draft" id="draft"></div>
+  </details>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const params = new URLSearchParams(location.search);
+let replay = null, index = 0, timer = null;
+
+for (const id of ['aiA', 'aiB'])
+  $(id).innerHTML = ['default', 'greedy', 'random'].map(a => `<option ${params.get(id) === a ? 'selected' : ''}>${a}</option>`).join('');
+
+async function load(seed) {
+  stop();
+  const q = new URLSearchParams({ aiA: $('aiA').value, aiB: $('aiB').value, mode: params.get('mode') || '' });
+  if (seed) q.set('seed', seed);
+  const res = await fetch('api/replay?' + q);
+  replay = await res.json();
+  params.set('seed', replay.seed);
+  history.replaceState(null, '', '?' + new URLSearchParams({ aiA: replay.aiA, aiB: replay.aiB, mode: params.get('mode') || '', seed: replay.seed }));
+  $('meta').innerHTML = `A: ${esc(replay.aiA)} · B: ${esc(replay.aiB)} · ${esc(replay.mode)} · 시드 ${replay.seed} · ${replay.turns.length}턴 · <span class="result">${esc(replay.outcome)}</span>`;
+  $('slider').max = replay.turns.length - 1;
+  index = 0;
+  drawDraft();
+  drawChart();
+  render();
+}
+
+function meter(value, max, color, text) {
+  return `<div class="meter"><div style="width:${Math.max(0, value / max * 100)}%;background:${color}"></div><span>${text}</span></div>`;
+}
+
+function side(label, ai, s) {
+  const queue = [0, 1, 2].map(i => s.queue[i]
+    ? `<div class="slot"><span class="cd" title="남은 쿨다운">${s.queue[i].cooldownLeft}</span>${esc(s.queue[i].card)}</div>`
+    : `<div class="slot empty">빈칸</div>`).join('');
+  const hand = s.hand.map(h => h ? `<div class="slot">${esc(h)}</div>` : `<div class="slot empty">빈칸</div>`).join('');
+  return `<h3>${label} · ${esc(ai)} ${s.guard ? '<span class="chip">가드 중</span>' : ''}</h3>
+    ${meter(s.hp, s.maxHp, 'var(--hp)', `HP ${s.hp} / ${s.maxHp}`)}
+    ${meter(s.cost, 15, 'var(--cost)', `코스트 ${s.cost} / 15`)}
+    ${meter(Math.min(s.defense, 60), 60, 'var(--def)', `방어 ${s.defense}`)}
+    <div class="label">효과</div><div class="chips">${s.effects.map(e => `<span class="chip">${esc(e)}</span>`).join('') || '<span class="muted small">없음</span>'}</div>
+    <div class="label">큐 (숫자 = 남은 쿨다운)</div><div class="slots q">${queue}</div>
+    <div class="label">손패 · 덱 ${s.deck}장</div><div class="slots">${hand}</div>`;
+}
+
+function render() {
+  const t = replay.turns[index];
+  $('sideA').innerHTML = side('A', replay.aiA, t.a);
+  $('sideB').innerHTML = side('B', replay.aiB, t.b);
+  $('log').innerHTML = `<div class="small muted">턴 ${t.turn}에 일어난 일</div>` + (t.log.filter(l => !l.startsWith('—')).map(l => `<div>${esc(l)}</div>`).join('') || '<div class="muted">없음</div>')
+    + (index === replay.turns.length - 1 ? `<div class="result" style="margin-top:6px">${esc(replay.outcome)}</div>` : '');
+  $('slider').value = index;
+  $('turn').textContent = `턴 ${t.turn} / ${replay.turns.length}`;
+  const marker = document.getElementById('marker');
+  if (marker) marker.setAttribute('x1', X(index)), marker.setAttribute('x2', X(index));
+}
+
+let X = i => 0;
+function drawChart() {
+  const w = 1000, h = 180, left = 36, right = 10, top = 10, bottom = 24, n = replay.turns.length;
+  X = i => left + (n <= 1 ? 0 : i / (n - 1)) * (w - left - right);
+  const max = Math.max(...replay.turns.map(t => Math.max(t.a.maxHp, t.b.maxHp)));
+  const Y = v => top + (1 - v / max) * (h - top - bottom);
+  const line = key => replay.turns.map((t, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(t[key].hp).toFixed(1)}`).join('');
+  const last = replay.turns[n - 1];
+  $('chart').innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="HP 흐름">
+    <line x1="${left}" x2="${w - right}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/>
+    <text x="${left - 6}" y="${Y(max) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${max}</text>
+    <text x="${left - 6}" y="${Y(0) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">0</text>
+    <path d="${line('a')}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <path d="${line('b')}" fill="none" stroke="var(--muted)" stroke-width="2"/>
+    <text x="${X(n - 1) - 4}" y="${Y(last.a.hp) - 6}" text-anchor="end" font-size="12" fill="var(--accent)">A ${esc(replay.aiA)}</text>
+    <text x="${X(n - 1) - 4}" y="${Y(last.b.hp) + 14}" text-anchor="end" font-size="12" fill="var(--muted)">B ${esc(replay.aiB)}</text>
+    <line id="marker" x1="${X(0)}" x2="${X(0)}" y1="${top}" y2="${Y(0)}" stroke="var(--fg)" stroke-dasharray="3 3" opacity=".5"/>
+    <text x="${(left + w) / 2}" y="${h - 4}" text-anchor="middle" font-size="11" fill="var(--muted)">턴</text>
+  </svg>`;
+}
+
+function drawDraft() {
+  const col = (label, picks, deck) => `<div><b>${label}</b><ol>${picks.map(p =>
+      `<li>${p.options.map((o, i) => `<div class="${i === p.chosen ? 'pick' : ''}">${i === p.chosen ? '✔ ' : ''}${esc(o)}</div>`).join('')}${p.chosen < 0 ? '<div class="pick">건너뜀</div>' : ''}</li>`).join('')}</ol>
+    <b>최종 덱 (${deck.length}장)</b><ul>${deck.map(d => `<li>${esc(d)}</li>`).join('')}</ul></div>`;
+  $('draft').innerHTML = col(`A · ${esc(replay.aiA)}`, replay.draftA, replay.deckA) + col(`B · ${esc(replay.aiB)}`, replay.draftB, replay.deckB);
+}
+
+function step(d) { index = Math.max(0, Math.min(replay.turns.length - 1, index + d)); render(); if (index === replay.turns.length - 1) stop(); }
+function stop() { clearInterval(timer); timer = null; $('play').textContent = '재생'; }
+function play() {
+  if (timer) { stop(); return; }
+  if (index >= replay.turns.length - 1) index = 0;
+  $('play').textContent = '정지';
+  timer = setInterval(() => step(1), +$('speed').value);
+}
+
+$('prev').onclick = () => { stop(); step(-1); };
+$('next').onclick = () => { stop(); step(1); };
+$('play').onclick = play;
+$('speed').onchange = () => { if (timer) { stop(); play(); } };
+$('slider').oninput = e => { stop(); index = +e.target.value; render(); };
+$('again').onclick = () => load(null);
+$('aiA').onchange = $('aiB').onchange = () => load(null);
+document.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { stop(); step(1); } if (e.key === 'ArrowLeft') { stop(); step(-1); } if (e.key === ' ') { e.preventDefault(); play(); } });
+
+load(params.get('seed'));
+</script>
+</body>
+</html>

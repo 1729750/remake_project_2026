@@ -1,4 +1,4 @@
-namespace CardGameServer.Game;
+namespace CardGame.Core;
 
 /// <summary>
 /// Unity CardEffect: 카드 위의 효과 하나 + 이번 적용에서 쌓인 adder/multiplier.

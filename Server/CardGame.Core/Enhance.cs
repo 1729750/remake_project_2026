@@ -1,4 +1,4 @@
-namespace CardGameServer.Game;
+namespace CardGame.Core;
 
 /// <summary>강화 1회: 붙일 효과와 그 대가로 늘어나는 코스트/쿨다운. (Unity CardUpgrade)</summary>
 public sealed record CardUpgrade(CardEffectDef Effect, int CostDelta, int CooldownDelta);
@@ -150,6 +150,14 @@ public static class Enhance
             or EffectType.Harden or EffectType.Guard or EffectType.TimeSkip or EffectType.Quicker or EffectType.CostToCooldown
             or EffectType.CooldownToCost or EffectType.DivideCooldown or EffectType.DefenseToCooldown => TargetSide.Positive,
         _ => TargetSide.Neutral,
+    };
+
+    /// <summary>1 = 나에게 거는 좋은 효과, -1 = 상대에게 거는 효과, 0 = 중립. (Unity Effect.TargetPolarity)</summary>
+    public static int PolaritySign(EffectType type) => Polarity(type) switch
+    {
+        TargetSide.Positive => 1,
+        TargetSide.Negative => -1,
+        _ => 0,
     };
 
     private static bool DoesntUseMagnitude(EffectType type) =>
