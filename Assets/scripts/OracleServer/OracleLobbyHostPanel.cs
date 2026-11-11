@@ -171,7 +171,7 @@ public sealed class OracleLobbyHostPanel : MonoBehaviour
         {
             case "room_joined":
                 creating = false;
-                SetStatus("상대에게 방 코드를 알려주세요.");
+                SetStatus($"방 코드 {client.RoomCode} 를 상대에게 알려주세요.");
                 Refresh();
                 break;
 

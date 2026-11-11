@@ -37,8 +37,8 @@ public sealed class Room
 /// </summary>
 public sealed class RoomManager
 {
-    // 헷갈리는 문자(0/O, 1/I/L) 제외
-    private const string CodeChars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    // 화면을 보고 옮겨 적을 때 헷갈리는 문자(0/O, 1/I/L, 2/Z, 5/S, 8/B, U/V) 제외
+    private const string CodeChars = "ACDEFGHJKMNPQRTWXY34679";
     private const int CodeLength = 6;
     private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(50);
 
@@ -57,6 +57,14 @@ public sealed class RoomManager
     {
         get { lock (gate) return rooms.Count; }
     }
+
+    // 전각(５Ｍ５ＧＷＲ), 공백, 하이픈, 소문자가 섞여 들어와도 방 코드 형식으로 맞춘다
+    // (서버는 InvariantGlobalization이라 string.Normalize 대신 전각 영역 U+FF01~FF5E만 직접 반각으로 바꾼다)
+    private static string NormalizeCode(string? raw) =>
+        string.Concat((raw ?? "")
+            .Select(c => c >= '！' && c <= '～' ? (char)(c - 0xFEE0) : c)
+            .Where(char.IsAsciiLetterOrDigit)
+            .Select(char.ToUpperInvariant));
 
     public void CreateRoom(PlayerConnection player)
     {
@@ -85,7 +93,7 @@ public sealed class RoomManager
 
     public void JoinRoom(PlayerConnection player, string? rawCode)
     {
-        string code = rawCode?.Trim().ToUpperInvariant() ?? string.Empty;
+        string code = NormalizeCode(rawCode);
 
         lock (gate)
         {
@@ -97,6 +105,8 @@ public sealed class RoomManager
 
             if (!rooms.TryGetValue(code, out Room? room))
             {
+                logger.LogInformation("Join failed: {Code} (raw {Raw}) not found, {Count} rooms open: {Codes}",
+                    code, rawCode, rooms.Count, string.Join(",", rooms.Keys));
                 player.Send(new ServerMessage("error", Message: "방을 찾을 수 없습니다."));
                 return;
             }

@@ -27,6 +27,7 @@ public sealed class OracleLobbyClientPanel : MonoBehaviour
     private OracleServerClient client;
     private bool joining;
     private bool loadingGame;
+    private string sentCode = string.Empty;
 
     private void Awake()
     {
@@ -66,7 +67,9 @@ public sealed class OracleLobbyClientPanel : MonoBehaviour
     {
         if (joining || client.InRoom) return;
 
-        string code = codeInput != null ? codeInput.text.Trim().ToUpperInvariant() : string.Empty;
+        // 한글 입력기 전각 모드(５Ｍ５ＧＷＲ)나 공백이 섞여도 서버 코드 형식으로 맞춘다
+        string code = codeInput != null ? NormalizeCode(codeInput.text) : string.Empty;
+        if (codeInput != null) codeInput.text = code;
         if (code.Length == 0)
         {
             SetStatus("방 코드를 입력하세요.");
@@ -93,7 +96,8 @@ public sealed class OracleLobbyClientPanel : MonoBehaviour
             return;
         }
 
-        SetStatus("방 참가 중...");
+        sentCode = code;
+        SetStatus($"방 참가 중... ({code})");
         client.Send(ClientMessage.Hello(nickname));
         client.Send(ClientMessage.JoinRoom(code));
     }
@@ -126,7 +130,8 @@ public sealed class OracleLobbyClientPanel : MonoBehaviour
 
             case "error":
                 joining = false;
-                SetStatus(message.message);
+                // 코드를 잘못 옮겨 적었는지 바로 알 수 있게 보낸 코드를 같이 보여준다
+                SetStatus(sentCode.Length > 0 ? $"{message.message}\n(보낸 코드: {sentCode})" : message.message);
                 break;
         }
     }
@@ -151,8 +156,25 @@ public sealed class OracleLobbyClientPanel : MonoBehaviour
 
     private static char ValidateCodeCharacter(string text, int charIndex, char addedChar)
     {
-        bool isEnglish = (addedChar >= 'A' && addedChar <= 'Z') || (addedChar >= 'a' && addedChar <= 'z');
-        bool isNumber = addedChar >= '0' && addedChar <= '9';
-        return isEnglish || isNumber ? char.ToUpperInvariant(addedChar) : '\0';
+        char c = ToHalfWidth(addedChar);
+        return IsCodeChar(c) ? char.ToUpperInvariant(c) : '\0';
     }
+
+    /// <summary>전각 영문/숫자를 반각으로 바꾸고 영문/숫자만 남겨 대문자로.</summary>
+    public static string NormalizeCode(string raw)
+    {
+        var builder = new System.Text.StringBuilder(raw.Length);
+        foreach (char ch in raw)
+        {
+            char c = ToHalfWidth(ch);
+            if (IsCodeChar(c)) builder.Append(char.ToUpperInvariant(c));
+        }
+        return builder.ToString();
+    }
+
+    // 전각 ！(U+FF01) ~ ～(U+FF5E) → 반각
+    private static char ToHalfWidth(char c) => c >= '！' && c <= '～' ? (char)(c - 0xFEE0) : c;
+
+    private static bool IsCodeChar(char c) =>
+        (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
 }
