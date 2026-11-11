@@ -659,7 +659,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuManager
   startSceneName: SinglePlayMode
-  battleSceneName: MultiLobbyScene
+  battleSceneName: MultiplayLobby_Oracle
   settingsPanel: {fileID: 1933948431}
   menuItems:
   - targetImages:
