@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
 # 로컬에서 빌드해서 오라클 서버에 올리고 서비스를 재시작한다.
-# 사용법 (Git Bash, Server 폴더 기준):  ./deploy/deploy.sh
+# 사용법 (Git Bash, 저장소 어디서든):  bash Server/deploy/deploy.sh
 # 키 경로/주소는 환경변수로 바꿀 수 있다.
+#
+# 일부 네트워크(학교/공용 와이파이 등)는 SSH(22번) 연결을 중간중간 끊는다.
+# 그래서 업로드와 설치를 SSH 연결 한 번에 끝내고, 연결이 끊기면 몇 번 다시 시도한다.
 set -euo pipefail
 
 HOST="${CARDGAME_HOST:-ubuntu@161.33.142.112}"
 KEY="${CARDGAME_KEY:-/c/Server/RealTimeCardGame/ssh-key-2026-11-03.key}"
 SERVER_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SSH=(ssh -i "$KEY" -o BatchMode=yes "$HOST")
+TRIES="${DEPLOY_TRIES:-6}"
 
 echo "== publish (linux-arm64)"
 rm -rf "$SERVER_DIR/publish"
 dotnet publish "$SERVER_DIR/CardGameServer/CardGameServer.csproj" \
-  -c Release -r linux-arm64 --self-contained false -o "$SERVER_DIR/publish"
+  -c Release -r linux-arm64 --self-contained false -o "$SERVER_DIR/publish" > /dev/null
 
-echo "== upload"
-tar -C "$SERVER_DIR/publish" -czf - . | "${SSH[@]}" 'rm -rf /tmp/cardgame-new && mkdir /tmp/cardgame-new && tar -C /tmp/cardgame-new -xzf -'
-scp -i "$KEY" -o BatchMode=yes "$SERVER_DIR/deploy/cardgame.service" "$HOST:/tmp/cardgame.service"
-
-echo "== install"
-"${SSH[@]}" 'bash -s' <<'REMOTE'
+# 서비스 파일과 설치 스크립트를 같은 묶음에 넣어 한 번에 보낸다
+mkdir -p "$SERVER_DIR/publish/_deploy"
+cp "$SERVER_DIR/deploy/cardgame.service" "$SERVER_DIR/publish/_deploy/"
+cat > "$SERVER_DIR/publish/_deploy/install.sh" <<'REMOTE'
 set -euo pipefail
 if ! dpkg -s aspnetcore-runtime-10.0 >/dev/null 2>&1; then
   sudo apt-get update -qq
@@ -31,10 +32,11 @@ if ! sudo iptables -C INPUT -p tcp --dport 7777 -m state --state NEW -j ACCEPT 2
   sudo netfilter-persistent save >/dev/null
 fi
 id cardgame >/dev/null 2>&1 || sudo useradd --system --no-create-home --shell /usr/sbin/nologin cardgame
+sudo install -m 644 /tmp/cardgame-new/_deploy/cardgame.service /etc/systemd/system/cardgame.service
+rm -rf /tmp/cardgame-new/_deploy
 sudo rm -rf /opt/cardgame
 sudo mv /tmp/cardgame-new /opt/cardgame
 sudo chown -R root:root /opt/cardgame
-sudo install -m 644 /tmp/cardgame.service /etc/systemd/system/cardgame.service
 sudo systemctl daemon-reload
 sudo systemctl enable cardgame >/dev/null
 sudo systemctl restart cardgame
@@ -42,3 +44,15 @@ sleep 2
 systemctl is-active cardgame
 curl -fsS http://localhost:7777/health; echo
 REMOTE
+
+echo "== upload + install"
+for try in $(seq 1 "$TRIES"); do
+  if tar -C "$SERVER_DIR/publish" -czf - . | ssh -i "$KEY" -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 "$HOST" \
+      'rm -rf /tmp/cardgame-new && mkdir /tmp/cardgame-new && tar -C /tmp/cardgame-new -xzf - && bash /tmp/cardgame-new/_deploy/install.sh'; then
+    exit 0
+  fi
+  echo "SSH 연결이 끊겼습니다. 다시 시도 ($try/$TRIES)" >&2
+  sleep 3
+done
+echo "배포 실패: SSH(22번)에 계속 연결할 수 없습니다. 다른 네트워크에서 다시 시도하세요." >&2
+exit 1
